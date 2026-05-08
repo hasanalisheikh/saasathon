@@ -12,6 +12,7 @@ import {
   EmptyState,
   EmptyStateTitle,
 } from "@workspace/ui/components/empty-state"
+import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -42,9 +43,18 @@ export default async function DashboardPage() {
     .reduce((sum, r) => sum + ((r.cost_min + r.cost_max) / 2 || 0), 0) ?? 0
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto p-6 space-y-8">
+      <PageHeader>
+        <div>
+          <PageTitle>Dashboard</PageTitle>
+          <PageDescription>
+            General analytics, additional requests, potential jobs, and overall scope metrics.
+          </PageDescription>
+        </div>
+      </PageHeader>
+
       {/* Metrics */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-4">
         <MetricCard label="Requests This Month" value={String(requestsThisMonth)} />
         <MetricCard label="Out-of-Scope Caught" value={String(outOfScopeCaught)} accent="red" />
         <MetricCard

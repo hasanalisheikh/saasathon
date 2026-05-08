@@ -6,14 +6,6 @@ import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
 import { Separator } from "@workspace/ui/components/separator"
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-} from "@workspace/ui/components/breadcrumb"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@workspace/ui/components/tabs"
 import {
   ClassificationBadge,
@@ -79,23 +71,10 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-6">
-      {/* Breadcrumb */}
-      <Breadcrumb className="mb-4">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/projects" />}>Projects</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{project.name}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
       {/* Header */}
       <PageHeader>
         <div>
-          <PageTitle className="text-2xl font-light">{project.name}</PageTitle>
+          <PageTitle>{project.name}</PageTitle>
           <PageDescription>
             {project.client_name}
             {project.client_email ? ` · ${project.client_email}` : ""}

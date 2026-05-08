@@ -13,7 +13,12 @@ import {
 } from "@workspace/ui/components/breadcrumb"
 import { Fragment } from "react"
 
-export function DynamicBreadcrumb() {
+interface Project {
+  id: string
+  name: string
+}
+
+export function DynamicBreadcrumb({ projects = [] }: { projects?: Project[] }) {
   const pathname = usePathname()
   const paths = pathname.split("/").filter(Boolean)
 
@@ -34,7 +39,12 @@ export function DynamicBreadcrumb() {
           // Check if path is a UUID
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
           if (uuidRegex.test(path)) {
-            title = path.slice(0, 6) + "..."
+            const project = projects.find((p) => p.id === path)
+            if (project) {
+              title = project.name
+            } else {
+              title = path.slice(0, 6) + "..."
+            }
           }
 
           return (

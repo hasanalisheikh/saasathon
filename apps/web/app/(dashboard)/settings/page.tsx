@@ -9,7 +9,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Separator } from "@workspace/ui/components/separator"
 import { Badge } from "@workspace/ui/components/badge"
 import { FormField, FormLabel } from "@workspace/ui/components/form-field"
-import { PageTitle } from "@workspace/ui/components/page-header"
+import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
 
 interface Profile {
   full_name: string | null
@@ -74,8 +74,15 @@ export default function SettingsPage() {
   const isGithubConnected = githubStatus === 'connected' || !!profile?.github_username
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 max-w-xl">
-      <PageTitle className="mb-8">Settings</PageTitle>
+    <div className="flex-1 overflow-y-auto p-6 max-w-xl space-y-8">
+      <PageHeader>
+        <div>
+          <PageTitle>Settings</PageTitle>
+          <PageDescription>
+            Manage your profile, notification preferences, and external integrations.
+          </PageDescription>
+        </div>
+      </PageHeader>
 
       <Section title="Profile">
         <form onSubmit={handleSave} className="space-y-4">

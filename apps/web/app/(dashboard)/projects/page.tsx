@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardHeader, CardTitle, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { ProjectStatusBadge } from "@workspace/ui/components/status-badge"
-import { PageHeader, PageTitle, PageActions } from "@workspace/ui/components/page-header"
+import { PageHeader, PageTitle, PageDescription, PageActions } from "@workspace/ui/components/page-header"
 import {
   EmptyState,
   EmptyStateTitle,
@@ -21,9 +21,14 @@ export default async function ProjectsPage() {
     .order("created_at", { ascending: false })
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto p-6 space-y-8">
       <PageHeader>
-        <PageTitle>Projects</PageTitle>
+        <div>
+          <PageTitle>Projects</PageTitle>
+          <PageDescription>
+            Manage your active client projects, view request history, and track project health.
+          </PageDescription>
+        </div>
         <PageActions>
           <Button render={<Link href="/projects/new" />} nativeButton={false}>+ New Project</Button>
         </PageActions>

@@ -42,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <ResizablePanel defaultSize={85} className="overflow-hidden">
           <SidebarInset className="h-full flex flex-col overflow-hidden">
             <header className="px-6 pt-6 shrink-0 bg-background">
-              <DynamicBreadcrumb />
+              <DynamicBreadcrumb projects={projects || []} />
             </header>
             <div className="flex-1 min-h-0 overflow-y-auto">
               {children}

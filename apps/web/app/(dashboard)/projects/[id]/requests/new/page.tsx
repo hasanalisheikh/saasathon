@@ -8,15 +8,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { FormField, FormLabel, FormError } from "@workspace/ui/components/form-field"
-import { PageTitle, PageDescription } from "@workspace/ui/components/page-header"
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-} from "@workspace/ui/components/breadcrumb"
+import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
 
 export default function NewRequestPage() {
   const { id } = useParams<{ id: string }>()
@@ -64,26 +56,15 @@ Marcus`)
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
-      <div className="mx-auto w-full max-w-2xl">
-        {/* Breadcrumb */}
-        <Breadcrumb className="mb-4">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href="/projects" />}>Projects</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>New request</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
-        <div className="mb-6">
-          <PageTitle>Add Client Request</PageTitle>
-          <PageDescription>
-            Paste a client email to run the same scope analysis used by inbound email.
-          </PageDescription>
-        </div>
+      <div className="mx-auto w-full max-w-2xl space-y-8">
+        <PageHeader>
+          <div>
+            <PageTitle>Add Client Request</PageTitle>
+            <PageDescription>
+              Paste a client email to run the same scope analysis used by inbound email.
+            </PageDescription>
+          </div>
+        </PageHeader>
 
         <form onSubmit={submit} className="space-y-4">
           <FormField>

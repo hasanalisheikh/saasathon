@@ -5,11 +5,20 @@ import {
   EmptyStateTitle,
   EmptyStateDescription,
 } from "@workspace/ui/components/empty-state"
+import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
 
 export default function CalendarPage() {
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <h1 className="text-lg font-semibold mb-6">Calendar</h1>
+    <div className="flex-1 overflow-y-auto p-6 space-y-8">
+      <PageHeader>
+        <div>
+          <PageTitle>Calendar</PageTitle>
+          <PageDescription>
+            Schedule meetings, track upcoming deadlines, and monitor project milestones.
+          </PageDescription>
+        </div>
+      </PageHeader>
+
       <EmptyState>
         <EmptyStateIcon>
           <CalendarIcon />

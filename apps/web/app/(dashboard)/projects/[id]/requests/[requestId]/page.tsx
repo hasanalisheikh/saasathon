@@ -9,14 +9,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { Separator } from "@workspace/ui/components/separator"
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
-} from "@workspace/ui/components/breadcrumb"
+import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
 import {
   ClassificationBadge,
   SourceBadge,
@@ -117,25 +110,15 @@ export default function RequestReviewPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {/* Topbar breadcrumb */}
-      <div className="px-6 py-3 border-b border-border">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href="/projects" />}>Projects</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href={`/projects/${id}`} />}>
-                {project?.name ?? "Project"}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Request Review</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <div className="px-6 py-6 border-b border-border">
+        <PageHeader>
+          <div>
+            <PageTitle>Request Review</PageTitle>
+            <PageDescription>
+              Review the client's request against the agreed scope and prepare a response.
+            </PageDescription>
+          </div>
+        </PageHeader>
       </div>
 
       {/* Two-panel layout */}
