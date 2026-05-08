@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 import { getOpenAI, streamToResponse } from "../lib/openai"
+import { mockStream, MOCK_SUBMISSION_REPORT } from "../lib/mock"
 import type { Env } from "../index"
 
 type Criterion = { name: string; weight: number; description: string }
@@ -18,6 +19,10 @@ submissionRoute.post("/check", async (c) => {
 
   if (!draftContent || !criteria?.length) {
     return c.json({ error: "draftContent and criteria are required" }, 400)
+  }
+
+  if (c.env.MOCK_AI === "true") {
+    return mockStream(MOCK_SUBMISSION_REPORT)
   }
 
   const openai = getOpenAI(c.env)

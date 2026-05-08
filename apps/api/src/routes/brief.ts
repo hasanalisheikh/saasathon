@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 import { getOpenAI, streamToResponse } from "../lib/openai"
+import { mockStream, MOCK_BRIEF_RESPONSE } from "../lib/mock"
 import type { Env } from "../index"
 
 export const briefRoute = new Hono<{ Bindings: Env }>()
@@ -12,6 +13,10 @@ briefRoute.post("/ingest", async (c) => {
 
   if (!brief || !projectId) {
     return c.json({ error: "brief and projectId are required" }, 400)
+  }
+
+  if (c.env.MOCK_AI === "true") {
+    return mockStream(MOCK_BRIEF_RESPONSE)
   }
 
   const openai = getOpenAI(c.env)

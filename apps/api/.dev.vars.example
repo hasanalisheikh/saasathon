@@ -3,3 +3,6 @@ OPENAI_API_KEY=sk-...
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ALLOWED_ORIGIN=http://localhost:3000
+
+# Set to "true" to use mock AI responses (no API key needed)
+MOCK_AI=true

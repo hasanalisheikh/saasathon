@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 import { getOpenAI } from "../lib/openai"
+import { MOCK_RISK_RESPONSE } from "../lib/mock"
 import type { Env } from "../index"
 
 type Criterion = { name: string; weight: number; taskCount: number; completedCount: number }
@@ -18,6 +19,10 @@ riskRoute.post("/audit", async (c) => {
 
   if (!projectId || !criteria) {
     return c.json({ error: "projectId and criteria are required" }, 400)
+  }
+
+  if (c.env.MOCK_AI === "true") {
+    return c.json(MOCK_RISK_RESPONSE)
   }
 
   const openai = getOpenAI(c.env)

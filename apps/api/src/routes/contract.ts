@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 import { getOpenAI } from "../lib/openai"
+import { MOCK_CONTRACT_VALIDATE_RESPONSE, MOCK_CONTRACT_TIME_RESPONSE } from "../lib/mock"
 import type { Env } from "../index"
 
 export const contractRoute = new Hono<{ Bindings: Env }>()
@@ -19,6 +20,10 @@ contractRoute.post("/validate", async (c) => {
 
   if (!proof || !criterionName) {
     return c.json({ error: "proof and criterionName are required" }, 400)
+  }
+
+  if (c.env.MOCK_AI === "true") {
+    return c.json(MOCK_CONTRACT_VALIDATE_RESPONSE)
   }
 
   const openai = getOpenAI(c.env)
@@ -69,6 +74,10 @@ contractRoute.post("/suggest-time", async (c) => {
       criterionWeight: number
       existingContracts: { deadline: string; hours: number }[]
     }>()
+
+  if (c.env.MOCK_AI === "true") {
+    return c.json(MOCK_CONTRACT_TIME_RESPONSE)
+  }
 
   const openai = getOpenAI(c.env)
 

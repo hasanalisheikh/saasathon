@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 import { getOpenAI, streamToResponse } from "../lib/openai"
+import { mockStream, MOCK_CHAT_SUMMARY, MOCK_CHAT_SCAN_FLAGGED, MOCK_CHAT_SCAN_CLEAR } from "../lib/mock"
 import type { Env } from "../index"
 
 type Message = { author: string; content: string; createdAt: string }
@@ -18,6 +19,10 @@ chatRoute.post("/summarise", async (c) => {
 
   if (!messages?.length) {
     return c.json({ error: "messages are required" }, 400)
+  }
+
+  if (c.env.MOCK_AI === "true") {
+    return mockStream(MOCK_CHAT_SUMMARY)
   }
 
   const openai = getOpenAI(c.env)
@@ -68,6 +73,12 @@ chatRoute.post("/scan", async (c) => {
     message: string
     criteria: string[]
   }>()
+
+  if (c.env.MOCK_AI === "true") {
+    // Flag ~1 in 4 messages to simulate realistic passive detection
+    const shouldFlag = Math.random() < 0.25
+    return c.json(shouldFlag ? MOCK_CHAT_SCAN_FLAGGED : MOCK_CHAT_SCAN_CLEAR)
+  }
 
   const openai = getOpenAI(c.env)
 
