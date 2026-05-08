@@ -1,6 +1,22 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "OPENAI_API_KEY",
+    "RESEND_API_KEY",
+    "RESEND_FROM_EMAIL",
+    "POSTMARK_INBOUND_WEBHOOK_TOKEN",
+    "POSTMARK_SERVER_TOKEN",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "GITHUB_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_APP_URL",
+    "INBOUND_EMAIL_DOMAIN",
+    "MOCK_AI"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

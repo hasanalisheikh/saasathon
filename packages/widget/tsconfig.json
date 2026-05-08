@@ -1,0 +1,10 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "compilerOptions": {
+    "lib": ["ES2017", "DOM"],
+    "target": "ES2017",
+    "module": "ESNext",
+    "noEmit": true
+  },
+  "include": ["src"]
+}

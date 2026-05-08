@@ -3,35 +3,54 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
-export async function login(formData: FormData) {
-  const supabase = await createClient()
+function redirectWithError(path: string, message: string): never {
+  redirect(`${path}?error=${encodeURIComponent(message)}`)
+}
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  })
+export async function login(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim()
+  const password = String(formData.get("password") ?? "")
+
+  if (!email || !password) {
+    redirectWithError("/login", "Email and password are required.")
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    return { error: error.message }
+    redirectWithError("/login", error.message)
   }
 
   redirect("/dashboard")
 }
 
 export async function signup(formData: FormData) {
-  const supabase = await createClient()
+  const fullName = String(formData.get("full_name") ?? "").trim()
+  const email = String(formData.get("email") ?? "").trim()
+  const password = String(formData.get("password") ?? "")
 
-  const { error } = await supabase.auth.signUp({
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
+  if (!fullName || !email || !password) {
+    redirectWithError("/signup", "Full name, email, and password are required.")
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
     options: {
-      data: { full_name: formData.get("full_name") as string },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      data: {
+        full_name: fullName,
+      },
     },
   })
 
   if (error) {
-    return { error: error.message }
+    redirectWithError("/signup", error.message)
+  }
+
+  if (!data.session) {
+    redirect("/login?message=Check%20your%20email%20to%20confirm%20your%20account.")
   }
 
   redirect("/dashboard")
