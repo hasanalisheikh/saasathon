@@ -33,12 +33,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/settings?github=error', req.url))
   }
 
+  // Fetch GitHub username to store on the profile
+  const ghUser = await fetch('https://api.github.com/user', {
+    headers: { Authorization: `Bearer ${access_token}`, 'User-Agent': 'Monad-App' },
+  }).then((r) => r.json()).catch(() => null)
+  const github_username = ghUser?.login ?? null
+
+  // Always persist username + token on profile
+  await supabase.from('profiles').update({ github_username }).eq('id', user.id)
+
   // Store token on project (if projectId) or profile
   if (projectId && projectId !== user.id) {
     await supabase.from('projects').update({
       github_installation_id: access_token,
     }).eq('id', projectId).eq('user_id', user.id)
-    return NextResponse.redirect(new URL(`/projects/${projectId}`, req.url))
+    return NextResponse.redirect(new URL(`/projects/${projectId}/github-setup`, req.url))
   }
 
   return NextResponse.redirect(new URL('/settings?github=connected', req.url))

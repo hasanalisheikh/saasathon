@@ -36,22 +36,38 @@ export default function RequestReviewPage() {
   const [reply, setReply] = useState("")
   const [tone, setTone] = useState<Tone>("professional")
   const [sending, setSending] = useState(false)
+  const [analysing, setAnalysing] = useState(false)
   const [accidentalYes, setAccidentalYes] = useState(false)
 
+  async function loadRequest() {
+    const [reqRes, projRes] = await Promise.all([
+      fetch(`/api/requests/${requestId}`),
+      fetch(`/api/projects/${id}`),
+    ])
+    const reqData = await reqRes.json()
+    const projData = await projRes.json()
+    setRequest(reqData)
+    setProject(projData)
+    setReply(reqData.draft_reply ?? '')
+  }
+
   useEffect(() => {
-    async function load() {
-      const [reqRes, projRes] = await Promise.all([
-        fetch(`/api/requests/${requestId}`),
-        fetch(`/api/projects/${id}`),
-      ])
-      const reqData = await reqRes.json()
-      const projData = await projRes.json()
-      setRequest(reqData)
-      setProject(projData)
-      setReply(reqData.draft_reply ?? "")
-    }
-    load()
+    loadRequest()
   }, [id, requestId])
+
+  async function reanalyse() {
+    setAnalysing(true)
+    try {
+      await fetch('/api/ai/analyse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: requestId }),
+      })
+      await loadRequest()
+    } finally {
+      setAnalysing(false)
+    }
+  }
 
   function checkAccidentalYes(text: string) {
     const lower = text.toLowerCase()
@@ -171,9 +187,29 @@ export default function RequestReviewPage() {
         {/* RIGHT — AI Analysis (40%) */}
         <div className="w-[40%] p-6 space-y-5">
 
+          {/* Panel header with re-analyse button */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">AI Analysis</p>
+            <Button
+              variant={!request?.classification ? "default" : "outline"}
+              size="sm"
+              onClick={reanalyse}
+              disabled={analysing}
+            >
+              {analysing ? (
+                <>
+                  <span className="inline-block animate-spin">↻</span>
+                  Analysing…
+                </>
+              ) : (
+                <>↻ Re-analyse</>
+              )}
+            </Button>
+          </div>
+
           {/* Classification panel */}
           <Card
-            className={cn("border-l-4", colorClass)}
+            className={`border-l-4 ${colorClass}`}
           >
             <CardContent className="space-y-3">
               <span className="text-lg font-bold">
@@ -183,7 +219,7 @@ export default function RequestReviewPage() {
                 <div>
                   <div className="flex justify-between text-xs mb-1 text-muted-foreground">
                     <span>Confidence</span>
-                    <span style={{ color: classColor }}>{request.confidence}%</span>
+                    <span>{request.confidence}%</span>
                   </div>
                   <div className="h-1 rounded-full bg-border">
                     <div

@@ -114,43 +114,48 @@ function ApprovalCard({ request, token }: { request: any; token: string }) {
 
 function ApprovalForm({ token, costMin, costMax }: { token: string; costMin: number; costMax: number }) {
   return (
-    <form action={`/api/approve/${token}`} method="POST" className="space-y-4 border-t border-white/10 p-6">
-      <label className="flex cursor-pointer items-start gap-3">
-        <input
-          type="checkbox"
-          name="understood"
-          required
-          className="mt-1 size-4"
-          style={{ accentColor: '#8b5cf6' }}
-        />
-        <span className="text-sm leading-6 text-[#afa3c5]">
-          I understand this work is outside the original project scope and agree to the estimated cost
-          range of{' '}
-          <strong className="font-semibold text-[#c4b5fd]">
-            ${costMin?.toLocaleString()} - ${costMax?.toLocaleString()}
-          </strong>{' '}
-          shown above.
-        </span>
-      </label>
+    <>
+      <form action={`/api/approve/${token}`} method="POST" className="space-y-4 border-t border-white/10 p-6">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            name="understood"
+            required
+            className="mt-1 size-4"
+            style={{ accentColor: '#8b5cf6' }}
+          />
+          <span className="text-sm leading-6 text-[#afa3c5]">
+            I understand this work is outside the original project scope and agree to the estimated cost
+            range of{' '}
+            <strong className="font-semibold text-[#c4b5fd]">
+              ${costMin?.toLocaleString()} - ${costMax?.toLocaleString()}
+            </strong>{' '}
+            shown above.
+          </span>
+        </label>
 
-      <button
-        type="submit"
-        name="action"
-        value="approve"
-        className="h-12 w-full rounded-md bg-[#34d399] text-sm font-semibold text-[#03130e] transition hover:bg-[#6ee7b7]"
-      >
-        Approve and schedule
-      </button>
+        <button
+          type="submit"
+          name="action"
+          value="approve"
+          className="h-12 w-full rounded-md bg-[#34d399] text-sm font-semibold text-[#03130e] transition hover:bg-[#6ee7b7]"
+        >
+          Approve and schedule
+        </button>
 
-      <button
-        type="submit"
-        name="action"
-        value="decline"
-        className="w-full rounded-md py-2 text-sm text-[#8f82a8] transition hover:bg-white/[0.04] hover:text-white"
-      >
-        Decline this request
-      </button>
-    </form>
+      </form>
+
+      <form action={`/api/approve/${token}`} method="POST" className="px-6 pb-6">
+        <button
+          type="submit"
+          name="action"
+          value="decline"
+          className="w-full rounded-md py-2 text-sm text-[#8f82a8] transition hover:bg-white/[0.04] hover:text-white"
+        >
+          Decline this request
+        </button>
+      </form>
+    </>
   )
 }
 
