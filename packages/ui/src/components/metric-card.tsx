@@ -31,7 +31,7 @@ function MetricCard({
   return (
     <Card className={cn("gap-2", className)} {...props}>
       <CardContent>
-        <p className="text-xs text-muted-foreground mb-1">{label}</p>
+        <p className="text-sm text-muted-foreground mb-1">{label}</p>
         <p
           className={cn(
             large ? "text-3xl font-light" : "text-2xl font-semibold",

@@ -17,7 +17,7 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof Label>) 
   return (
     <Label
       data-slot="form-label"
-      className={cn("text-xs text-muted-foreground", className)}
+      className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
   )
@@ -27,7 +27,7 @@ function FormHint({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
       data-slot="form-hint"
-      className={cn("text-xs text-muted-foreground/70", className)}
+      className={cn("text-sm text-muted-foreground/70", className)}
       {...props}
     />
   )
@@ -38,7 +38,7 @@ function FormError({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="form-error"
       className={cn(
-        "rounded-md p-3 text-xs bg-destructive/10 border border-destructive/30 text-destructive",
+        "rounded-md p-3 text-sm bg-destructive/10 border border-destructive/30 text-destructive",
         className
       )}
       {...props}

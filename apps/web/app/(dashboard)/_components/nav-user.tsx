@@ -1,6 +1,7 @@
 "use client"
 
-import { LogOutIcon, ChevronsUpDownIcon, SunIcon, MoonIcon } from "lucide-react"
+import Link from "next/link"
+import { LogOutIcon, ChevronsUpDownIcon, SunIcon, MoonIcon, SettingsIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import {
   DropdownMenu,
@@ -50,10 +51,14 @@ export function NavUser({ user, logoutAction }: NavUserProps) {
             sideOffset={4}
           >
             <div className="px-2 py-1.5">
-              <p className="text-xs font-medium truncate">{user.name}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              <p className="text-sm font-medium truncate">{user.name}</p>
+              <p className="text-sm text-muted-foreground truncate">{user.email}</p>
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href="/settings" />}>
+              <SettingsIcon className="mr-2 size-4" />
+              Settings
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               {theme === "dark" ? (
                 <SunIcon className="mr-2 size-4" />
