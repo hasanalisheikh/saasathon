@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { cn } from "@workspace/ui/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
