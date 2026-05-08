@@ -36,6 +36,7 @@ export async function signup(formData: FormData) {
   }
 
   const supabase = await createClient()
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -43,6 +44,7 @@ export async function signup(formData: FormData) {
       data: {
         full_name: fullName,
       },
+      emailRedirectTo: `${appUrl}/api/auth/callback`,
     },
   })
 
