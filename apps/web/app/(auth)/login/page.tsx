@@ -1,13 +1,22 @@
 import Link from 'next/link'
 import { BrandMark } from '@/components/brand-mark'
-import { login } from '@/lib/actions/auth'
+import { login, resendVerificationAction } from '@/lib/actions/auth'
+import { VerificationPoller } from '../_components/verification-poller'
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>
+  searchParams: Promise<{
+    error?: string
+    message?: string
+    unconfirmed?: string
+    email?: string
+    awaiting_verification?: string
+  }>
 }) {
-  const { error, message } = await searchParams
+  const { error, message, unconfirmed, email, awaiting_verification } = await searchParams
+  const isUnconfirmed = unconfirmed === '1'
+  const isAwaiting = awaiting_verification === '1'
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#05030a] px-4 py-12 text-[#faf7ff]">
@@ -29,9 +38,48 @@ export default async function LoginPage({
             </div>
           )}
 
-          {message && (
+          {message && !isAwaiting && (
             <div className="mt-5 rounded-md border border-[#34d399]/30 bg-[#0b3328]/35 p-3 text-sm text-[#bbf7d0]">
               {message}
+            </div>
+          )}
+
+          {isUnconfirmed && (
+            <div className="mt-5 rounded-md border border-[#f59e0b]/30 bg-[#1c1a0a]/60 p-3">
+              <p className="text-sm text-[#fcd34d]">
+                Your email hasn&apos;t been verified yet. Check your inbox or resend the link below.
+              </p>
+              <form action={resendVerificationAction} className="mt-2">
+                <input type="hidden" name="email" value={email ?? ''} />
+                <button
+                  type="submit"
+                  className="text-xs font-medium text-[#f59e0b] underline-offset-2 hover:underline"
+                >
+                  Resend verification email
+                </button>
+              </form>
+            </div>
+          )}
+
+          {isAwaiting && (
+            <div className="mt-5 rounded-md border border-[#34d399]/30 bg-[#0b3328]/35 p-3">
+              <p className="text-sm text-[#bbf7d0]">
+                {message ?? 'Check your email to confirm your account.'}
+                {email && (
+                  <span className="block mt-0.5 text-xs text-[#6ee7b7] opacity-75">{email}</span>
+                )}
+              </p>
+              <p className="mt-1 text-xs text-[#6ee7b7]">This window will refresh automatically once verified.</p>
+              <form action={resendVerificationAction} className="mt-2">
+                <input type="hidden" name="email" value={email ?? ''} />
+                <button
+                  type="submit"
+                  className="text-xs font-medium text-[#34d399] underline-offset-2 hover:underline"
+                >
+                  Resend email
+                </button>
+              </form>
+              <VerificationPoller />
             </div>
           )}
 
@@ -42,12 +90,21 @@ export default async function LoginPage({
                 type="email"
                 name="email"
                 required
+                defaultValue={email ?? ''}
                 className="h-11 w-full rounded-md border border-white/10 bg-[#07040d] px-3 text-sm text-white outline-none transition placeholder:text-[#655879] focus:border-[#a78bfa] focus:ring-2 focus:ring-[#8b5cf6]/25"
                 placeholder="you@example.com"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#c9bddc]">Password</label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-sm font-medium text-[#c9bddc]">Password</label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-[#8f82a8] transition hover:text-[#c4b5fd]"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 type="password"
                 name="password"

@@ -6,10 +6,10 @@ import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
-import { Separator } from "@workspace/ui/components/separator"
-import { Badge } from "@workspace/ui/components/badge"
 import { FormField, FormLabel } from "@workspace/ui/components/form-field"
 import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
+
+const STRENGTH_HINT = 'Min. 8 characters · one uppercase letter · one special character (!@#$%^&*)'
 
 interface Profile {
   full_name: string | null
@@ -144,6 +144,10 @@ export default function SettingsPage() {
         </form>
       </Section>
 
+      <Section title="Security">
+        <ChangePasswordForm />
+      </Section>
+
       <Section title="Email Forwarding">
         <Card size="sm">
           <CardContent>
@@ -195,7 +199,169 @@ export default function SettingsPage() {
         <WidgetSnippet projects={projects} />
       </Section>
 
+      <Section title="Danger Zone">
+        <DeleteAccountForm />
+      </Section>
     </div>
+  )
+}
+
+function ChangePasswordForm() {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setSuccess(false)
+    setError('')
+
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+    })
+
+    const data = await res.json()
+
+    if (res.ok) {
+      setSuccess(true)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setTimeout(() => setSuccess(false), 3000)
+    } else {
+      setError(data.error ?? 'Failed to change password.')
+    }
+    setSaving(false)
+  }
+
+  return (
+    <Card size="sm">
+      <CardContent>
+        <p className="text-sm font-medium mb-4">Change password</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <FormField>
+            <FormLabel>Current password</FormLabel>
+            <Input
+              type="password"
+              value={currentPassword}
+              onChange={e => setCurrentPassword(e.target.value)}
+              required
+              placeholder="Your current password"
+            />
+          </FormField>
+          <FormField>
+            <FormLabel>New password</FormLabel>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              required
+              placeholder="Enter new password"
+            />
+            <p className="text-xs text-muted-foreground/50 mt-1">{STRENGTH_HINT}</p>
+          </FormField>
+          <FormField>
+            <FormLabel>Confirm new password</FormLabel>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              required
+              placeholder="Repeat new password"
+            />
+          </FormField>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <div className="flex items-center gap-3 pt-1">
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Updating…' : 'Update password'}
+            </Button>
+            {success && <span className="text-sm text-emerald-500">Password updated ✓</span>}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+function DeleteAccountForm() {
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    setError('')
+
+    const res = await fetch('/api/auth/delete-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmText }),
+    })
+
+    if (res.ok) {
+      window.location.href = '/'
+    } else {
+      const data = await res.json()
+      setError(data.error ?? 'Failed to delete account.')
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <Card size="sm" className="border-destructive/30">
+      <CardContent>
+        <p className="text-sm font-medium mb-1">Delete account</p>
+        <p className="text-xs text-muted-foreground/70 mb-4">
+          This permanently deletes your account, all projects, and all request history. This cannot be undone.
+        </p>
+
+        {!showConfirm ? (
+          <Button
+            variant="outline"
+            onClick={() => setShowConfirm(true)}
+            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive/60"
+          >
+            Delete my account
+          </Button>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Type <span className="font-mono font-bold text-foreground">DELETE</span> to confirm:
+            </p>
+            <Input
+              value={confirmText}
+              onChange={e => setConfirmText(e.target.value)}
+              placeholder="DELETE"
+              className="font-mono"
+            />
+            {error && <p className="text-xs text-destructive">{error}</p>}
+            <div className="flex gap-2">
+              <Button
+                onClick={handleDelete}
+                disabled={deleting || confirmText !== 'DELETE'}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? 'Deleting…' : 'Confirm deletion'}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => { setShowConfirm(false); setConfirmText(''); setError('') }}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

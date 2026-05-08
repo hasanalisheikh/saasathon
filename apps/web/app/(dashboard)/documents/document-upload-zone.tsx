@@ -81,14 +81,16 @@ export function DocumentUploadZone() {
     e.stopPropagation()
     setIsDragging(false)
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      await handleUpload(e.dataTransfer.files[0])
+    const file = e.dataTransfer.files?.[0]
+    if (file) {
+      await handleUpload(file)
     }
   }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      await handleUpload(e.target.files[0])
+    const file = e.target.files?.[0]
+    if (file) {
+      await handleUpload(file)
     }
   }
 

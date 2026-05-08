@@ -1,7 +1,17 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/signup', '/auth/callback', '/approve', '/api', '/']
+const PUBLIC_PATHS = [
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/auth/callback',
+  '/auth/verified',
+  '/reset-password',
+  '/approve',
+  '/api',
+  '/',
+]
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -39,7 +49,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && (pathname === '/login' || pathname === '/signup')) {
+  // Don't bounce authenticated users away from reset-password — they have a
+  // temporary recovery session and need to submit the form.
+  const isAuthOnlyPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password'
+  if (user && isAuthOnlyPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

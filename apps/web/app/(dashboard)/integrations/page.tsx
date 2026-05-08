@@ -29,7 +29,7 @@ type ProfileIntegration = {
 }
 
 const envChecks = [
-  { label: "OpenAI analysis", value: Boolean(process.env.OPENAI_API_KEY) || process.env.MOCK_AI === "true" },
+  { label: "OpenRouter Gemini analysis", value: Boolean(process.env.OPENROUTER_API_KEY) || process.env.MOCK_AI === "true" },
   { label: "Client email", value: Boolean(process.env.RESEND_API_KEY) },
   { label: "GitHub webhooks", value: Boolean(process.env.GITHUB_WEBHOOK_SECRET) },
   { label: "Inbound email", value: Boolean(process.env.POSTMARK_INBOUND_WEBHOOK_TOKEN) || Boolean(process.env.POSTMARK_SERVER_TOKEN) },

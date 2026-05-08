@@ -108,7 +108,7 @@ Every choice below was made for maximum build speed without sacrificing quality.
 | Components | shadcn/ui | Production-grade, fully customisable |
 | Database | Supabase (Postgres) | Auth + DB + Realtime + Storage in one |
 | Auth | Supabase Auth | Built into the stack, fast to implement |
-| AI | OpenAI API (gpt-4o) | Strong reasoning, free credits available |
+| AI | OpenRouter API (`google/gemini-3.1-flash-lite`) | Low-latency, high-volume scope analysis with a large context window |
 | Email sending | Resend | Best DX, best deliverability |
 | Email inbound | Postmark Inbound | Reliable inbound webhooks, easy parsing |
 | GitHub | GitHub OAuth App + REST API + Webhooks | Real integration, impressive demo |
@@ -170,7 +170,7 @@ monad/
 │       │       │       └── route.ts # Postmark inbound webhook
 │       │       ├── ai/
 │       │       │   └── analyse/
-│       │       │       └── route.ts # Main OpenAI GPT-4o analysis endpoint
+│       │       │       └── route.ts # Main OpenRouter Gemini analysis endpoint
 │       │       ├── github/
 │       │       │   ├── connect/
 │       │       │   │   └── route.ts # OAuth flow
@@ -197,7 +197,7 @@ monad/
 │       │
 │       ├── lib/
 │       │   ├── supabase/            # Client, server, middleware
-│       │   ├── openai.ts            # OpenAI API wrapper
+│       │   ├── openai.ts            # OpenRouter-compatible AI wrapper
 │       │   ├── github.ts            # GitHub API wrapper
 │       │   ├── resend.ts            # Email sending
 │       │   ├── postmark.ts          # Inbound email parsing
@@ -330,7 +330,7 @@ CREATE TABLE widget_comments (
 
 ## 2.4 Key AI Flows
 
-### Scope Analysis Prompt (GPT-4o)
+### Scope Analysis Prompt (Gemini 3.1 Flash Lite)
 ```
 System: You are a professional project scope analyst for software development projects. 
 You protect developers from unpaid work by analysing client requests against agreed project scope.
@@ -368,11 +368,20 @@ Analyse this request and return JSON:
 }
 ```
 
-### OpenAI Wrapper (`lib/openai.ts`)
+### OpenRouter Wrapper (`lib/openai.ts`)
 ```typescript
 import OpenAI from 'openai'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+const openrouter = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+  defaultHeaders: {
+    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
+    'X-Title': 'Monad',
+  },
+})
+
+const model = process.env.AI_MODEL ?? 'google/gemini-3.1-flash-lite'
 
 export async function analyseRequest(params: {
   scopeRaw: string
@@ -383,8 +392,8 @@ export async function analyseRequest(params: {
   emailSubject: string
   emailBody: string
 }) {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
+  const response = await openrouter.chat.completions.create({
+    model,
     response_format: { type: 'json_object' },  // enforces JSON output
     temperature: 0.2,                           // low temp = consistent analysis
     messages: [
@@ -411,8 +420,8 @@ Return JSON with: classification, confidence, scope_evidence, technical_breakdow
 }
 
 export async function translateCommits(commits: string[]): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
+  const response = await openrouter.chat.completions.create({
+    model,
     temperature: 0.3,
     messages: [
       {
@@ -425,7 +434,7 @@ export async function translateCommits(commits: string[]): Promise<string> {
 }
 ```
 
-### GitHub Commit Translation Prompt (GPT-4o)
+### GitHub Commit Translation Prompt (Gemini 3.1 Flash Lite)
 ```
 Translate these GitHub commits into 1-2 sentences of plain English 
 for a non-technical client. Focus on what changed for them, not how.
@@ -578,7 +587,7 @@ These are non-negotiable. If nothing else works, these must be flawless.
 - **Fallback for demo if Postmark not ready:** Manual paste input on project page
 
 ### F5. AI Scope Analysis (The Hero Feature)
-- Call GPT-4o with: raw scope, structured scope profile, rate card, task categories, client email
+- Call Gemini 3.1 Flash Lite via OpenRouter with: raw scope, structured scope profile, rate card, task categories, client email
 - Return: classification, confidence, evidence quotes, technical breakdown, task list, effort estimate, cost range, risk level, timeline impact, draft reply
 - Store full analysis on request record
 - < 8 second response target
@@ -670,7 +679,7 @@ After client approval:
 
 ### F13. Unapproved Work Detection
 - On each PR merge webhook: extract PR title + description + file paths changed
-- Compare against approved requests using keyword matching via GPT-4o
+- Compare against approved requests using Gemini 3.1 Flash Lite via OpenRouter
 - If no matching approved request found: flag developer in dashboard
 - Warning card: "This PR may contain unapproved work — no matching client request found"
 - Developer can link it to a request or mark as internal
@@ -822,7 +831,7 @@ This is the feature that makes people gasp in the demo.
 | Pro | $29 | ~$2.50/user/month | ~91% |
 | Agency | $79 | ~$5/user/month | ~94% |
 
-AI cost estimate: GPT-4o at ~$0.005/1K output tokens. Average analysis = ~1,500 output tokens. 100 analyses/month = ~$0.75. Well within margins. Free credits cover the entire hackathon and initial user testing.
+AI cost estimate: Gemini 3.1 Flash Lite on OpenRouter is priced for low-cost, high-volume analysis. Average analysis output around 1,500 tokens stays well within SaaS margins; inputs remain cheap even when project documents are included.
 
 ## 5.3 Payback Period Calculation (for pitch)
 A Pro user at $29/month needs to prevent **less than 20 minutes of unpaid work per month** to break even at $87/hr average developer rate. The average freelancer loses $650–$1,300/month to scope creep. Monad's payback is immediate.
@@ -877,7 +886,7 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 **Owns:**
 - Supabase setup (schema, RLS policies, client/server helpers)
 - All API routes
-- OpenAI integration (`/api/ai/analyse`)
+- OpenRouter Gemini integration (`/api/ai/analyse`)
 - Postmark inbound email webhook (`/api/webhooks/email`)
 - Resend email sending (`/api/email/send`)
 - GitHub OAuth flow (`/api/github/connect`)
@@ -888,7 +897,7 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 
 **Sprint 1 priority order:**
 1. Supabase schema + helpers (Hour 1–3)
-2. OpenAI analysis endpoint (Hour 3–6)
+2. OpenRouter Gemini analysis endpoint (Hour 3–6)
 3. Email inbound webhook (Hour 6–9)
 4. Approval handler + token logic (Hour 9–12)
 5. Resend email sending (Hour 12–14)
@@ -925,7 +934,7 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 | Hour | A | B | C |
 |---|---|---|---|
 | 0–3 | Design system + layout | Supabase setup | Project creation form |
-| 3–6 | Auth pages | OpenAI API | Project creation form cont. |
+| 3–6 | Auth pages | OpenRouter API | Project creation form cont. |
 | 6–10 | Dashboard + inbox | Email inbound webhook | Project detail page |
 | 10–16 | **Request Review Screen** | Approval handler + email | Request history list |
 | 16–20 | Client Approval Page | GitHub issue creation | Fallback paste input |
@@ -1039,8 +1048,9 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# OpenAI
-OPENAI_API_KEY=
+# AI
+OPENROUTER_API_KEY=
+AI_MODEL=google/gemini-3.1-flash-lite
 
 # Resend (email sending)
 RESEND_API_KEY=
@@ -1245,7 +1255,7 @@ Each card (`--bg-surface`, border, hover lift):
 - Help text: "This can be your proposal, contract, bullet points, or any written agreement. AI will extract the key details."
 - Large textarea (12 rows min)
 - Below textarea: "Or use our template →" (link that pre-fills a sample)
-- `Extract Scope with AI` button — calls GPT-4o, shows spinner, then renders extracted scope preview:
+- `Extract Scope with AI` button — calls Gemini 3.1 Flash Lite via OpenRouter, shows spinner, then renders extracted scope preview:
   ```
   ✓ Deliverables: 5-page website, contact form, basic SEO
   ✓ Exclusions: online ordering, booking system, custom integrations
@@ -2400,7 +2410,7 @@ export async function POST(req: NextRequest) {
 
     const project = request.project as any
 
-    // Call GPT-4o
+    // Call Gemini via OpenRouter
     const analysis = await analyseRequest({
       scopeRaw: project.scope_raw || '',
       scopeStructured: project.scope_structured || {},

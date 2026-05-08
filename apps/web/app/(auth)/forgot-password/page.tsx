@@ -1,13 +1,13 @@
 import Link from 'next/link'
 import { BrandMark } from '@/components/brand-mark'
-import { signup } from '@/lib/actions/auth'
+import { forgotPasswordAction } from '@/lib/actions/auth'
 
-export default async function SignupPage({
+export default async function ForgotPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; email?: string }>
+  searchParams: Promise<{ error?: string; message?: string }>
 }) {
-  const { error, email } = await searchParams
+  const { error, message } = await searchParams
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#05030a] px-4 py-12 text-[#faf7ff]">
@@ -18,9 +18,9 @@ export default async function SignupPage({
         </Link>
 
         <div className="rounded-lg border border-white/10 bg-[#0b0614]/95 p-7 shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur">
-          <h1 className="text-2xl font-semibold text-white">Create account</h1>
+          <h1 className="text-2xl font-semibold text-white">Reset password</h1>
           <p className="mt-2 text-sm leading-6 text-[#a99dbe]">
-            Put a clear approval step between client asks and unpaid build time.
+            Enter your email and we&apos;ll send a reset link if that account exists.
           </p>
 
           {error && (
@@ -29,54 +29,35 @@ export default async function SignupPage({
             </div>
           )}
 
-          <form action={signup} className="mt-6 space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#c9bddc]">Full name</label>
-              <input
-                type="text"
-                name="full_name"
-                required
-                className="h-11 w-full rounded-md border border-white/10 bg-[#07040d] px-3 text-sm text-white outline-none transition placeholder:text-[#655879] focus:border-[#a78bfa] focus:ring-2 focus:ring-[#8b5cf6]/25"
-                placeholder="Jamie Developer"
-              />
+          {message && (
+            <div className="mt-5 rounded-md border border-[#34d399]/30 bg-[#0b3328]/35 p-3 text-sm text-[#bbf7d0]">
+              {message}
             </div>
+          )}
+
+          <form action={forgotPasswordAction} className="mt-6 space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[#c9bddc]">Email</label>
               <input
                 type="email"
                 name="email"
                 required
-                defaultValue={email ?? ''}
                 className="h-11 w-full rounded-md border border-white/10 bg-[#07040d] px-3 text-sm text-white outline-none transition placeholder:text-[#655879] focus:border-[#a78bfa] focus:ring-2 focus:ring-[#8b5cf6]/25"
                 placeholder="you@example.com"
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#c9bddc]">Password</label>
-              <input
-                type="password"
-                name="password"
-                required
-                minLength={8}
-                className="h-11 w-full rounded-md border border-white/10 bg-[#07040d] px-3 text-sm text-white outline-none transition placeholder:text-[#655879] focus:border-[#a78bfa] focus:ring-2 focus:ring-[#8b5cf6]/25"
-                placeholder="Enter a strong password"
-              />
-              <p className="mt-1.5 text-xs text-[#655879]">
-                Min. 8 characters · one uppercase letter · one special character (!@#$%^&*)
-              </p>
-            </div>
             <button
               type="submit"
-              className="mt-2 h-11 w-full rounded-md bg-[#8b5cf6] text-sm font-semibold text-white shadow-[0_0_28px_rgba(139,92,246,0.28)] transition hover:bg-[#7c3aed]"
+              className="mt-2 h-11 w-full rounded-md bg-[#f59e0b] text-sm font-semibold text-[#080c14] shadow-[0_0_24px_rgba(245,158,11,0.22)] transition hover:bg-[#d97706]"
             >
-              Create account
+              Send reset link
             </button>
           </form>
 
           <p className="mt-5 text-center text-sm text-[#8f82a8]">
-            Already have an account?{' '}
+            Remembered it?{' '}
             <Link className="font-medium text-[#c4b5fd] transition hover:text-white" href="/login">
-              Log in
+              Sign in
             </Link>
           </p>
         </div>

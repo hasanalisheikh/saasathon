@@ -1,33 +1,29 @@
 import OpenAI from 'openai'
 import type { AIAnalysis, ProjectDocumentContext } from '@/types'
 
-let _openai: OpenAI | null = null
-let _model = 'gpt-4o'
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
+const DEFAULT_AI_MODEL = 'google/gemini-3.1-flash-lite'
 
-function getOpenAI(): OpenAI {
-  if (!_openai) {
-    if (process.env.NVIDIA_NIM_API_KEY) {
-      _openai = new OpenAI({
-        apiKey: process.env.NVIDIA_NIM_API_KEY,
-        baseURL: 'https://integrate.api.nvidia.com/v1',
-      })
-      _model = process.env.AI_MODEL || 'meta/llama-3.3-70b-instruct'
-    } else if (process.env.OPENROUTER_API_KEY) {
-      _openai = new OpenAI({
-        apiKey: process.env.OPENROUTER_API_KEY,
-        baseURL: 'https://openrouter.ai/api/v1',
-        defaultHeaders: {
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': 'Monad',
-        },
-      })
-      _model = process.env.AI_MODEL || 'openai/gpt-4o'
-    } else {
-      _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-      _model = process.env.AI_MODEL || 'gpt-4o'
+let _client: OpenAI | null = null
+let _model = DEFAULT_AI_MODEL
+
+function getAIClient(): OpenAI {
+  if (!_client) {
+    if (!process.env.OPENROUTER_API_KEY) {
+      throw new Error('OPENROUTER_API_KEY is required for AI analysis. Set MOCK_AI=true to use local mock responses.')
     }
+
+    _client = new OpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: OPENROUTER_BASE_URL,
+      defaultHeaders: {
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        'X-Title': 'Monad',
+      },
+    })
+    _model = process.env.AI_MODEL || DEFAULT_AI_MODEL
   }
-  return _openai
+  return _client
 }
 
 export async function analyseRequest(params: {
@@ -40,7 +36,7 @@ export async function analyseRequest(params: {
   emailSubject: string
   emailBody: string
 }): Promise<AIAnalysis> {
-  const client = getOpenAI()
+  const client = getAIClient()
   const documentContext = buildDocumentContext(params.documents ?? [])
   const response = await client.chat.completions.create({
     model: _model,
@@ -94,7 +90,7 @@ function buildDocumentContext(documents: ProjectDocumentContext[]): string {
 }
 
 export async function extractScope(scopeRaw: string): Promise<object> {
-  const client = getOpenAI()
+  const client = getAIClient()
   const response = await client.chat.completions.create({
     model: _model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -131,7 +127,7 @@ Rules:
 }
 
 export async function translateCommits(commits: string[]): Promise<string> {
-  const client = getOpenAI()
+  const client = getAIClient()
   const response = await client.chat.completions.create({
     model: _model,
     temperature: 0.3,
@@ -152,7 +148,7 @@ export async function detectUnapprovedWork(params: {
   prBody: string
   filesChanged: string[]
 }): Promise<{ is_approved_work: boolean; confidence: number; matched_request: string | null; reasoning: string }> {
-  const client = getOpenAI()
+  const client = getAIClient()
   const response = await client.chat.completions.create({
     model: _model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -9,7 +9,7 @@
 
 ## What Monad Does
 
-Monad intercepts client requests, analyses them against the agreed project scope using GPT-4o, generates a professional cost estimate, gets client approval with one click, and creates a GitHub-linked audit trail. The entire flow from email → analysis → approval → GitHub takes under 5 minutes.
+Monad intercepts client requests, analyses them against the agreed project scope using Gemini 3.1 Flash Lite via OpenRouter, generates a professional cost estimate, gets client approval with one click, and creates a GitHub-linked audit trail. The entire flow from email → analysis → approval → GitHub takes under 5 minutes.
 
 **Tagline:** "Clients email you like normal. We handle the rest."
 
@@ -24,7 +24,7 @@ Monad intercepts client requests, analyses them against the agreed project scope
 | Styling | Tailwind CSS v4 + custom design tokens |
 | Components | shadcn/ui (`@workspace/ui` package) |
 | Database | Supabase (Postgres + Auth + Realtime) |
-| AI | OpenAI gpt-4o |
+| AI | OpenRouter `google/gemini-3.1-flash-lite` |
 | Email sending | Resend |
 | Email inbound | Postmark Inbound webhooks |
 | GitHub | GitHub OAuth App + Octokit REST API |
@@ -52,7 +52,7 @@ monad/
 │   │   └── api/               # All API routes
 │   ├── lib/
 │   │   ├── supabase/          # client.ts, server.ts, middleware.ts
-│   │   ├── openai.ts          # analyseRequest, extractScope, translateCommits
+│   │   ├── openai.ts          # OpenRouter-compatible AI wrapper: analyseRequest, extractScope, translateCommits
 │   │   ├── github.ts          # createIssue, registerWebhook, listUserRepos
 │   │   ├── resend.ts          # sendApprovalEmail
 │   │   ├── postmark.ts        # extractInboundEmail
@@ -113,7 +113,8 @@ Copy `apps/web/.env.local.example` → `apps/web/.env.local` and fill in:
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
-OPENAI_API_KEY
+OPENROUTER_API_KEY
+AI_MODEL=google/gemini-3.1-flash-lite
 RESEND_API_KEY
 RESEND_FROM_EMAIL
 POSTMARK_INBOUND_WEBHOOK_TOKEN
@@ -123,7 +124,7 @@ GITHUB_CLIENT_SECRET
 GITHUB_WEBHOOK_SECRET
 NEXT_PUBLIC_APP_URL
 INBOUND_EMAIL_DOMAIN
-MOCK_AI=true   ← set this during dev to skip OpenAI calls
+MOCK_AI=true   ← set this during dev to skip AI calls
 ```
 
 ---
@@ -141,7 +142,7 @@ bun dev         # starts apps/web on :3000
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/api/ai/analyse` | POST | Run GPT-4o scope analysis on a request |
+| `/api/ai/analyse` | POST | Run Gemini scope analysis on a request |
 | `/api/ai/extract-scope` | POST | Turn raw scope text into structured JSON |
 | `/api/projects` | POST/GET | Create / list projects |
 | `/api/projects/[id]` | GET/PATCH | Get / update project |
@@ -169,7 +170,7 @@ bun dev         # starts apps/web on :3000
 
 ## Dev Notes
 
-- `MOCK_AI=true` returns hardcoded analysis without calling OpenAI — use this for all UI work
+- `MOCK_AI=true` returns hardcoded analysis without calling OpenRouter — use this for all UI work
 - The `/approve/[token]` page is fully public — no login required
 - GitHub can use Personal Access Token instead of OAuth for the demo (simpler)
 - Postmark fallback: manual paste input on the project page triggers analysis
@@ -180,5 +181,5 @@ bun dev         # starts apps/web on :3000
 ## Team Split (PRD reference)
 
 - **Person A** — Frontend/UX: design system, landing, auth, dashboard, Request Review Screen, Approval Page
-- **Person B** — Backend/AI: Supabase, OpenAI, Postmark, Resend, GitHub API, approval handler, PDF
+- **Person B** — Backend/AI: Supabase, OpenRouter/Gemini, Postmark, Resend, GitHub API, approval handler, PDF
 - **Person C** — Full Stack: project wizard, project detail, request history, settings, widget, analytics
