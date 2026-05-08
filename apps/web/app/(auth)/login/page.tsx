@@ -1,6 +1,13 @@
 import Link from 'next/link'
+import { login } from '@/lib/actions/auth'
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; message?: string }>
+}) {
+  const { error, message } = await searchParams
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#080c14' }}>
       <div className="w-full max-w-sm">
@@ -12,7 +19,19 @@ export default function LoginPage() {
         <div className="p-8 rounded-lg" style={{ background: '#0f1624', border: '1px solid rgba(255,255,255,0.10)' }}>
           <h1 className="text-xl mb-6" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>Sign in</h1>
 
-          <form className="space-y-4">
+          {error && (
+            <div className="mb-4 rounded p-3 text-xs" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.30)', color: '#fecaca' }}>
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="mb-4 rounded p-3 text-xs" style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.30)', color: '#bbf7d0' }}>
+              {message}
+            </div>
+          )}
+
+          <form action={login} className="space-y-4">
             <div>
               <label className="block text-xs mb-1.5" style={{ color: '#8892a4' }}>Email</label>
               <input

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { logout } from '@/lib/actions/auth'
 import { redirect } from 'next/navigation'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -42,6 +43,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="px-4 py-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
           <p className="text-xs font-medium truncate" style={{ color: '#f0f4ff' }}>{profile?.full_name ?? 'Developer'}</p>
           <p className="text-xs truncate" style={{ color: '#4a5568' }}>{profile?.email ?? user.email}</p>
+          <form action={logout} className="mt-3">
+            <button type="submit" className="text-xs" style={{ color: '#8892a4' }}>
+              Sign out
+            </button>
+          </form>
         </div>
       </aside>
 
