@@ -19,7 +19,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ requ
   const project = request.project as Record<string, unknown>
   if (project.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  return NextResponse.json(request)
+  const { data: taskRows } = await supabase
+    .from('request_tasks')
+    .select('*')
+    .eq('request_id', requestId)
+    .order('position', { ascending: true })
+
+  return NextResponse.json({ ...request, task_rows: taskRows ?? [] })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ requestId: string }> }) {

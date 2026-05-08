@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createIssue, buildIssueBody } from '@/lib/github'
+import { ensureRequestTasks } from '@/lib/request-tasks'
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,6 +33,13 @@ export async function POST(req: NextRequest) {
       : 'TBC'
 
     const [owner = '', repo = ''] = (project.github_repo_name as string).split('/')
+    const requestTasks = await ensureRequestTasks({
+      supabase,
+      requestId: request.id,
+      projectId: project.id as string,
+      tasks: request.tasks ?? [],
+    })
+
     const issue = await createIssue({
       accessToken: project.github_installation_id as string,
       owner,
@@ -43,6 +51,7 @@ export async function POST(req: NextRequest) {
         approvedCost: costRange,
         approvalTimestamp: request.approved_at ?? new Date().toISOString(),
         monadRequestUrl: `${appUrl}/projects/${project.id as string}/requests/${request.id}`,
+        tasks: requestTasks,
       }),
     })
 

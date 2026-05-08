@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import type { AIAnalysis } from '@/types'
+import type { AIAnalysis, ProjectDocumentContext } from '@/types'
 
 let _openai: OpenAI | null = null
 let _model = 'gpt-4o'
@@ -35,11 +35,13 @@ export async function analyseRequest(params: {
   scopeStructured: object
   hourlyRate: number
   taskCategories: object[]
+  documents?: ProjectDocumentContext[]
   emailFrom: string
   emailSubject: string
   emailBody: string
 }): Promise<AIAnalysis> {
   const client = getOpenAI()
+  const documentContext = buildDocumentContext(params.documents ?? [])
   const response = await client.chat.completions.create({
     model: _model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,11 +52,13 @@ export async function analyseRequest(params: {
         role: 'system',
         content: `You are a professional project scope analyst for software development projects.
 You protect developers from unpaid work by analysing client requests against agreed project scope.
+Use uploaded project documents as contract, proposal, rate-card, and client-context evidence where relevant.
+Calculate cost estimates from the authoritative DEVELOPER RATE provided by the app, not from any conflicting numeric rate in document text.
 Always respond in valid JSON only. Do not include markdown code fences.`,
       },
       {
         role: 'user',
-        content: `PROJECT SCOPE:\n${params.scopeRaw}\n\nEXTRACTED SCOPE:\n${JSON.stringify(params.scopeStructured)}\n\nDEVELOPER RATE: $${params.hourlyRate}/hr\nTASK CATEGORIES: ${JSON.stringify(params.taskCategories)}\n\nCLIENT REQUEST:\nFrom: ${params.emailFrom}\nSubject: ${params.emailSubject}\nBody: ${params.emailBody}\n\nReturn JSON with: classification, confidence, scope_evidence, technical_breakdown, tasks, effort_min_hours, effort_max_hours, risk_level, timeline_impact_days, reasoning, draft_reply, suggested_action`,
+        content: `PROJECT SCOPE:\n${params.scopeRaw}\n\nEXTRACTED SCOPE:\n${JSON.stringify(params.scopeStructured)}\n\nUPLOADED PROJECT DOCUMENT CONTEXT:\n${documentContext}\n\nDEVELOPER RATE: $${params.hourlyRate}/hr\nTASK CATEGORIES: ${JSON.stringify(params.taskCategories)}\n\nCLIENT REQUEST:\nFrom: ${params.emailFrom}\nSubject: ${params.emailSubject}\nBody: ${params.emailBody}\n\nReturn JSON with: classification, confidence, scope_evidence, technical_breakdown, tasks, effort_min_hours, effort_max_hours, risk_level, timeline_impact_days, reasoning, draft_reply, suggested_action`,
       },
     ],
   })
@@ -62,6 +66,31 @@ Always respond in valid JSON only. Do not include markdown code fences.`,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const content = (response as any).choices?.[0]?.message?.content ?? '{}'
   return JSON.parse(content) as AIAnalysis
+}
+
+function buildDocumentContext(documents: ProjectDocumentContext[]): string {
+  if (!documents.length) return 'No uploaded project documents are assigned to this project.'
+
+  let usedCharacters = 0
+  const maxTotalCharacters = 12000
+
+  return documents
+    .map((document) => {
+      const remaining = maxTotalCharacters - usedCharacters
+      if (remaining <= 0) return null
+
+      const text = (document.extracted_text ?? '').slice(0, Math.min(4000, remaining))
+      usedCharacters += text.length
+
+      return [
+        `Title: ${document.title}`,
+        `Type: ${document.document_type}`,
+        `Tags: ${document.tags.join(', ') || 'none'}`,
+        `Text:\n${text || '(no extracted text)'}`,
+      ].join('\n')
+    })
+    .filter(Boolean)
+    .join('\n\n---\n\n')
 }
 
 export async function extractScope(scopeRaw: string): Promise<object> {

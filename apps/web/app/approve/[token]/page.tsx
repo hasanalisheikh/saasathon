@@ -2,8 +2,15 @@ import { BrandMark } from '@/components/brand-mark'
 import { createServiceClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 
-export default async function ApprovePage({ params }: { params: Promise<{ token: string }> }) {
+export default async function ApprovePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>
+  searchParams: Promise<{ action?: string }>
+}) {
   const { token } = await params
+  const { action } = await searchParams
   const supabase = await createServiceClient()
 
   const { data: request } = await supabase
@@ -13,6 +20,37 @@ export default async function ApprovePage({ params }: { params: Promise<{ token:
     .single()
 
   if (!request) notFound()
+
+  // One-click decline from email link
+  if (action === 'decline' && !request.approved_at && !request.declined_at) {
+    await supabase
+      .from('requests')
+      .update({ status: 'declined', declined_at: new Date().toISOString() })
+      .eq('approval_token', token)
+
+    return (
+      <main className="relative min-h-screen overflow-hidden bg-[#05030a] px-4 py-10 text-[#faf7ff]">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-25"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(139,92,246,0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.13) 1px, transparent 1px)',
+            backgroundSize: '54px 54px',
+          }}
+        />
+        <div className="relative z-10 mx-auto w-full max-w-2xl">
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <BrandMark size="sm" />
+            <p className="rounded-md border border-[#8b5cf6]/30 bg-[#120a22]/80 px-3 py-1.5 text-xs font-semibold text-[#d8ccff]">
+              Project scope review
+            </p>
+          </div>
+          <AlreadyActioned approved={false} />
+        </div>
+      </main>
+    )
+  }
 
   if (!request.approval_page_viewed_at) {
     await supabase

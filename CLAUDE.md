@@ -1,5 +1,7 @@
 # Monad — Developer Guide
 
+> **Guiding document: [`monad-prd.md`](monad-prd.md)** — this is the canonical PRD. Read it first. Everything below is a quick-reference summary.
+
 > AI-powered scope creep protection for freelance developers and agencies.
 > Built for SaaSathon 2026 (40-hour hackathon).
 

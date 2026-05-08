@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import type { Request, Project } from "@/types"
+import type { Request, Project, RequestTask } from "@/types"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
@@ -11,7 +11,6 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import { Separator } from "@workspace/ui/components/separator"
 import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
 import {
-  ClassificationBadge,
   SourceBadge,
   getClassificationColorClass,
 } from "@workspace/ui/components/status-badge"
@@ -20,19 +19,24 @@ import type { Tone } from "@workspace/ui/components/tone-picker"
 
 const ACCIDENTAL_YES = ["sure", "no problem", "happy to", "of course", "will do", "sounds good", "absolutely"]
 
+type RequestWithTaskRows = Request & {
+  task_rows?: RequestTask[]
+}
+
 export default function RequestReviewPage() {
   const { id, requestId } = useParams<{ id: string; requestId: string }>()
   const router = useRouter()
 
-  const [request, setRequest] = useState<Request | null>(null)
+  const [request, setRequest] = useState<RequestWithTaskRows | null>(null)
   const [project, setProject] = useState<Project | null>(null)
   const [reply, setReply] = useState("")
   const [tone, setTone] = useState<Tone>("professional")
   const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState("")
   const [analysing, setAnalysing] = useState(false)
   const [accidentalYes, setAccidentalYes] = useState(false)
 
-  async function loadRequest() {
+  const loadRequest = useCallback(async function loadRequest() {
     const [reqRes, projRes] = await Promise.all([
       fetch(`/api/requests/${requestId}`),
       fetch(`/api/projects/${id}`),
@@ -42,11 +46,15 @@ export default function RequestReviewPage() {
     setRequest(reqData)
     setProject(projData)
     setReply(reqData.draft_reply ?? '')
-  }
+  }, [id, requestId])
 
   useEffect(() => {
-    loadRequest()
-  }, [id, requestId])
+    const timeout = window.setTimeout(() => {
+      void loadRequest()
+    }, 0)
+
+    return () => window.clearTimeout(timeout)
+  }, [loadRequest])
 
   async function reanalyse() {
     setAnalysing(true)
@@ -71,12 +79,18 @@ export default function RequestReviewPage() {
 
   async function sendToClient() {
     setSending(true)
+    setSendError("")
     try {
-      await fetch("/api/email/send", {
+      const res = await fetch("/api/email/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ request_id: requestId, final_reply: reply, tone }),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setSendError((data as { error?: string }).error ?? "Failed to send email. Please try again.")
+        return
+      }
       router.push(`/projects/${id}`)
     } finally {
       setSending(false)
@@ -101,6 +115,9 @@ export default function RequestReviewPage() {
   }
 
   const colorClass = getClassificationColorClass(request.classification)
+  const taskRows = request.task_rows ?? []
+  const completedTaskCount = taskRows.filter((task) => task.status === "completed").length
+  const progressPercent = taskRows.length ? Math.round((completedTaskCount / taskRows.length) * 100) : 0
   const classLabel: Record<string, string> = {
     out_of_scope: "OUT OF SCOPE",
     in_scope: "IN SCOPE",
@@ -246,6 +263,64 @@ export default function RequestReviewPage() {
             </div>
           )}
 
+          {/* Task breakdown */}
+          {request.tasks?.length > 0 && (
+            <div>
+              <p className="text-xs uppercase tracking-wider mb-2 text-muted-foreground">
+                Task Breakdown
+              </p>
+              <div className="space-y-1">
+                {request.tasks.map((task, i) => (
+                  <div key={i} className="flex items-start justify-between gap-2 py-1.5 border-b border-border last:border-0">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground">{task.name}</p>
+                      {task.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                      {task.min_hours}–{task.max_hours}h
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {taskRows.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Implementation Progress
+                </p>
+                <Badge variant={request.implementation_status === "completed" ? "default" : "outline"}>
+                  {completedTaskCount}/{taskRows.length} complete
+                </Badge>
+              </div>
+              <div className="mb-2 h-1 rounded-full bg-border">
+                <div
+                  className="h-1 rounded-full bg-primary transition-all"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <div className="space-y-1">
+                {taskRows.map((task) => (
+                  <div key={task.id} className="flex items-start justify-between gap-2 py-1.5 border-b border-border last:border-0">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground">{task.name}</p>
+                      {task.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
+                      )}
+                    </div>
+                    <Badge variant={task.status === "completed" ? "default" : "outline"}>
+                      {task.status.replace("_", " ")}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Effort & Cost */}
           {request.effort_min_hours && (
             <Card size="sm">
@@ -312,6 +387,14 @@ export default function RequestReviewPage() {
           }}
           rows={8}
         />
+
+        {sendError && (
+          <Card className="border-destructive/30 bg-destructive/10">
+            <CardContent className="flex gap-3 items-center">
+              <span className="text-destructive text-xs">{sendError}</span>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex items-center justify-between">
           <div className="flex gap-3">

@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --minify --outfile=dist/monad-widget.js --platform=browser --target=es2017",
-    "dev": "esbuild src/index.ts --bundle --outfile=dist/monad-widget.js --platform=browser --target=es2017 --watch"
+    "build": "mkdir -p ../../apps/web/public && esbuild src/index.ts --bundle --minify --outfile=../../apps/web/public/widget.js --platform=browser --target=es2017",
+    "dev": "mkdir -p ../../apps/web/public && esbuild src/index.ts --bundle --outfile=../../apps/web/public/widget.js --platform=browser --target=es2017 --watch"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",

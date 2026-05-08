@@ -6,6 +6,7 @@ export interface Profile {
   email: string
   hourly_rate: number
   company_name: string | null
+  github_username: string | null
   created_at: string
 }
 
@@ -42,8 +43,42 @@ export interface Project {
   hourly_rate: number | null
   task_categories: TaskCategory[]
   status: ProjectStatus
+  widget_token: string
   created_at: string
   updated_at: string
+}
+
+// ─── Documents ───────────────────────────────────────────────────────────────
+
+export type DocumentType = 'contract' | 'proposal' | 'rate_card' | 'brief' | 'other'
+
+export type ExtractionStatus = 'pending' | 'completed' | 'failed'
+
+export interface ProjectDocument {
+  id: string
+  user_id: string
+  project_id: string | null
+  title: string
+  description: string | null
+  tags: string[]
+  document_type: DocumentType
+  file_name: string
+  file_size: number
+  mime_type: string
+  storage_bucket: string
+  storage_path: string
+  extraction_status: ExtractionStatus
+  extraction_error: string | null
+  extracted_text: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ProjectDocumentContext {
+  title: string
+  document_type: DocumentType | string
+  tags: string[]
+  extracted_text: string | null
 }
 
 // ─── Requests ────────────────────────────────────────────────────────────────
@@ -64,6 +99,8 @@ export type RequestStatus =
   | 'declined'
   | 'deferred'
   | 'accepted_in_scope'
+
+export type ImplementationStatus = 'not_started' | 'in_progress' | 'completed'
 
 export type RequestSource = 'email' | 'widget' | 'manual'
 
@@ -115,12 +152,15 @@ export interface Request {
   cost_max: number | null
   timeline_impact_days: number | null
   risk_level: RiskLevel
+  suggested_action: SuggestedAction | null
+  tasks: AITask[]
   // Response
   draft_reply: string | null
   final_reply: string | null
   reply_tone: ReplyTone
   // Status
   status: RequestStatus
+  implementation_status: ImplementationStatus
   // Approval
   approval_token: string
   approval_page_viewed_at: string | null
@@ -139,11 +179,31 @@ export interface RequestWithProject extends Request {
   project: Pick<Project, 'id' | 'name' | 'client_name' | 'client_email' | 'hourly_rate'>
 }
 
+export type RequestTaskStatus = 'pending' | 'in_progress' | 'completed'
+
+export interface RequestTask {
+  id: string
+  request_id: string
+  project_id: string
+  position: number
+  name: string
+  description: string | null
+  min_hours: number | null
+  max_hours: number | null
+  status: RequestTaskStatus
+  github_marker: string
+  completed_at: string | null
+  client_notified_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 // ─── GitHub Events ────────────────────────────────────────────────────────────
 
 export type GitHubEventType =
   | 'pr_merged'
   | 'issue_closed'
+  | 'issue_updated'
   | 'push'
   | 'deployment'
 

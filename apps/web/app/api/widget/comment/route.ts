@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { project_id, page_url, element_selector, x_position, y_position, comment_text, client_name } = body
+    const { project_id, client_token, page_url, element_selector, x_position, y_position, comment_text, client_name } = body
 
     if (!project_id || !comment_text) {
       return NextResponse.json({ error: 'project_id and comment_text required' }, { status: 400 })
@@ -14,12 +14,16 @@ export async function POST(req: NextRequest) {
 
     const { data: project } = await supabase
       .from('projects')
-      .select('id')
+      .select('id, widget_token')
       .eq('id', project_id)
       .single()
 
     if (!project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    if (!client_token || client_token !== project.widget_token) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
     const { data: comment, error } = await supabase

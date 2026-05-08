@@ -118,7 +118,7 @@ interface ProofPackDocumentProps {
 }
 
 export function ProofPackDocument({ request, project, developerName, developerEmail }: ProofPackDocumentProps) {
-  const tasks = (request as unknown as { tasks?: AITask[] }).tasks ?? []
+  const tasks = request.tasks ?? []
   const totalMinHours = tasks.reduce((sum, t) => sum + t.min_hours, 0)
   const totalMaxHours = tasks.reduce((sum, t) => sum + t.max_hours, 0)
 

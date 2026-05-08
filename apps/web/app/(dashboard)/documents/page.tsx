@@ -1,33 +1,50 @@
-import { FileTextIcon } from "lucide-react"
-import {
-  EmptyState,
-  EmptyStateIcon,
-  EmptyStateTitle,
-  EmptyStateDescription,
-} from "@workspace/ui/components/empty-state"
-import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
+import { createClient } from "@/lib/supabase/server"
+import { PageHeader, PageTitle, PageDescription, PageActions } from "@workspace/ui/components/page-header"
+import { DocumentsClient } from "./documents-client"
 
-export default function DocumentsPage() {
+export default async function DocumentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ project_id?: string }>
+}) {
+  const { project_id } = await searchParams
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const [{ data: documents }, { data: projects }] = await Promise.all([
+    supabase
+      .from("documents")
+      .select("*, project:projects(id, name, client_name)")
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("projects")
+      .select("id, name, client_name")
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false }),
+  ])
+
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-8">
+    <div className="flex-1 overflow-y-auto p-6">
       <PageHeader>
         <div>
           <PageTitle>Documents</PageTitle>
           <PageDescription>
-            Manage client legal contracts, hourly rates, and all legal documents you send out as a freelancer.
+            Contracts, proposals, briefs, and rate cards used as context for scope analysis.
           </PageDescription>
         </div>
+        <PageActions>
+          <span className="text-xs text-muted-foreground">
+            {(documents ?? []).length} total
+          </span>
+        </PageActions>
       </PageHeader>
-      
-      <EmptyState>
-        <EmptyStateIcon>
-          <FileTextIcon />
-        </EmptyStateIcon>
-        <EmptyStateTitle>No documents yet</EmptyStateTitle>
-        <EmptyStateDescription>
-          Documents related to your projects will appear here.
-        </EmptyStateDescription>
-      </EmptyState>
+
+      <DocumentsClient
+        initialDocuments={documents ?? []}
+        projects={projects ?? []}
+        initialProjectId={project_id ?? "all"}
+      />
     </div>
   )
 }

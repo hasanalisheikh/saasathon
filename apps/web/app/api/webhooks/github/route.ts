@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { translateCommits, detectUnapprovedWork } from '@/lib/openai'
+import {
+  parseGithubTaskChecklist,
+  parseGithubTaskMarkers,
+  updateRequestImplementationStatus,
+} from '@/lib/request-tasks'
+import { sendClientTaskCompletionEmail } from '@/lib/resend'
 import crypto from 'crypto'
 
 function verifySignature(payload: string, signature: string | null, secret: string): boolean {
@@ -8,6 +14,138 @@ function verifySignature(payload: string, signature: string | null, secret: stri
   const hmac = crypto.createHmac('sha256', secret)
   const digest = 'sha256=' + hmac.update(payload).digest('hex')
   return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature))
+}
+
+type CompletedTask = {
+  id: string
+  request_id: string
+  project_id: string
+  name: string
+  description: string | null
+  client_notified_at: string | null
+}
+
+async function completeTasksByMarkers(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  markers: string[],
+): Promise<CompletedTask[]> {
+  if (!markers.length) return []
+
+  const { data: tasks } = await supabase
+    .from('request_tasks')
+    .select('id, request_id, project_id, name, description, status, client_notified_at')
+    .in('github_marker', markers)
+
+  const incompleteIds = (tasks ?? [])
+    .filter((task: { status: string }) => task.status !== 'completed')
+    .map((task: { id: string }) => task.id)
+
+  if (!incompleteIds.length) return []
+
+  const { data: updated } = await supabase
+    .from('request_tasks')
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .in('id', incompleteIds)
+    .select('id, request_id, project_id, name, description, client_notified_at')
+
+  return (updated ?? []).filter((task: CompletedTask) => !task.client_notified_at)
+}
+
+async function completeAllTasksForRequest(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  requestId: string,
+): Promise<CompletedTask[]> {
+  const { data: tasks } = await supabase
+    .from('request_tasks')
+    .select('id, status')
+    .eq('request_id', requestId)
+
+  const incompleteIds = (tasks ?? [])
+    .filter((task: { status: string }) => task.status !== 'completed')
+    .map((task: { id: string }) => task.id)
+
+  if (!incompleteIds.length) return []
+
+  const { data: updated } = await supabase
+    .from('request_tasks')
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .in('id', incompleteIds)
+    .select('id, request_id, project_id, name, description, client_notified_at')
+
+  return (updated ?? []).filter((task: CompletedTask) => !task.client_notified_at)
+}
+
+async function applyChecklistState(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  body: string | null | undefined,
+) {
+  const checklist = parseGithubTaskChecklist(body)
+  const completedMarkers = checklist.filter((item) => item.completed).map((item) => item.marker)
+  const pendingMarkers = checklist.filter((item) => !item.completed).map((item) => item.marker)
+
+  const completedTasks = await completeTasksByMarkers(supabase, completedMarkers)
+
+  if (pendingMarkers.length) {
+    await supabase
+      .from('request_tasks')
+      .update({ status: 'pending', completed_at: null })
+      .in('github_marker', pendingMarkers)
+  }
+
+  const affectedMarkers = [...completedMarkers, ...pendingMarkers]
+  if (affectedMarkers.length) {
+    const { data: affectedTasks } = await supabase
+      .from('request_tasks')
+      .select('request_id')
+      .in('github_marker', affectedMarkers)
+
+    const requestIds = [
+      ...new Set<string>((affectedTasks ?? []).map((task: { request_id: string }) => task.request_id)),
+    ]
+    await Promise.all(requestIds.map((requestId) => updateRequestImplementationStatus({ supabase, requestId })))
+  }
+
+  return completedTasks
+}
+
+async function notifyClientForCompletedTasks(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  tasks: CompletedTask[],
+) {
+  const tasksByRequest = new Map<string, CompletedTask[]>()
+
+  for (const task of tasks) {
+    tasksByRequest.set(task.request_id, [...(tasksByRequest.get(task.request_id) ?? []), task])
+  }
+
+  for (const [requestId, requestTasks] of tasksByRequest) {
+    const { data: request } = await supabase
+      .from('requests')
+      .select('raw_email_subject, raw_email_body, project:projects(name, client_name, client_email)')
+      .eq('id', requestId)
+      .single()
+
+    const project = request?.project as Record<string, unknown> | undefined
+    const clientEmail = project?.client_email as string | undefined
+    if (!request || !project || !clientEmail) continue
+
+    await sendClientTaskCompletionEmail({
+      to: clientEmail,
+      clientName: (project.client_name as string | undefined) ?? 'there',
+      projectName: (project.name as string | undefined) ?? 'your project',
+      requestSummary: request.raw_email_subject ?? request.raw_email_body?.slice(0, 160) ?? 'Approved request',
+      tasks: requestTasks.map((task) => ({ name: task.name, description: task.description })),
+    })
+
+    await supabase
+      .from('request_tasks')
+      .update({ client_notified_at: new Date().toISOString() })
+      .in('id', requestTasks.map((task) => task.id))
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -39,6 +177,8 @@ export async function POST(req: NextRequest) {
     let eventType = 'push'
     let plainSummary: string | null = null
     let isUnapproved = false
+    let requestIdForEvent: string | null = null
+    let completedTasksForNotification: CompletedTask[] = []
 
     if (event === 'pull_request' && payload.action === 'closed' && payload.pull_request?.merged) {
       eventType = 'pr_merged'
@@ -61,17 +201,52 @@ export async function POST(req: NextRequest) {
           approvedRequests: approvedRequests as { technical_breakdown: string }[],
           prTitle: payload.pull_request.title,
           prBody: payload.pull_request.body ?? '',
-          filesChanged: (payload.pull_request.changed_files ?? []),
+          filesChanged: [],
         }).catch(() => null)
 
         isUnapproved = result?.is_approved_work === false && (result?.confidence ?? 0) > 60
       }
+
+      const markers = parseGithubTaskMarkers(`${payload.pull_request.title}\n${payload.pull_request.body ?? ''}`)
+      completedTasksForNotification = await completeTasksByMarkers(supabase, markers)
+
+      const affectedRequestIds = [...new Set(completedTasksForNotification.map((task) => task.request_id))]
+      requestIdForEvent = affectedRequestIds[0] ?? null
+      await Promise.all(affectedRequestIds.map((requestId) => updateRequestImplementationStatus({ supabase, requestId })))
     } else if (event === 'issues' && payload.action === 'closed') {
       eventType = 'issue_closed'
+      const { data: linkedRequest } = await supabase
+        .from('requests')
+        .select('id')
+        .eq('project_id', project.id)
+        .eq('github_issue_number', payload.issue?.number)
+        .single()
+
+      if (linkedRequest) {
+        requestIdForEvent = linkedRequest.id
+        completedTasksForNotification = await completeAllTasksForRequest(supabase, linkedRequest.id)
+        await updateRequestImplementationStatus({ supabase, requestId: linkedRequest.id })
+      }
+    } else if (event === 'issues' && ['edited', 'reopened'].includes(payload.action)) {
+      eventType = 'issue_updated'
+      const { data: linkedRequest } = await supabase
+        .from('requests')
+        .select('id')
+        .eq('project_id', project.id)
+        .eq('github_issue_number', payload.issue?.number)
+        .single()
+
+      requestIdForEvent = linkedRequest?.id ?? null
+      completedTasksForNotification = await applyChecklistState(supabase, payload.issue?.body)
+    }
+
+    if (completedTasksForNotification.length) {
+      await notifyClientForCompletedTasks(supabase, completedTasksForNotification)
     }
 
     await supabase.from('github_events').insert({
       project_id: project.id,
+      request_id: requestIdForEvent,
       event_type: eventType,
       github_data: payload,
       plain_english_summary: plainSummary,

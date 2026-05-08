@@ -45,6 +45,9 @@ export async function GET(req: NextRequest) {
   // Store token on project (if projectId) or profile
   if (projectId && projectId !== user.id) {
     await supabase.from('projects').update({
+      // TECH DEBT: this column stores an OAuth access token for the hackathon
+      // flow, not a GitHub App installation ID. Rename/migrate before adding
+      // GitHub App installation support.
       github_installation_id: access_token,
     }).eq('id', projectId).eq('user_id', user.id)
     return NextResponse.redirect(new URL(`/projects/${projectId}/github-setup`, req.url))

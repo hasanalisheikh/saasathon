@@ -5,7 +5,14 @@ import { cn } from "@workspace/ui/lib/utils"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
-import { Separator } from "@workspace/ui/components/separator"
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
+  BreadcrumbPage,
+} from "@workspace/ui/components/breadcrumb"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@workspace/ui/components/tabs"
 import {
   ClassificationBadge,
@@ -19,8 +26,10 @@ import {
   EmptyStateDescription,
 } from "@workspace/ui/components/empty-state"
 import { EmbedSnippet } from './embed-snippet'
+import { EditProjectModal } from './edit-project-modal'
+import { WidgetCommentsTab } from './widget-comments-tab'
 
-const TABS = ['requests', 'github', 'proof-pack'] as const
+const TABS = ['requests', 'documents', 'widget', 'github', 'proof-pack'] as const
 type Tab = typeof TABS[number]
 
 export default async function ProjectDetailPage({
@@ -28,10 +37,10 @@ export default async function ProjectDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; filter?: string }>
 }) {
   const { id } = await params
-  const { tab: rawTab } = await searchParams
+  const { tab: rawTab, filter: rawFilter } = await searchParams
   const activeTab: Tab = (TABS as readonly string[]).includes(rawTab ?? '') ? (rawTab as Tab) : 'requests'
 
   const supabase = await createClient()
@@ -46,11 +55,17 @@ export default async function ProjectDetailPage({
 
   if (!project) notFound()
 
-  const [{ data: requests }, { data: githubEvents }] = await Promise.all([
+  const [{ data: requests }, { data: projectDocuments }, { data: githubEvents }, { data: widgetComments }] = await Promise.all([
     supabase
       .from('requests')
       .select('*')
       .eq('project_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('documents')
+      .select('*')
+      .eq('project_id', id)
+      .eq('user_id', user!.id)
       .order('created_at', { ascending: false }),
     supabase
       .from('github_events')
@@ -58,29 +73,56 @@ export default async function ProjectDetailPage({
       .eq('project_id', id)
       .order('created_at', { ascending: false })
       .limit(50),
+    supabase
+      .from('widget_comments')
+      .select('*')
+      .eq('project_id', id)
+      .is('converted_to_request_id', null)
+      .order('created_at', { ascending: false }),
   ])
 
   const approvedRequests = (requests ?? []).filter((r) => r.status === 'approved')
   const STATUS_FILTERS = ["all", "pending_review", "sent_to_client", "approved", "declined", "deferred"]
+  const activeFilter = STATUS_FILTERS.includes(rawFilter ?? '') ? (rawFilter as string) : 'all'
+  const filteredRequests = activeFilter === 'all'
+    ? (requests ?? [])
+    : (requests ?? []).filter((r) => r.status === activeFilter)
 
+  const unconvertedCommentCount = (widgetComments ?? []).length
   const TAB_LABELS: Record<Tab, string> = {
     requests: 'Requests',
+    documents: (projectDocuments?.length ?? 0) > 0 ? `Documents (${projectDocuments!.length})` : 'Documents',
+    widget: unconvertedCommentCount > 0 ? `Widget (${unconvertedCommentCount})` : 'Widget',
     github: 'GitHub',
     'proof-pack': 'Proof Pack',
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto p-6">
+      {/* Breadcrumb */}
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link href="/projects" />}>Projects</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{project.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* Header */}
       <PageHeader>
         <div>
-          <PageTitle>{project.name}</PageTitle>
+          <PageTitle className="text-2xl font-light">{project.name}</PageTitle>
           <PageDescription>
             {project.client_name}
             {project.client_email ? ` · ${project.client_email}` : ""}
           </PageDescription>
         </div>
         <PageActions>
+          <EditProjectModal project={project} />
           <Button render={<Link href={`/projects/${id}/requests/new`} />} nativeButton={false}>
             + Add Request
           </Button>
@@ -122,11 +164,11 @@ export default async function ProjectDetailPage({
             {STATUS_FILTERS.map((f) => (
               <Badge
                 key={f}
-                variant={f === "all" ? "default" : "outline"}
+                variant={f === activeFilter ? "default" : "outline"}
                 className="capitalize cursor-pointer"
-                render={<button type="button" />}
+                render={<Link href={`?tab=requests&filter=${f}`} />}
               >
-                {f.replace("_", " ")}
+                {f.replace(/_/g, ' ')}
               </Badge>
             ))}
           </div>
@@ -140,9 +182,13 @@ export default async function ProjectDetailPage({
                 <span className="font-medium text-muted-foreground">{project.inbound_email}</span>
               </EmptyStateDescription>
             </EmptyState>
+          ) : filteredRequests.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              No requests with status &ldquo;{activeFilter.replace(/_/g, ' ')}&rdquo;.
+            </div>
           ) : (
             <div className="space-y-2">
-              {requests.map((req) => (
+              {filteredRequests.map((req) => (
                 <Link
                   key={req.id}
                   href={`/projects/${id}/requests/${req.id}`}
@@ -177,6 +223,65 @@ export default async function ProjectDetailPage({
                     </CardContent>
                   </Card>
                 </Link>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="widget">
+          <WidgetCommentsTab comments={widgetComments ?? []} projectId={id} />
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <p className="text-xs text-muted-foreground">
+              Assigned documents are included in AI scope and pricing analysis for this project.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href={`/documents?project_id=${id}`} />}
+              nativeButton={false}
+            >
+              Manage Documents
+            </Button>
+          </div>
+
+          {!projectDocuments?.length ? (
+            <EmptyState>
+              <EmptyStateTitle>No project documents yet.</EmptyStateTitle>
+              <EmptyStateDescription>
+                Add contracts, proposals, rate cards, or briefs from the documents library.
+              </EmptyStateDescription>
+            </EmptyState>
+          ) : (
+            <div className="space-y-2">
+              {projectDocuments.map((document) => (
+                <Card key={document.id}>
+                  <CardContent>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm">{document.title}</p>
+                          <Badge variant={document.extraction_status === 'failed' ? 'destructive' : 'outline'}>
+                            {document.extraction_status}
+                          </Badge>
+                          <Badge variant="outline">
+                            {(document.document_type as string).replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {document.file_name} · {new Date(document.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {(document.tags as string[] | null)?.map((tag) => (
+                          <Badge key={tag} variant="outline">{tag}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
@@ -300,6 +405,7 @@ function GitHubEventRow({ event }: { event: any }) {
   const typeMap: Record<string, { label: string; color: string; icon: string }> = {
     pr_merged: { label: 'PR Merged', color: 'text-violet-400', icon: '⎇' },
     issue_closed: { label: 'Issue Closed', color: 'text-emerald-400', icon: '✓' },
+    issue_updated: { label: 'Issue Updated', color: 'text-blue-400', icon: '☑' },
     push: { label: 'Push', color: 'text-blue-400', icon: '↑' },
     deployment: { label: 'Deployed', color: 'text-primary', icon: '⚡' },
   }

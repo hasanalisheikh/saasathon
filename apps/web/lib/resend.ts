@@ -182,3 +182,63 @@ export async function sendDeveloperApprovalEmail(params: {
     html: buildDeveloperApprovalHtml(params),
   })
 }
+
+function buildClientTaskCompletionHtml(params: {
+  clientName: string
+  projectName: string
+  requestSummary: string
+  tasks: { name: string; description: string | null }[]
+}) {
+  const taskList = params.tasks
+    .map((task) => `<li><strong>${task.name}</strong>${task.description ? ` — ${task.description}` : ''}</li>`)
+    .join('')
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { background: #080c14; color: #f0f4ff; font-family: 'Courier New', monospace; margin: 0; padding: 40px 20px; }
+    .container { max-width: 560px; margin: 0 auto; }
+    .logo { color: #f59e0b; font-size: 18px; font-weight: 500; letter-spacing: 0.1em; }
+    .card { background: #0f1624; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 24px; margin: 24px 0; }
+    .label { color: #8892a4; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .value { color: #f0f4ff; font-size: 14px; }
+    li { margin: 10px 0; }
+    .footer { color: #4a5568; font-size: 11px; margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom: 24px;"><div class="logo">monad</div></div>
+    <p>Hi ${params.clientName},</p>
+    <p>A quick update: work has been completed on ${params.projectName}.</p>
+    <div class="card">
+      <div class="label">Original request</div>
+      <div class="value">${params.requestSummary}</div>
+      <div style="border-top:1px solid rgba(255,255,255,0.06); margin:20px 0; padding-top:20px;">
+        <div class="label">Completed</div>
+        <ul class="value">${taskList}</ul>
+      </div>
+    </div>
+    <p style="color:#8892a4;font-size:14px;">Your developer will follow up if there are deployment notes or next steps.</p>
+    <div class="footer">Sent by Monad · monad.app</div>
+  </div>
+</body>
+</html>`
+}
+
+export async function sendClientTaskCompletionEmail(params: {
+  to: string
+  clientName: string
+  projectName: string
+  requestSummary: string
+  tasks: { name: string; description: string | null }[]
+}) {
+  return getResend().emails.send({
+    from: FROM(),
+    to: params.to,
+    subject: `Completed update — ${params.projectName}`,
+    html: buildClientTaskCompletionHtml(params),
+  })
+}

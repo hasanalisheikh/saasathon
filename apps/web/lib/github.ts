@@ -70,7 +70,26 @@ export function buildIssueBody(params: {
   approvedCost: string
   approvalTimestamp: string
   monadRequestUrl: string
+  tasks?: {
+    name: string
+    description: string | null
+    min_hours: number | null
+    max_hours: number | null
+    github_marker: string
+  }[]
 }) {
+  const checklist = params.tasks?.length
+    ? `\n## Implementation Checklist\n${params.tasks
+        .map((task) => {
+          const estimate = task.min_hours && task.max_hours
+            ? ` (${task.min_hours}-${task.max_hours}h)`
+            : ''
+          const description = task.description ? ` - ${task.description}` : ''
+          return `- [ ] ${task.name}${estimate}${description} <!-- ${task.github_marker} -->`
+        })
+        .join('\n')}\n`
+    : ''
+
   return `## Client Request
 ${params.clientRequest}
 
@@ -79,6 +98,8 @@ ${params.technicalBreakdown}
 
 ## Approved Cost
 ${params.approvedCost}
+
+${checklist}
 
 ## Approval
 Approved by client on ${params.approvalTimestamp}

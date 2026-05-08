@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createIssue, buildIssueBody } from '@/lib/github'
+import { ensureRequestTasks } from '@/lib/request-tasks'
 import { sendDeveloperApprovalEmail } from '@/lib/resend'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
@@ -22,6 +23,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       return NextResponse.redirect(new URL('/approve/invalid', req.url))
     }
 
+    if (request.approved_at) {
+      return NextResponse.redirect(new URL(`/approve/${token}`, req.url))
+    }
+
     const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown'
     const now = new Date().toISOString()
 
@@ -35,16 +40,34 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     }
 
     if (action === 'approve' && understood) {
-      await supabase.from('requests').update({
-        status: 'approved',
-        approved_at: now,
-        approved_ip: ip,
-        client_understood_cost: true,
-      }).eq('approval_token', token)
+      const { data: approvedRequest, error: approvalError } = await supabase
+        .from('requests')
+        .update({
+          status: 'approved',
+          approved_at: now,
+          approved_ip: ip,
+          client_understood_cost: true,
+        })
+        .eq('id', request.id)
+        .is('approved_at', null)
+        .select('id')
+        .maybeSingle()
+
+      if (approvalError) throw approvalError
+
+      if (!approvedRequest) {
+        return NextResponse.redirect(new URL(`/approve/${token}`, req.url))
+      }
 
       const project = request.project as Record<string, unknown>
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
       let githubIssueUrl: string | null = null
+      const requestTasks = await ensureRequestTasks({
+        supabase,
+        requestId: request.id,
+        projectId: project.id as string,
+        tasks: request.tasks ?? [],
+      })
 
       // Create GitHub issue if repo connected
       if (project.github_repo_name && project.github_installation_id) {
@@ -59,6 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
             approvedCost: costRange,
             approvalTimestamp: now,
             monadRequestUrl: `${appUrl}/projects/${project.id as string}/requests/${request.id}`,
+            tasks: requestTasks,
           })
 
           const [owner = '', repo = ''] = (project.github_repo_name as string).split('/')

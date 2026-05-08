@@ -23,6 +23,9 @@ CREATE TABLE projects (
   inbound_email TEXT UNIQUE,
   github_repo_id TEXT,
   github_repo_name TEXT,
+  -- TECH DEBT: despite the name, the OAuth flow currently stores a GitHub
+  -- access token here, not a GitHub App installation ID. Rename/migrate this
+  -- before adding a GitHub App installation flow.
   github_installation_id TEXT,
   hourly_rate INTEGER,
   task_categories JSONB,

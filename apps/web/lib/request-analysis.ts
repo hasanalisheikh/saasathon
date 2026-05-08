@@ -1,4 +1,5 @@
 import { analyseRequest } from "@/lib/openai"
+import { replaceRequestTasks } from "@/lib/request-tasks"
 import { createServiceClient } from "@/lib/supabase/server"
 
 export async function analyseAndPersistRequest(requestId: string) {
@@ -6,7 +7,7 @@ export async function analyseAndPersistRequest(requestId: string) {
 
   const { data: request } = await supabase
     .from("requests")
-    .select("*, project:projects(scope_raw, scope_structured, hourly_rate, task_categories)")
+    .select("*, project:projects(id, user_id, scope_raw, scope_structured, hourly_rate, task_categories)")
     .eq("id", requestId)
     .single()
 
@@ -15,6 +16,16 @@ export async function analyseAndPersistRequest(requestId: string) {
   }
 
   const project = request.project as Record<string, unknown>
+  const projectId = request.project_id as string
+
+  const { data: documents } = await supabase
+    .from("documents")
+    .select("title, document_type, tags, extracted_text")
+    .eq("project_id", projectId)
+    .eq("extraction_status", "completed")
+    .not("extracted_text", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(10)
 
   if (process.env.MOCK_AI === "true") {
     const mock = {
@@ -84,6 +95,7 @@ Jamie`,
         confidence: mock.confidence,
         scope_evidence: mock.scope_evidence,
         technical_breakdown: mock.technical_breakdown,
+        tasks: mock.tasks,
         effort_min_hours: mock.effort_min_hours,
         effort_max_hours: mock.effort_max_hours,
         cost_min: costMin,
@@ -91,9 +103,19 @@ Jamie`,
         timeline_impact_days: mock.timeline_impact_days,
         risk_level: mock.risk_level,
         draft_reply: mock.draft_reply,
+        suggested_action: mock.suggested_action,
         status: "pending_review",
       })
       .eq("id", requestId)
+
+    if (request.status !== "approved") {
+      await replaceRequestTasks({
+        supabase,
+        requestId,
+        projectId,
+        tasks: mock.tasks,
+      })
+    }
 
     return { classification: mock.classification }
   }
@@ -104,6 +126,7 @@ Jamie`,
     scopeStructured: (project.scope_structured as object) ?? {},
     hourlyRate,
     taskCategories: (project.task_categories as object[]) ?? [],
+    documents: documents ?? [],
     emailFrom: request.raw_email_from ?? "",
     emailSubject: request.raw_email_subject ?? "",
     emailBody: request.raw_email_body,
@@ -119,6 +142,7 @@ Jamie`,
       confidence: analysis.confidence,
       scope_evidence: analysis.scope_evidence,
       technical_breakdown: analysis.technical_breakdown,
+      tasks: analysis.tasks,
       effort_min_hours: analysis.effort_min_hours,
       effort_max_hours: analysis.effort_max_hours,
       cost_min: costMin,
@@ -126,8 +150,18 @@ Jamie`,
       timeline_impact_days: analysis.timeline_impact_days,
       risk_level: analysis.risk_level,
       draft_reply: analysis.draft_reply,
+      suggested_action: analysis.suggested_action,
     })
     .eq("id", requestId)
+
+  if (request.status !== "approved") {
+    await replaceRequestTasks({
+      supabase,
+      requestId,
+      projectId,
+      tasks: analysis.tasks,
+    })
+  }
 
   return { classification: analysis.classification }
 }

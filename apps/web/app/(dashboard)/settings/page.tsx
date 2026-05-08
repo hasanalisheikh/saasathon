@@ -19,11 +19,18 @@ interface Profile {
   github_username: string | null
 }
 
+interface ProjectSnippet {
+  id: string
+  name: string
+  widget_token: string
+}
+
 export default function SettingsPage() {
   const searchParams = useSearchParams()
   const githubStatus = searchParams.get('github')
 
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [projects, setProjects] = useState<ProjectSnippet[]>([])
   const [userEmail, setUserEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -35,8 +42,12 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setUserEmail(user.email ?? '')
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (data) setProfile(data)
+      const [{ data: profileData }, { data: projectsData }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('projects').select('id, name, widget_token').eq('user_id', user.id).order('created_at'),
+      ])
+      if (profileData) setProfile(profileData)
+      if (projectsData) setProjects(projectsData)
     }
     load()
   }, [])
@@ -136,15 +147,10 @@ export default function SettingsPage() {
       <Section title="Email Forwarding">
         <Card size="sm">
           <CardContent>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
-                Active
-              </Badge>
-              <span className="text-sm">inbound.monad.app is receiving emails</span>
-            </div>
+            <p className="text-sm mb-1 font-mono text-primary">inbound.monad.app</p>
             <p className="text-xs text-muted-foreground/50">
-              Each project gets a unique inbound email. Forward or BCC client emails to receive and
-              analyse them automatically.
+              Each project gets a unique inbound address at this domain. Forward or BCC client
+              emails there to receive and analyse them automatically.
             </p>
           </CardContent>
         </Card>
@@ -186,23 +192,9 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Widget">
-        <WidgetSnippet />
+        <WidgetSnippet projects={projects} />
       </Section>
 
-      <Section title="Notifications">
-        <div className="space-y-3">
-          {[
-            "Email me when a new request is received",
-            "Email me when a client approves or declines",
-            "Weekly digest of scope creep stats",
-          ].map((label) => (
-            <label key={label} className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" defaultChecked className="w-4 h-4 accent-amber-500" />
-              <span className="text-sm text-muted-foreground">{label}</span>
-            </label>
-          ))}
-        </div>
-      </Section>
     </div>
   )
 }
@@ -216,10 +208,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function WidgetSnippet() {
+function WidgetSnippet({ projects }: { projects: ProjectSnippet[] }) {
   const [copied, setCopied] = useState(false)
+  const [selectedId, setSelectedId] = useState<string>('')
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://monad.app'
-  const snippet = `<script src="${appUrl}/widget.js" data-project-id="YOUR_PROJECT_ID"></script>`
+
+  const selected = projects.find(p => p.id === selectedId) ?? projects[0]
+
+  const snippet = selected
+    ? `<script src="${appUrl}/widget.js"\n  data-project-id="${selected.id}"\n  data-client-token="${selected.widget_token}"\n></script>`
+    : `<script src="${appUrl}/widget.js"\n  data-project-id="YOUR_PROJECT_ID"\n  data-client-token="YOUR_CLIENT_TOKEN"\n></script>`
 
   const copy = () => {
     navigator.clipboard.writeText(snippet)
@@ -230,17 +228,30 @@ function WidgetSnippet() {
   return (
     <Card size="sm">
       <CardContent>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-muted-foreground">
-            Embed on your client portal or website — replace with your project ID
-          </p>
-          <Button variant="ghost" size="sm" onClick={copy}>
+        <div className="flex items-center justify-between mb-3">
+          {projects.length > 0 ? (
+            <select
+              className="text-xs bg-transparent border border-border rounded px-2 py-1 text-foreground font-mono"
+              value={selectedId || selected?.id || ''}
+              onChange={e => setSelectedId(e.target.value)}
+            >
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-xs text-muted-foreground">Create a project to get your embed snippet</p>
+          )}
+          <Button variant="ghost" size="sm" onClick={copy} disabled={!selected}>
             {copied ? 'Copied ✓' : 'Copy'}
           </Button>
         </div>
         <pre className="text-xs overflow-x-auto whitespace-pre-wrap break-all font-mono text-primary leading-relaxed">
           {snippet}
         </pre>
+        <p className="text-xs text-muted-foreground/50 mt-2">
+          Embed on your client&apos;s site. The token authenticates comments to this project.
+        </p>
       </CardContent>
     </Card>
   )
