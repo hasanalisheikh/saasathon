@@ -1,94 +1,79 @@
-"use client"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@workspace/ui/components/button"
+import Link from 'next/link'
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-
-    const formData = new FormData(e.currentTarget)
-    const supabase = createClient()
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-    })
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
-
-    router.push("/dashboard")
-    router.refresh()
-  }
-
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-          <p className="text-muted-foreground text-sm">Sign in to ProjectPilot</p>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#080c14' }}>
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <MonadLogo />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              placeholder="you@example.com"
-            />
-          </div>
+        <div className="p-8 rounded-lg" style={{ background: '#0f1624', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <h1 className="text-xl mb-6" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>Sign in</h1>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              placeholder="••••••••"
-            />
-          </div>
+          <form className="space-y-4">
+            <div>
+              <label className="block text-xs mb-1.5" style={{ color: '#8892a4' }}>Email</label>
+              <input
+                type="email"
+                name="email"
+                required
+                className="w-full px-3 py-2 rounded text-sm outline-none"
+                style={{
+                  background: '#080c14',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  color: '#f0f4ff',
+                  fontFamily: 'DM Mono, monospace',
+                }}
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label className="block text-xs mb-1.5" style={{ color: '#8892a4' }}>Password</label>
+              <input
+                type="password"
+                name="password"
+                required
+                className="w-full px-3 py-2 rounded text-sm outline-none"
+                style={{
+                  background: '#080c14',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  color: '#f0f4ff',
+                  fontFamily: 'DM Mono, monospace',
+                }}
+                placeholder="••••••••"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded text-sm font-medium mt-2"
+              style={{ background: '#f59e0b', color: '#080c14' }}
+            >
+              Sign in
+            </button>
+          </form>
 
-          {error && (
-            <p className="text-destructive text-sm">{error}</p>
-          )}
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
-
-        <p className="text-muted-foreground text-center text-sm">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-foreground underline underline-offset-4">
-            Sign up
-          </Link>
-        </p>
+          <p className="text-xs text-center mt-5" style={{ color: '#4a5568' }}>
+            New to Monad?{' '}
+            <Link href="/signup" style={{ color: '#f59e0b' }}>Sign up</Link>
+          </p>
+        </div>
       </div>
+    </div>
+  )
+}
+
+function MonadLogo() {
+  return (
+    <div className="flex items-center gap-2">
+      <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="4" fill="#f59e0b"/>
+        <line x1="16" y1="12" x2="16" y2="4" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+        <line x1="20" y1="18.9" x2="27" y2="23" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+        <line x1="12" y1="18.9" x2="5" y2="23" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+      <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 500, letterSpacing: '0.08em', color: '#f0f4ff' }}>monad</span>
     </div>
   )
 }

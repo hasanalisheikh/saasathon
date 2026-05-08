@@ -1,9 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/signup', '/auth/callback', '/approve', '/api', '/']
-
-export async function middleware(request: NextRequest) {
+export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -15,7 +13,9 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -29,9 +29,12 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  const isPublic = PUBLIC_PATHS.some((p) =>
-    pathname === p || pathname.startsWith(p + '/')
-  )
+  const isPublic =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/approve') ||
+    pathname.startsWith('/api') ||
+    pathname === '/'
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
@@ -46,8 +49,4 @@ export async function middleware(request: NextRequest) {
   }
 
   return supabaseResponse
-}
-
-export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }

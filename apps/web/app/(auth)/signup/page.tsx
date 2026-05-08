@@ -1,139 +1,80 @@
-"use client"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@workspace/ui/components/button"
+import Link from 'next/link'
 
 export default function SignupPage() {
-  const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-
-    const formData = new FormData(e.currentTarget)
-    const password = formData.get("password") as string
-    const confirm = formData.get("confirm_password") as string
-
-    if (password !== confirm) {
-      setError("Passwords do not match")
-      setLoading(false)
-      return
-    }
-
-    const supabase = createClient()
-
-    const { error } = await supabase.auth.signUp({
-      email: formData.get("email") as string,
-      password,
-      options: {
-        data: { full_name: formData.get("full_name") as string },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
-
-    router.push("/dashboard")
-    router.refresh()
-  }
-
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
-          <p className="text-muted-foreground text-sm">Start managing your projects with AI</p>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#080c14' }}>
+      <div className="w-full max-w-sm">
+        <div className="flex justify-center mb-8">
+          <MonadLogo />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="full_name" className="text-sm font-medium">
-              Full name
-            </label>
-            <input
-              id="full_name"
-              name="full_name"
-              type="text"
-              required
-              autoComplete="name"
-              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              placeholder="Maya Chen"
-            />
-          </div>
+        <div className="p-8 rounded-lg" style={{ background: '#0f1624', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <h1 className="text-xl mb-6" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>Create account</h1>
 
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              placeholder="you@example.com"
-            />
-          </div>
+          <form className="space-y-4">
+            <div>
+              <label className="block text-xs mb-1.5" style={{ color: '#8892a4' }}>Full name</label>
+              <input
+                type="text"
+                name="full_name"
+                required
+                className="w-full px-3 py-2 rounded text-sm outline-none"
+                style={{ background: '#080c14', border: '1px solid rgba(255,255,255,0.10)', color: '#f0f4ff', fontFamily: 'DM Mono, monospace' }}
+                placeholder="Jamie Developer"
+              />
+            </div>
+            <div>
+              <label className="block text-xs mb-1.5" style={{ color: '#8892a4' }}>Email</label>
+              <input
+                type="email"
+                name="email"
+                required
+                className="w-full px-3 py-2 rounded text-sm outline-none"
+                style={{ background: '#080c14', border: '1px solid rgba(255,255,255,0.10)', color: '#f0f4ff', fontFamily: 'DM Mono, monospace' }}
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label className="block text-xs mb-1.5" style={{ color: '#8892a4' }}>Password</label>
+              <input
+                type="password"
+                name="password"
+                required
+                minLength={8}
+                className="w-full px-3 py-2 rounded text-sm outline-none"
+                style={{ background: '#080c14', border: '1px solid rgba(255,255,255,0.10)', color: '#f0f4ff', fontFamily: 'DM Mono, monospace' }}
+                placeholder="Min 8 characters"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded text-sm font-medium mt-2"
+              style={{ background: '#f59e0b', color: '#080c14' }}
+            >
+              Create account
+            </button>
+          </form>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="confirm_password" className="text-sm font-medium">
-              Confirm password
-            </label>
-            <input
-              id="confirm_password"
-              name="confirm_password"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {error && (
-            <p className="text-destructive text-sm">{error}</p>
-          )}
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating account…" : "Create account"}
-          </Button>
-        </form>
-
-        <p className="text-muted-foreground text-center text-sm">
-          Already have an account?{" "}
-          <Link href="/login" className="text-foreground underline underline-offset-4">
-            Sign in
-          </Link>
-        </p>
+          <p className="text-xs text-center mt-5" style={{ color: '#4a5568' }}>
+            Already have an account?{' '}
+            <Link href="/login" style={{ color: '#f59e0b' }}>Log in</Link>
+          </p>
+        </div>
       </div>
+    </div>
+  )
+}
+
+function MonadLogo() {
+  return (
+    <div className="flex items-center gap-2">
+      <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="4" fill="#f59e0b"/>
+        <line x1="16" y1="12" x2="16" y2="4" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+        <line x1="20" y1="18.9" x2="27" y2="23" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+        <line x1="12" y1="18.9" x2="5" y2="23" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+      <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 500, letterSpacing: '0.08em', color: '#f0f4ff' }}>monad</span>
     </div>
   )
 }
