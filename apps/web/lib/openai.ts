@@ -2,8 +2,31 @@ import OpenAI from 'openai'
 import type { AIAnalysis } from '@/types'
 
 let _openai: OpenAI | null = null
+let _model = 'gpt-4o'
+
 function getOpenAI(): OpenAI {
-  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  if (!_openai) {
+    if (process.env.NVIDIA_NIM_API_KEY) {
+      _openai = new OpenAI({
+        apiKey: process.env.NVIDIA_NIM_API_KEY,
+        baseURL: 'https://integrate.api.nvidia.com/v1',
+      })
+      _model = process.env.AI_MODEL || 'meta/llama-3.3-70b-instruct'
+    } else if (process.env.OPENROUTER_API_KEY) {
+      _openai = new OpenAI({
+        apiKey: process.env.OPENROUTER_API_KEY,
+        baseURL: 'https://openrouter.ai/api/v1',
+        defaultHeaders: {
+          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'X-Title': 'Monad',
+        },
+      })
+      _model = process.env.AI_MODEL || 'openai/gpt-4o'
+    } else {
+      _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+      _model = process.env.AI_MODEL || 'gpt-4o'
+    }
+  }
   return _openai
 }
 
@@ -16,8 +39,9 @@ export async function analyseRequest(params: {
   emailSubject: string
   emailBody: string
 }): Promise<AIAnalysis> {
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
+  const client = getOpenAI()
+  const response = await client.chat.completions.create({
+    model: _model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     response_format: { type: 'json_object' } as any,
     temperature: 0.2,
@@ -41,8 +65,9 @@ Always respond in valid JSON only. Do not include markdown code fences.`,
 }
 
 export async function extractScope(scopeRaw: string): Promise<object> {
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
+  const client = getOpenAI()
+  const response = await client.chat.completions.create({
+    model: _model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     response_format: { type: 'json_object' } as any,
     temperature: 0.1,
@@ -77,8 +102,9 @@ Rules:
 }
 
 export async function translateCommits(commits: string[]): Promise<string> {
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
+  const client = getOpenAI()
+  const response = await client.chat.completions.create({
+    model: _model,
     temperature: 0.3,
     messages: [
       {
@@ -97,8 +123,9 @@ export async function detectUnapprovedWork(params: {
   prBody: string
   filesChanged: string[]
 }): Promise<{ is_approved_work: boolean; confidence: number; matched_request: string | null; reasoning: string }> {
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
+  const client = getOpenAI()
+  const response = await client.chat.completions.create({
+    model: _model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     response_format: { type: 'json_object' } as any,
     temperature: 0.2,
