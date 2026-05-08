@@ -2,6 +2,21 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
+import Link from "next/link"
+import { Card } from "@workspace/ui/components/card"
+import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import { Textarea } from "@workspace/ui/components/textarea"
+import { FormField, FormLabel, FormError } from "@workspace/ui/components/form-field"
+import { PageTitle, PageDescription } from "@workspace/ui/components/page-header"
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
+  BreadcrumbPage,
+} from "@workspace/ui/components/breadcrumb"
 
 export default function NewRequestPage() {
   const { id } = useParams<{ id: string }>()
@@ -50,93 +65,59 @@ Marcus`)
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="mx-auto w-full max-w-2xl">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink render={<Link href="/projects" />}>Projects</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>New request</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <div className="mb-6">
-          <p className="mb-2 text-xs" style={{ color: "#4a5568" }}>
-            Projects / New request
-          </p>
-          <h1 className="text-xl" style={{ fontFamily: "Fraunces, Georgia, serif" }}>
-            Add Client Request
-          </h1>
-          <p className="mt-2 text-sm" style={{ color: "#8892a4" }}>
+          <PageTitle>Add Client Request</PageTitle>
+          <PageDescription>
             Paste a client email to run the same scope analysis used by inbound email.
-          </p>
+          </PageDescription>
         </div>
 
         <form onSubmit={submit} className="space-y-4">
-          <Field label="From">
-            <input value={from} onChange={(e) => setFrom(e.target.value)} style={inputStyle} />
-          </Field>
+          <FormField>
+            <FormLabel>From</FormLabel>
+            <Input value={from} onChange={(e) => setFrom(e.target.value)} />
+          </FormField>
 
-          <Field label="Subject">
-            <input value={subject} onChange={(e) => setSubject(e.target.value)} style={inputStyle} />
-          </Field>
+          <FormField>
+            <FormLabel>Subject</FormLabel>
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </FormField>
 
-          <Field label="Request body">
-            <textarea
+          <FormField>
+            <FormLabel>Request body</FormLabel>
+            <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={12}
               required
-              style={{ ...inputStyle, resize: "vertical" }}
             />
-          </Field>
+          </FormField>
 
-          {error && (
-            <div
-              className="rounded p-3 text-xs"
-              style={{ background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.30)", color: "#fecaca" }}
-            >
-              {error}
-            </div>
-          )}
+          {error && <FormError>{error}</FormError>}
 
           <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="rounded px-4 py-2 text-sm"
-              style={{ border: "1px solid rgba(255,255,255,0.10)", color: "#8892a4" }}
-            >
+            <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || !body.trim()}
-              className="rounded px-4 py-2 text-sm font-medium"
-              style={{
-                background: submitting || !body.trim() ? "rgba(245,158,11,0.4)" : "#f59e0b",
-                color: "#080c14",
-                cursor: submitting ? "not-allowed" : "pointer",
-              }}
-            >
+            </Button>
+            <Button type="submit" disabled={submitting || !body.trim()}>
               {submitting ? "Analysing..." : "Analyse Request"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
     </div>
   )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-xs" style={{ color: "#8892a4" }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  borderRadius: 6,
-  background: "#080c14",
-  border: "1px solid rgba(255,255,255,0.10)",
-  color: "#f0f4ff",
-  fontFamily: "DM Mono, monospace",
-  fontSize: 13,
-  outline: "none",
 }

@@ -1,4 +1,16 @@
-import { createClient } from '@/lib/supabase/server'
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/server"
+import { Card, CardContent } from "@workspace/ui/components/card"
+import { Badge } from "@workspace/ui/components/badge"
+import { MetricCard } from "@workspace/ui/components/metric-card"
+import {
+  ClassificationBadge,
+  getClassificationColorClass,
+} from "@workspace/ui/components/status-badge"
+import {
+  EmptyState,
+  EmptyStateTitle,
+} from "@workspace/ui/components/empty-state"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -6,11 +18,11 @@ export default async function DashboardPage() {
 
   // Fetch pending requests across all projects
   const { data: pendingRequests } = await supabase
-    .from('requests')
-    .select('*, project:projects(id, name, client_name)')
-    .eq('projects.user_id', user!.id)
-    .eq('status', 'pending_review')
-    .order('created_at', { ascending: false })
+    .from("requests")
+    .select("*, project:projects(id, name, client_name)")
+    .eq("projects.user_id", user!.id)
+    .eq("status", "pending_review")
+    .order("created_at", { ascending: false })
     .limit(20)
 
   // Metrics
@@ -18,14 +30,14 @@ export default async function DashboardPage() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
   const { data: monthRequests } = await supabase
-    .from('requests')
-    .select('classification, cost_min, cost_max, status')
-    .gte('created_at', startOfMonth)
+    .from("requests")
+    .select("classification, cost_min, cost_max, status")
+    .gte("created_at", startOfMonth)
 
   const requestsThisMonth = monthRequests?.length ?? 0
-  const outOfScopeCaught = monthRequests?.filter((r) => r.classification === 'out_of_scope').length ?? 0
+  const outOfScopeCaught = monthRequests?.filter((r) => r.classification === "out_of_scope").length ?? 0
   const unbilledProtected = monthRequests
-    ?.filter((r) => r.status === 'approved' && r.classification === 'out_of_scope')
+    ?.filter((r) => r.status === "approved" && r.classification === "out_of_scope")
     .reduce((sum, r) => sum + ((r.cost_min + r.cost_max) / 2 || 0), 0) ?? 0
 
   return (
@@ -45,18 +57,18 @@ export default async function DashboardPage() {
       {/* Inbox */}
       <div>
         <div className="flex items-center gap-3 mb-4">
-          <h2 className="text-sm font-medium" style={{ fontFamily: 'DM Mono, monospace' }}>Needs Review</h2>
+          <h2 className="text-sm font-medium">Needs Review</h2>
           {(pendingRequests?.length ?? 0) > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+            <Badge variant="outline" className="bg-primary/15 text-primary border-primary/30">
               {pendingRequests!.length}
-            </span>
+            </Badge>
           )}
         </div>
 
         {!pendingRequests?.length ? (
-          <div className="flex flex-col items-center py-16 rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.08)' }}>
-            <p className="text-sm" style={{ color: '#4a5568' }}>No new requests. Your inbox is clear.</p>
-          </div>
+          <EmptyState>
+            <EmptyStateTitle>No new requests. Your inbox is clear.</EmptyStateTitle>
+          </EmptyState>
         ) : (
           <div className="space-y-2">
             {pendingRequests.map((req) => (
@@ -69,64 +81,48 @@ export default async function DashboardPage() {
   )
 }
 
-function MetricCard({ label, value, accent, large }: { label: string; value: string; accent?: 'red' | 'amber'; large?: boolean }) {
-  const color = accent === 'red' ? '#ef4444' : accent === 'amber' ? '#f59e0b' : '#f0f4ff'
-  return (
-    <div className="p-5 rounded-lg" style={{ background: '#0f1624', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <p className="text-xs mb-2" style={{ color: '#8892a4' }}>{label}</p>
-      <p
-        className={large ? 'text-3xl font-light italic' : 'text-2xl'}
-        style={{ color, fontFamily: large ? 'Fraunces, Georgia, serif' : 'DM Mono, monospace' }}
-      >
-        {value}
-      </p>
-    </div>
-  )
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function RequestCard({ request }: { request: any }) {
-  const classificationColors: Record<string, string> = {
-    out_of_scope: '#ef4444',
-    in_scope: '#10b981',
-    ambiguous: '#f59e0b',
-    clarification_needed: '#3b82f6',
-  }
-
   const classification = request.classification as string
-  const borderColor = classificationColors[classification] ?? '#8892a4'
+  const colorClass = getClassificationColorClass(classification)
 
   return (
-    <a
+    <Link
       href={`/projects/${(request.project as Record<string, string>)?.id}/requests/${request.id as string}`}
-      className="block p-4 rounded-lg transition-colors"
-      style={{
-        background: '#0f1624',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderLeft: `3px solid ${borderColor}`,
-      }}
+      className="block"
     >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium">{(request.project as Record<string, string>)?.client_name}</span>
-        <span className="text-xs" style={{ color: '#4a5568' }}>
-          {new Date(request.created_at as string).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
-      </div>
-      <p className="text-sm truncate mb-2" style={{ color: '#8892a4', maxWidth: 480 }}>
-        {(request.raw_email_subject as string) || (request.raw_email_body as string)?.slice(0, 80)}
-      </p>
-      <div className="flex items-center gap-2">
-        {classification && (
-          <span className="text-xs px-2 py-0.5 rounded uppercase" style={{ color: borderColor, background: `${borderColor}18`, letterSpacing: '0.05em' }}>
-            {classification.replace('_', ' ')}
-          </span>
-        )}
-        {request.cost_min && request.cost_max && (
-          <span className="text-xs" style={{ color: '#f59e0b' }}>
-            ${(request.cost_min as number).toLocaleString()}–${(request.cost_max as number).toLocaleString()}
-          </span>
-        )}
-      </div>
-    </a>
+      <Card
+        className={cn("transition-colors hover:ring-foreground/20 border-l-[3px]", colorClass)}
+      >
+        <CardContent className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">
+              {(request.project as Record<string, string>)?.client_name}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {new Date(request.created_at as string).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+          <p className="text-sm truncate text-muted-foreground max-w-[480px]">
+            {(request.raw_email_subject as string) ||
+              (request.raw_email_body as string)?.slice(0, 80)}
+          </p>
+          <div className="flex items-center gap-2">
+            {classification && (
+              <ClassificationBadge classification={classification} />
+            )}
+            {request.cost_min && request.cost_max && (
+              <span className="text-xs text-primary">
+                ${(request.cost_min as number).toLocaleString()}–$
+                {(request.cost_max as number).toLocaleString()}
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   )
 }

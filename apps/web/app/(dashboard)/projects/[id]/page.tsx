@@ -1,6 +1,30 @@
-import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/server"
+import { notFound } from "next/navigation"
+import { Card, CardContent } from "@workspace/ui/components/card"
+import { Button } from "@workspace/ui/components/button"
+import { Badge } from "@workspace/ui/components/badge"
+import { Separator } from "@workspace/ui/components/separator"
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
+  BreadcrumbPage,
+} from "@workspace/ui/components/breadcrumb"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@workspace/ui/components/tabs"
+import {
+  ClassificationBadge,
+  StatusBadge,
+  getClassificationColorClass,
+} from "@workspace/ui/components/status-badge"
+import { PageHeader, PageTitle, PageDescription, PageActions } from "@workspace/ui/components/page-header"
+import {
+  EmptyState,
+  EmptyStateTitle,
+  EmptyStateDescription,
+} from "@workspace/ui/components/empty-state"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -8,160 +32,152 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: project } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user!.id)
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user!.id)
     .single()
 
   if (!project) notFound()
 
   const { data: requests } = await supabase
-    .from('requests')
-    .select('*')
-    .eq('project_id', id)
-    .order('created_at', { ascending: false })
+    .from("requests")
+    .select("*")
+    .eq("project_id", id)
+    .order("created_at", { ascending: false })
 
-  const STATUS_FILTERS = ['all', 'pending_review', 'sent_to_client', 'approved', 'declined', 'deferred']
+  const STATUS_FILTERS = ["all", "pending_review", "sent_to_client", "approved", "declined", "deferred"]
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
+      {/* Breadcrumb */}
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link href="/projects" />}>Projects</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{project.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <PageHeader>
         <div>
-          <div className="flex items-center gap-2 text-xs mb-2" style={{ color: '#4a5568' }}>
-            <Link href="/projects" style={{ color: '#4a5568' }}>Projects</Link>
-            <span>/</span>
-            <span style={{ color: '#8892a4' }}>{project.name}</span>
-          </div>
-          <h1 className="text-2xl font-light" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>{project.name}</h1>
-          <p className="text-sm mt-1" style={{ color: '#8892a4' }}>{project.client_name}{project.client_email ? ` · ${project.client_email}` : ''}</p>
+          <PageTitle className="text-2xl font-light">{project.name}</PageTitle>
+          <PageDescription>
+            {project.client_name}
+            {project.client_email ? ` · ${project.client_email}` : ""}
+          </PageDescription>
         </div>
-        <Link
-          href={`/projects/${id}/requests/new`}
-          className="px-4 py-2 rounded text-sm font-medium"
-          style={{ background: '#f59e0b', color: '#080c14' }}
-        >
-          + Add Request
-        </Link>
-      </div>
+        <PageActions>
+          <Button render={<Link href={`/projects/${id}/requests/new`} />} nativeButton={false}>
+            + Add Request
+          </Button>
+        </PageActions>
+      </PageHeader>
 
       {/* Inbound email banner */}
       {project.inbound_email && (
-        <div className="p-4 rounded-lg mb-6 flex items-center justify-between" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-          <div>
-            <p className="text-xs mb-1" style={{ color: '#f59e0b' }}>Inbound email address</p>
-            <p className="text-sm" style={{ fontFamily: 'DM Mono, monospace', color: '#f0f4ff' }}>{project.inbound_email}</p>
-          </div>
-          <p className="text-xs" style={{ color: '#8892a4' }}>Forward or BCC client emails here</p>
-        </div>
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardContent className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-primary mb-1">Inbound email address</p>
+              <p className="text-sm font-medium">{project.inbound_email}</p>
+            </div>
+            <p className="text-xs text-muted-foreground">Forward or BCC client emails here</p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-        {['Requests', 'GitHub', 'Proof Pack'].map((tab) => (
-          <button
-            key={tab}
-            className="px-4 py-2 text-xs -mb-px"
-            style={{
-              fontFamily: 'DM Mono, monospace',
-              color: tab === 'Requests' ? '#f59e0b' : '#8892a4',
-              borderBottom: tab === 'Requests' ? '1px solid #f59e0b' : '1px solid transparent',
-            }}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      <Tabs defaultValue="requests">
+        <TabsList variant="line" className="mb-6">
+          <TabsTrigger value="requests">Requests</TabsTrigger>
+          <TabsTrigger value="github">GitHub</TabsTrigger>
+          <TabsTrigger value="proof-pack">Proof Pack</TabsTrigger>
+        </TabsList>
 
-      {/* Request filters */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {STATUS_FILTERS.map((f) => (
-          <button
-            key={f}
-            className="text-xs px-3 py-1 rounded-full capitalize"
-            style={{
-              background: f === 'all' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
-              color: f === 'all' ? '#f59e0b' : '#8892a4',
-              border: '1px solid ' + (f === 'all' ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)'),
-            }}
-          >
-            {f.replace('_', ' ')}
-          </button>
-        ))}
-      </div>
+        <TabsContent value="requests">
+          {/* Request filters */}
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {STATUS_FILTERS.map((f) => (
+              <Badge
+                key={f}
+                variant={f === "all" ? "default" : "outline"}
+                className="capitalize cursor-pointer"
+                render={<button type="button" />}
+              >
+                {f.replace("_", " ")}
+              </Badge>
+            ))}
+          </div>
 
-      {/* Request list */}
-      {!requests?.length ? (
-        <div className="flex flex-col items-center py-16 rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.08)' }}>
-          <p className="text-sm mb-2" style={{ color: '#4a5568' }}>No requests yet.</p>
-          <p className="text-xs" style={{ color: '#4a5568' }}>
-            Forward client emails to <span style={{ fontFamily: 'DM Mono', color: '#8892a4' }}>{project.inbound_email}</span>
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {requests.map((req) => (
-            <Link
-              key={req.id}
-              href={`/projects/${id}/requests/${req.id}`}
-              className="flex items-center justify-between p-4 rounded-lg transition-all"
-              style={{
-                background: '#0f1624',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderLeft: `3px solid ${classColor(req.classification)}`,
-              }}
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm truncate">{req.raw_email_subject || req.raw_email_body?.slice(0, 60)}</p>
-                <p className="text-xs mt-0.5" style={{ color: '#4a5568' }}>
-                  {req.raw_email_from} · {new Date(req.created_at).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 ml-4 flex-shrink-0">
-                {req.classification && (
-                  <span className="text-xs px-2 py-0.5 rounded uppercase" style={{ color: classColor(req.classification), background: `${classColor(req.classification)}18` }}>
-                    {req.classification.replace('_', ' ')}
-                  </span>
-                )}
-                {req.cost_min && (
-                  <span className="text-xs" style={{ color: '#f59e0b' }}>
-                    ${req.cost_min.toLocaleString()}–${req.cost_max?.toLocaleString()}
-                  </span>
-                )}
-                <StatusBadge status={req.status} />
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+          {/* Request list */}
+          {!requests?.length ? (
+            <EmptyState>
+              <EmptyStateTitle>No requests yet.</EmptyStateTitle>
+              <EmptyStateDescription>
+                Forward client emails to{" "}
+                <span className="font-medium text-muted-foreground">{project.inbound_email}</span>
+              </EmptyStateDescription>
+            </EmptyState>
+          ) : (
+            <div className="space-y-2">
+              {requests.map((req) => (
+                <Link
+                  key={req.id}
+                  href={`/projects/${id}/requests/${req.id}`}
+                  className="block"
+                >
+                  <Card
+                    className={cn(
+                      "transition-all hover:ring-foreground/20 border-l-[3px]",
+                      getClassificationColorClass(req.classification)
+                    )}
+                  >
+                    <CardContent className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">
+                          {req.raw_email_subject || req.raw_email_body?.slice(0, 60)}
+                        </p>
+                        <p className="text-xs mt-0.5 text-muted-foreground/50">
+                          {req.raw_email_from} · {new Date(req.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 ml-4 flex-shrink-0">
+                        {req.classification && (
+                          <ClassificationBadge classification={req.classification} />
+                        )}
+                        {req.cost_min && (
+                          <span className="text-xs text-primary">
+                            ${req.cost_min.toLocaleString()}–${req.cost_max?.toLocaleString()}
+                          </span>
+                        )}
+                        <StatusBadge status={req.status} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="github">
+          <EmptyState>
+            <EmptyStateTitle>GitHub integration coming soon.</EmptyStateTitle>
+          </EmptyState>
+        </TabsContent>
+
+        <TabsContent value="proof-pack">
+          <EmptyState>
+            <EmptyStateTitle>Proof pack will be generated after client approvals.</EmptyStateTitle>
+          </EmptyState>
+        </TabsContent>
+      </Tabs>
     </div>
-  )
-}
-
-function classColor(c: string | null) {
-  switch (c) {
-    case 'out_of_scope': return '#ef4444'
-    case 'in_scope': return '#10b981'
-    case 'ambiguous': return '#f59e0b'
-    case 'clarification_needed': return '#3b82f6'
-    default: return '#4a5568'
-  }
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; color: string }> = {
-    pending_review: { label: 'Pending', color: '#f59e0b' },
-    sent_to_client: { label: 'Sent', color: '#3b82f6' },
-    approved: { label: 'Approved', color: '#10b981' },
-    declined: { label: 'Declined', color: '#ef4444' },
-    deferred: { label: 'Deferred', color: '#8892a4' },
-    accepted_in_scope: { label: 'In Scope', color: '#10b981' },
-  }
-  const s = map[status] ?? { label: status, color: '#8892a4' }
-  return (
-    <span className="text-xs px-2 py-0.5 rounded" style={{ color: s.color, background: `${s.color}18` }}>
-      {s.label}
-    </span>
   )
 }
