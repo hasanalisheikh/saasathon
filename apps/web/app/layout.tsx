@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import '@workspace/ui/globals.css'
 
 import { ThemeProvider } from "@workspace/ui/components/theme-provider"
+import { Toaster } from "@workspace/ui/components/sonner"
 
 export const metadata: Metadata = {
   title: 'Monad - Scope Creep Control',
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

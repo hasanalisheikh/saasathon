@@ -28,6 +28,8 @@ import {
 import { EmbedSnippet } from './embed-snippet'
 import { EditProjectModal } from './edit-project-modal'
 import { WidgetCommentsTab } from './widget-comments-tab'
+import { Calendar, ExternalLink } from "lucide-react"
+import { Icon } from "@iconify/react"
 
 const TABS = ['requests', 'documents', 'widget', 'github', 'proof-pack'] as const
 type Tab = typeof TABS[number]
@@ -128,6 +130,43 @@ export default async function ProjectDetailPage({
           </Button>
         </PageActions>
       </PageHeader>
+
+      {/* Project Details Placeholders */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-12 gap-y-1 mb-4 -mt-4 max-w-[60%]">
+        <div className="flex flex-col gap-0.5 items-start">
+          <span className="text-xs uppercase text-muted-foreground">Clients</span>
+          <a href="#" target="_blank" rel="noreferrer" className="group/link flex items-center gap-1.5 hover:underline">
+            <Icon icon="logos:slack-icon" className="w-4 h-4" />
+            <span className="text-sm">Acme Corp</span>
+            <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover/link:opacity-100 transition-opacity" />
+          </a>
+        </div>
+
+        <div className="flex flex-col gap-0.5 items-start">
+          <span className="text-xs uppercase text-muted-foreground">Project</span>
+          <a href="#" target="_blank" rel="noreferrer" className="group/link flex items-center gap-1.5 hover:underline">
+            <Icon icon="logos:github-icon" className="w-4 h-4" />
+            <span className="text-sm">acme-frontend</span>
+            <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover/link:opacity-100 transition-opacity" />
+          </a>
+        </div>
+
+        <div className="flex flex-col gap-0.5 items-start">
+          <span className="text-xs uppercase text-muted-foreground">Requirements Met</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-medium">21%</span>
+            <span className="text-sm text-muted-foreground">(12/56)</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-0.5 items-start">
+          <span className="text-xs uppercase text-muted-foreground">Deadline</span>
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-primary" />
+            <span className="text-sm">Oct 24, 2026</span>
+          </div>
+        </div>
+      </div>
 
       {/* Inbound email banner */}
       {project.inbound_email && (
