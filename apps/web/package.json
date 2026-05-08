@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
+    "@iconify/react": "^6.0.2",
     "@octokit/rest": "^21.1.1",
     "@react-pdf/renderer": "^4.3.0",
     "@supabase/ssr": "^0.6.1",
