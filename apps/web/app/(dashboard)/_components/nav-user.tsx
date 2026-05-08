@@ -33,11 +33,11 @@ export function NavUser({ user, logoutAction }: NavUserProps) {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
-            <div className="flex-1 min-w-0 text-left text-xs leading-tight">
-              <span className="truncate font-medium text-foreground">
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-semibold">
                 {user.name}
               </span>
-              <span className="truncate text-muted-foreground block text-[0.65rem]">
+              <span className="truncate text-xs text-muted-foreground">
                 {user.email}
               </span>
             </div>
@@ -64,11 +64,9 @@ export function NavUser({ user, logoutAction }: NavUserProps) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <form action={logoutAction}>
-              <DropdownMenuItem asChild>
-                <button type="submit" className="w-full">
-                  <LogOutIcon className="mr-2 size-4" />
-                  Sign out
-                </button>
+              <DropdownMenuItem render={<button type="submit" className="w-full" />}>
+                <LogOutIcon className="mr-2 size-4" />
+                Sign out
               </DropdownMenuItem>
             </form>
           </DropdownMenuContent>
