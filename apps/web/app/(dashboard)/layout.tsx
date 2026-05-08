@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset } from "@workspace/ui/components/sidebar"
 import { AppSidebar } from "./_components/app-sidebar"
 import { ResizableSidebar } from "./_components/resizable-sidebar"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@workspace/ui/components/resizable"
+import { DynamicBreadcrumb } from "./_components/dynamic-breadcrumb"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -25,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .order("created_at", { ascending: false })
 
   return (
-    <SidebarProvider style={{ "--sidebar-width": "100%" } as React.CSSProperties}>
+    <SidebarProvider className="h-svh overflow-hidden" style={{ "--sidebar-width": "100%" } as React.CSSProperties}>
       <ResizablePanelGroup direction="horizontal" autoSaveId="sidebar-layout">
         <ResizableSidebar>
           <AppSidebar
@@ -38,8 +39,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
           />
         </ResizableSidebar>
         <ResizableHandle />
-        <ResizablePanel defaultSize={85}>
-          <SidebarInset>{children}</SidebarInset>
+        <ResizablePanel defaultSize={85} className="overflow-hidden">
+          <SidebarInset className="h-full flex flex-col overflow-hidden">
+            <header className="px-6 pt-6 shrink-0 bg-background">
+              <DynamicBreadcrumb />
+            </header>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {children}
+            </div>
+          </SidebarInset>
         </ResizablePanel>
       </ResizablePanelGroup>
     </SidebarProvider>
