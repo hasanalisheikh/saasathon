@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BrandMark } from '@/components/brand-mark'
 import { login } from '@/lib/actions/auth'
 
 export default async function LoginPage({
@@ -9,90 +10,84 @@ export default async function LoginPage({
   const { error, message } = await searchParams
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#080c14' }}>
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <MonadLogo />
-        </div>
+    <main className="relative min-h-screen overflow-hidden bg-[#05030a] px-4 py-12 text-[#faf7ff]">
+      <AuthBackdrop />
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-sm flex-col justify-center">
+        <Link className="mb-8 flex justify-center" href="/" aria-label="Monad home">
+          <BrandMark size="lg" />
+        </Link>
 
-        <div className="p-8 rounded-lg" style={{ background: '#0f1624', border: '1px solid rgba(255,255,255,0.10)' }}>
-          <h1 className="text-xl mb-6" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>Sign in</h1>
+        <div className="rounded-lg border border-white/10 bg-[#0b0614]/95 p-7 shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur">
+          <h1 className="text-2xl font-semibold text-white">Sign in</h1>
+          <p className="mt-2 text-sm leading-6 text-[#a99dbe]">
+            Get back to the requests waiting for a scope decision.
+          </p>
 
           {error && (
-            <div className="mb-4 rounded p-3 text-xs" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.30)', color: '#fecaca' }}>
+            <div className="mt-5 rounded-md border border-[#fb7185]/30 bg-[#3b0b1d]/35 p-3 text-sm text-[#fecdd3]">
               {error}
             </div>
           )}
 
           {message && (
-            <div className="mb-4 rounded p-3 text-xs" style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.30)', color: '#bbf7d0' }}>
+            <div className="mt-5 rounded-md border border-[#34d399]/30 bg-[#0b3328]/35 p-3 text-sm text-[#bbf7d0]">
               {message}
             </div>
           )}
 
-          <form action={login} className="space-y-4">
+          <form action={login} className="mt-6 space-y-4">
             <div>
-              <label className="block text-xs mb-1.5" style={{ color: '#8892a4' }}>Email</label>
+              <label className="mb-1.5 block text-sm font-medium text-[#c9bddc]">Email</label>
               <input
                 type="email"
                 name="email"
                 required
-                className="w-full px-3 py-2 rounded text-sm outline-none"
-                style={{
-                  background: '#080c14',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                  color: '#f0f4ff',
-                  fontFamily: 'DM Mono, monospace',
-                }}
+                className="h-11 w-full rounded-md border border-white/10 bg-[#07040d] px-3 text-sm text-white outline-none transition placeholder:text-[#655879] focus:border-[#a78bfa] focus:ring-2 focus:ring-[#8b5cf6]/25"
                 placeholder="you@example.com"
               />
             </div>
             <div>
-              <label className="block text-xs mb-1.5" style={{ color: '#8892a4' }}>Password</label>
+              <label className="mb-1.5 block text-sm font-medium text-[#c9bddc]">Password</label>
               <input
                 type="password"
                 name="password"
                 required
-                className="w-full px-3 py-2 rounded text-sm outline-none"
-                style={{
-                  background: '#080c14',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                  color: '#f0f4ff',
-                  fontFamily: 'DM Mono, monospace',
-                }}
-                placeholder="••••••••"
+                className="h-11 w-full rounded-md border border-white/10 bg-[#07040d] px-3 text-sm text-white outline-none transition placeholder:text-[#655879] focus:border-[#a78bfa] focus:ring-2 focus:ring-[#8b5cf6]/25"
+                placeholder="Enter your password"
               />
             </div>
             <button
               type="submit"
-              className="w-full py-2.5 rounded text-sm font-medium mt-2"
-              style={{ background: '#f59e0b', color: '#080c14' }}
+              className="mt-2 h-11 w-full rounded-md bg-[#8b5cf6] text-sm font-semibold text-white shadow-[0_0_28px_rgba(139,92,246,0.28)] transition hover:bg-[#7c3aed]"
             >
               Sign in
             </button>
           </form>
 
-          <p className="text-xs text-center mt-5" style={{ color: '#4a5568' }}>
+          <p className="mt-5 text-center text-sm text-[#8f82a8]">
             New to Monad?{' '}
-            <Link href="/signup" style={{ color: '#f59e0b' }}>Sign up</Link>
+            <Link className="font-medium text-[#c4b5fd] transition hover:text-white" href="/signup">
+              Sign up
+            </Link>
           </p>
         </div>
       </div>
-    </div>
+    </main>
   )
 }
 
-function MonadLogo() {
+function AuthBackdrop() {
   return (
-    <div className="flex items-center gap-2">
-      <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="4" fill="#f59e0b"/>
-        <line x1="16" y1="12" x2="16" y2="4" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="20" y1="18.9" x2="27" y2="23" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="12" y1="18.9" x2="5" y2="23" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-      <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 500, letterSpacing: '0.08em', color: '#f0f4ff' }}>monad</span>
+    <div aria-hidden="true" className="absolute inset-0">
+      <div
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(139,92,246,0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.13) 1px, transparent 1px)',
+          backgroundSize: '52px 52px',
+        }}
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,3,10,0.4)_0%,#05030a_78%)]" />
     </div>
   )
 }

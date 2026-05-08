@@ -1,3 +1,4 @@
+import { BrandMark } from '@/components/brand-mark'
 import { createServiceClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 
@@ -13,7 +14,6 @@ export default async function ApprovePage({ params }: { params: Promise<{ token:
 
   if (!request) notFound()
 
-  // Mark page as viewed
   if (!request.approval_page_viewed_at) {
     await supabase
       .from('requests')
@@ -24,13 +24,21 @@ export default async function ApprovePage({ params }: { params: Promise<{ token:
   const alreadyActioned = request.approved_at || request.declined_at
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: '#080c14' }}>
-      <div className="w-full max-w-lg">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <MonadLogo />
-          <p className="text-xs uppercase tracking-widest" style={{ color: '#f59e0b', letterSpacing: '0.15em' }}>
-            Project Scope Review
+    <main className="relative min-h-screen overflow-hidden bg-[#05030a] px-4 py-10 text-[#faf7ff]">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-25"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(139,92,246,0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.13) 1px, transparent 1px)',
+          backgroundSize: '54px 54px',
+        }}
+      />
+      <div className="relative z-10 mx-auto w-full max-w-2xl">
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <BrandMark size="sm" />
+          <p className="rounded-md border border-[#8b5cf6]/30 bg-[#120a22]/80 px-3 py-1.5 text-xs font-semibold text-[#d8ccff]">
+            Project scope review
           </p>
         </div>
 
@@ -40,7 +48,7 @@ export default async function ApprovePage({ params }: { params: Promise<{ token:
           <ApprovalCard request={request} token={token} />
         )}
       </div>
-    </div>
+    </main>
   )
 }
 
@@ -49,59 +57,56 @@ function ApprovalCard({ request, token }: { request: any; token: string }) {
   const project = request.project as Record<string, string>
 
   return (
-    <div className="rounded-lg overflow-hidden" style={{ background: '#0f1624', border: '1px solid rgba(255,255,255,0.10)' }}>
-      <div className="p-6 space-y-5">
-        {/* From / project */}
-        <div className="space-y-1 text-sm" style={{ color: '#8892a4' }}>
-          <p>Regarding: <span style={{ color: '#f0f4ff' }}>{project?.name}</span></p>
+    <div className="overflow-hidden rounded-lg border border-white/10 bg-[#0b0614]/95 shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur">
+      <div className="space-y-6 p-6">
+        <div>
+          <p className="text-sm text-[#8f82a8]">Regarding</p>
+          <p className="mt-1 text-lg font-semibold text-white">{project?.name}</p>
         </div>
 
-        <hr style={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-px bg-white/10" />
 
-        {/* Request */}
         <div>
-          <p className="text-xs mb-2" style={{ color: '#4a5568' }}>What you requested:</p>
-          <blockquote className="text-sm italic px-3 py-2 rounded" style={{ borderLeft: '2px solid #f59e0b', background: 'rgba(245,158,11,0.06)', color: '#f0f4ff' }}>
+          <p className="mb-2 text-sm font-medium text-[#c9bddc]">What you requested</p>
+          <blockquote className="rounded-md border-l-2 border-[#a78bfa] bg-[#120a22] px-4 py-3 text-sm leading-6 text-[#eee8ff]">
             {(request.raw_email_body as string)?.slice(0, 300)}
           </blockquote>
         </div>
 
-        {/* Technical breakdown */}
         {request.technical_breakdown && (
           <>
-            <hr style={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+            <div className="h-px bg-white/10" />
             <div>
-              <p className="text-xs mb-2" style={{ color: '#4a5568' }}>What this involves:</p>
-              <p className="text-sm" style={{ color: '#8892a4' }}>{request.technical_breakdown as string}</p>
+              <p className="mb-2 text-sm font-medium text-[#c9bddc]">What this involves</p>
+              <p className="text-sm leading-7 text-[#afa3c5]">{request.technical_breakdown as string}</p>
             </div>
           </>
         )}
 
-        {/* Cost */}
         {request.cost_min && request.cost_max && (
           <>
-            <hr style={{ borderColor: 'rgba(255,255,255,0.06)' }} />
-            <div className="p-4 rounded-lg" style={{ background: '#080c14', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div className="flex justify-between items-baseline mb-1">
-                <p className="text-xs" style={{ color: '#4a5568' }}>Estimated additional cost:</p>
-                <p className="text-2xl font-light italic" style={{ fontFamily: 'Fraunces, Georgia, serif', color: '#f59e0b' }}>
-                  ${(request.cost_min as number).toLocaleString()} – ${(request.cost_max as number).toLocaleString()}
+            <div className="h-px bg-white/10" />
+            <div className="rounded-lg border border-[#8b5cf6]/25 bg-[#08040f] p-4">
+              <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-baseline">
+                <p className="text-sm text-[#8f82a8]">Estimated additional cost</p>
+                <p className="text-2xl font-semibold text-[#c4b5fd]">
+                  ${(request.cost_min as number).toLocaleString()} - $
+                  {(request.cost_max as number).toLocaleString()}
                 </p>
               </div>
               {request.timeline_impact_days && (
-                <p className="text-xs" style={{ color: '#4a5568' }}>
+                <p className="mt-2 text-sm text-[#8f82a8]">
                   Estimated additional time: +{request.timeline_impact_days as number} days
                 </p>
               )}
-              <p className="text-xs mt-2" style={{ color: '#ef4444' }}>
-                ⚠ This work is outside the original project scope.
+              <p className="mt-3 rounded-md border border-[#fb7185]/25 bg-[#3b0b1d]/25 px-3 py-2 text-sm text-[#fecdd3]">
+                This work is outside the original project scope.
               </p>
             </div>
           </>
         )}
       </div>
 
-      {/* Action form */}
       <ApprovalForm token={token} costMin={request.cost_min as number} costMax={request.cost_max as number} />
     </div>
   )
@@ -109,13 +114,20 @@ function ApprovalCard({ request, token }: { request: any; token: string }) {
 
 function ApprovalForm({ token, costMin, costMax }: { token: string; costMin: number; costMax: number }) {
   return (
-    <form action={`/api/approve/${token}`} method="POST" className="p-6 border-t space-y-4" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input type="checkbox" name="understood" required className="mt-1 w-4 h-4" style={{ accentColor: '#f59e0b' }} />
-        <span className="text-sm" style={{ color: '#8892a4' }}>
-          I understand this work is outside the original project scope and agree to the estimated cost range of{' '}
-          <strong style={{ color: '#f59e0b' }}>
-            ${costMin?.toLocaleString()} – ${costMax?.toLocaleString()}
+    <form action={`/api/approve/${token}`} method="POST" className="space-y-4 border-t border-white/10 p-6">
+      <label className="flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          name="understood"
+          required
+          className="mt-1 size-4"
+          style={{ accentColor: '#8b5cf6' }}
+        />
+        <span className="text-sm leading-6 text-[#afa3c5]">
+          I understand this work is outside the original project scope and agree to the estimated cost
+          range of{' '}
+          <strong className="font-semibold text-[#c4b5fd]">
+            ${costMin?.toLocaleString()} - ${costMax?.toLocaleString()}
           </strong>{' '}
           shown above.
         </span>
@@ -125,18 +137,16 @@ function ApprovalForm({ token, costMin, costMax }: { token: string; costMin: num
         type="submit"
         name="action"
         value="approve"
-        className="w-full py-3 rounded text-sm font-medium"
-        style={{ background: '#10b981', color: '#fff' }}
+        className="h-12 w-full rounded-md bg-[#34d399] text-sm font-semibold text-[#03130e] transition hover:bg-[#6ee7b7]"
       >
-        Approve & Schedule →
+        Approve and schedule
       </button>
 
       <button
         type="submit"
         name="action"
         value="decline"
-        className="w-full text-xs py-1"
-        style={{ color: '#4a5568', background: 'none', border: 'none', cursor: 'pointer' }}
+        className="w-full rounded-md py-2 text-sm text-[#8f82a8] transition hover:bg-white/[0.04] hover:text-white"
       >
         Decline this request
       </button>
@@ -146,30 +156,22 @@ function ApprovalForm({ token, costMin, costMax }: { token: string; costMin: num
 
 function AlreadyActioned({ approved }: { approved: boolean }) {
   return (
-    <div className="text-center p-8 rounded-lg" style={{ background: '#0f1624', border: '1px solid rgba(255,255,255,0.10)' }}>
-      <div className="text-4xl mb-4">{approved ? '✅' : '❌'}</div>
-      <p className="text-base mb-2" style={{ color: '#f0f4ff' }}>
+    <div className="rounded-lg border border-white/10 bg-[#0b0614]/95 p-8 text-center shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur">
+      <span
+        className={`inline-flex rounded-md px-3 py-1.5 text-sm font-semibold ${
+          approved ? 'bg-[#12352b] text-[#86efac]' : 'bg-[#3b0b1d] text-[#fecdd3]'
+        }`}
+      >
+        {approved ? 'Approved' : 'Declined'}
+      </span>
+      <p className="mt-5 text-lg font-semibold text-white">
         {approved ? 'Request approved.' : 'Request declined.'}
       </p>
-      <p className="text-sm" style={{ color: '#4a5568' }}>
+      <p className="mt-2 text-sm leading-6 text-[#8f82a8]">
         {approved
           ? 'The developer has been notified and will be in touch to schedule this work.'
           : 'The developer has been notified.'}
       </p>
-    </div>
-  )
-}
-
-function MonadLogo() {
-  return (
-    <div className="flex items-center gap-2">
-      <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="4" fill="#f59e0b"/>
-        <line x1="16" y1="12" x2="16" y2="4" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="20" y1="18.9" x2="27" y2="23" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="12" y1="18.9" x2="5" y2="23" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-      <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 500, letterSpacing: '0.08em', color: '#f0f4ff', fontSize: 14 }}>monad</span>
     </div>
   )
 }
