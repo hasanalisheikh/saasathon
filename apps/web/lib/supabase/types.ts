@@ -9,6 +9,7 @@ export type Database = {
           email: string
           full_name: string | null
           avatar_url: string | null
+          tier: "free" | "pro" | "org"
           created_at: string
           updated_at: string
         }
@@ -17,6 +18,7 @@ export type Database = {
           email: string
           full_name?: string | null
           avatar_url?: string | null
+          tier?: "free" | "pro" | "org"
           created_at?: string
           updated_at?: string
         }
@@ -25,7 +27,61 @@ export type Database = {
           email?: string
           full_name?: string | null
           avatar_url?: string | null
+          tier?: "free" | "pro" | "org"
           updated_at?: string
+        }
+      }
+      usage_events: {
+        Row: {
+          id: string
+          user_id: string
+          event_type: "brief_generation" | "submission_check"
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          event_type: "brief_generation" | "submission_check"
+          created_at?: string
+        }
+        Update: never
+      }
+      contribution_scores: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string
+          tasks_completed: number
+          contracts_done: number
+          contracts_missed: number
+          chat_messages: number
+          pin_of_shame: boolean
+          badge: "rubric_rescuer" | "focus_beast" | "clutch_contributor" | "deadline_saver" | null
+          ai_narrative: string | null
+          computed_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id: string
+          tasks_completed?: number
+          contracts_done?: number
+          contracts_missed?: number
+          chat_messages?: number
+          pin_of_shame?: boolean
+          badge?: "rubric_rescuer" | "focus_beast" | "clutch_contributor" | "deadline_saver" | null
+          ai_narrative?: string | null
+          computed_at?: string
+        }
+        Update: {
+          tasks_completed?: number
+          contracts_done?: number
+          contracts_missed?: number
+          chat_messages?: number
+          pin_of_shame?: boolean
+          badge?: "rubric_rescuer" | "focus_beast" | "clutch_contributor" | "deadline_saver" | null
+          ai_narrative?: string | null
+          computed_at?: string
         }
       }
       projects: {
