@@ -1,41 +1,127 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
 
-export default async function SettingsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useSearchParams } from 'next/navigation'
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user!.id)
-    .single()
+interface Profile {
+  full_name: string | null
+  email: string | null
+  company_name: string | null
+  hourly_rate: number | null
+  github_username: string | null
+}
+
+export default function SettingsPage() {
+  const searchParams = useSearchParams()
+  const githubStatus = searchParams.get('github')
+
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [userEmail, setUserEmail] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      setUserEmail(user.email ?? '')
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      if (data) setProfile(data)
+    }
+    load()
+  }, [])
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setSaving(true)
+    setSaved(false)
+    setError('')
+
+    const form = e.currentTarget
+    const fd = new FormData(form)
+
+    const res = await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: fd.get('full_name'),
+        company_name: fd.get('company_name'),
+        hourly_rate: fd.get('hourly_rate'),
+      }),
+    })
+
+    if (res.ok) {
+      const updated = await res.json()
+      setProfile(updated)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } else {
+      setError('Failed to save. Please try again.')
+    }
+    setSaving(false)
+  }
+
+  const isGithubConnected = githubStatus === 'connected' || !!profile?.github_username
 
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-xl">
       <h1 className="text-xl mb-8" style={{ fontFamily: 'Fraunces, Georgia, serif' }}>Settings</h1>
 
-      {/* Profile */}
       <Section title="Profile">
-        <form className="space-y-4">
+        <form onSubmit={handleSave} className="space-y-4">
           <Field label="Full name">
-            <input name="full_name" defaultValue={profile?.full_name ?? ''} style={inputStyle} />
+            <input
+              name="full_name"
+              defaultValue={profile?.full_name ?? ''}
+              key={profile?.full_name}
+              style={inputStyle}
+            />
           </Field>
           <Field label="Email">
-            <input name="email" defaultValue={profile?.email ?? user?.email ?? ''} disabled style={{ ...inputStyle, opacity: 0.5 }} />
+            <input
+              name="email"
+              value={profile?.email ?? userEmail}
+              disabled
+              style={{ ...inputStyle, opacity: 0.5 }}
+              readOnly
+            />
           </Field>
           <Field label="Company name">
-            <input name="company_name" defaultValue={profile?.company_name ?? ''} placeholder="Your Studio" style={inputStyle} />
+            <input
+              name="company_name"
+              defaultValue={profile?.company_name ?? ''}
+              key={profile?.company_name}
+              placeholder="Your Studio"
+              style={inputStyle}
+            />
           </Field>
           <Field label="Default hourly rate (USD)">
-            <input name="hourly_rate" type="number" defaultValue={profile?.hourly_rate ?? 100} style={{ ...inputStyle, width: 100 }} />
+            <input
+              name="hourly_rate"
+              type="number"
+              defaultValue={profile?.hourly_rate ?? 100}
+              key={profile?.hourly_rate}
+              style={{ ...inputStyle, width: 100 }}
+            />
           </Field>
-          <button type="submit" className="text-sm px-4 py-2 rounded" style={{ background: '#f59e0b', color: '#080c14' }}>
-            Save changes
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={saving}
+              className="text-sm px-4 py-2 rounded"
+              style={{ background: '#f59e0b', color: '#080c14', opacity: saving ? 0.7 : 1 }}
+            >
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
+            {saved && <span className="text-sm" style={{ color: '#10b981' }}>Saved ✓</span>}
+            {error && <span className="text-sm" style={{ color: '#ef4444' }}>{error}</span>}
+          </div>
         </form>
       </Section>
 
-      {/* Email Forwarding */}
       <Section title="Email Forwarding">
         <div className="p-4 rounded-lg" style={{ background: '#080c14', border: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-2 mb-2">
@@ -48,24 +134,43 @@ export default async function SettingsPage() {
         </div>
       </Section>
 
-      {/* GitHub */}
       <Section title="GitHub">
         <div className="p-4 rounded-lg flex items-center justify-between" style={{ background: '#080c14', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div>
-            <p className="text-sm mb-1">Not connected</p>
-            <p className="text-xs" style={{ color: '#4a5568' }}>Connect GitHub to create issues and track work automatically.</p>
-          </div>
-          <a
-            href="/api/github/connect"
-            className="text-sm px-4 py-2 rounded"
-            style={{ background: 'rgba(255,255,255,0.06)', color: '#f0f4ff', border: '1px solid rgba(255,255,255,0.10)' }}
-          >
-            Connect GitHub
-          </a>
+          {isGithubConnected ? (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ color: '#10b981' }}>●</span>
+                <p className="text-sm">
+                  Connected{profile?.github_username ? ` as @${profile.github_username}` : ''}
+                </p>
+              </div>
+              <p className="text-xs" style={{ color: '#4a5568' }}>GitHub is linked. Issues will be created automatically on approval.</p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <p className="text-sm mb-1">Not connected</p>
+                <p className="text-xs" style={{ color: '#4a5568' }}>Connect GitHub to create issues and track work automatically.</p>
+              </div>
+              <a
+                href="/api/github/connect"
+                className="text-sm px-4 py-2 rounded"
+                style={{ background: 'rgba(255,255,255,0.06)', color: '#f0f4ff', border: '1px solid rgba(255,255,255,0.10)' }}
+              >
+                Connect GitHub
+              </a>
+            </>
+          )}
+          {githubStatus === 'error' && (
+            <p className="text-xs mt-2" style={{ color: '#ef4444' }}>GitHub connection failed. Please try again.</p>
+          )}
         </div>
       </Section>
 
-      {/* Notifications */}
+      <Section title="Widget">
+        <WidgetSnippet />
+      </Section>
+
       <Section title="Notifications">
         <div className="space-y-3">
           {[
@@ -98,6 +203,39 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label className="block text-xs mb-1.5" style={{ color: '#8892a4' }}>{label}</label>
       {children}
+    </div>
+  )
+}
+
+function WidgetSnippet() {
+  const [copied, setCopied] = useState(false)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://monad.app'
+  const snippet = `<script src="${appUrl}/widget.js" data-project-id="YOUR_PROJECT_ID"></script>`
+
+  const copy = () => {
+    navigator.clipboard.writeText(snippet)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="p-4 rounded-lg" style={{ background: '#080c14', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs" style={{ color: '#8892a4' }}>Embed on your client portal or website — replace with your project ID</p>
+        <button
+          onClick={copy}
+          className="text-xs px-2 py-0.5 rounded"
+          style={{ background: 'rgba(255,255,255,0.06)', color: copied ? '#10b981' : '#8892a4', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          {copied ? 'Copied ✓' : 'Copy'}
+        </button>
+      </div>
+      <pre
+        className="text-xs overflow-x-auto whitespace-pre-wrap break-all"
+        style={{ fontFamily: 'DM Mono, monospace', color: '#f59e0b', lineHeight: 1.6 }}
+      >
+        {snippet}
+      </pre>
     </div>
   )
 }

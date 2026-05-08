@@ -102,3 +102,83 @@ export async function sendDeveloperNotification(params: {
     html: params.html,
   })
 }
+
+function buildDeveloperApprovalHtml(params: {
+  clientName: string
+  requestSummary: string
+  costRange: string
+  approvedAt: string
+  projectName: string
+  requestUrl: string
+  githubIssueUrl?: string
+}) {
+  const githubRow = params.githubIssueUrl
+    ? `<div class="divider">
+        <div class="label">GitHub Issue</div>
+        <div class="value"><a href="${params.githubIssueUrl}" style="color:#f59e0b;">${params.githubIssueUrl}</a></div>
+       </div>`
+    : ''
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { background: #080c14; color: #f0f4ff; font-family: 'Courier New', monospace; margin: 0; padding: 40px 20px; }
+    .container { max-width: 560px; margin: 0 auto; }
+    .logo { color: #f59e0b; font-size: 18px; font-weight: 500; letter-spacing: 0.1em; }
+    .badge { display: inline-block; background: #10b981; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; }
+    .headline { font-size: 22px; font-weight: 600; margin: 16px 0 4px; }
+    .card { background: #0f1624; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 24px; margin: 24px 0; }
+    .label { color: #8892a4; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .value { color: #f0f4ff; font-size: 14px; }
+    .cost { color: #f59e0b; font-size: 28px; font-weight: 600; margin: 16px 0 4px; }
+    .cost-label { color: #8892a4; font-size: 12px; }
+    .button { display: block; background: #f59e0b; color: #080c14; text-decoration: none; text-align: center; padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: 700; margin: 32px 0 16px; }
+    .footer { color: #4a5568; font-size: 11px; margin-top: 40px; }
+    .divider { border-top: 1px solid rgba(255,255,255,0.06); margin: 20px 0; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom: 24px;"><div class="logo">monad</div></div>
+    <div class="badge">approved</div>
+    <div class="headline">${params.clientName} approved your estimate</div>
+    <p style="color:#8892a4;font-size:14px;">The client signed off. This work is now billable.</p>
+    <div class="card">
+      <div class="label">Project</div>
+      <div class="value">${params.projectName}</div>
+      <div class="divider">
+        <div class="label">Request</div>
+        <div class="value">${params.requestSummary}</div>
+      </div>
+      <div class="divider">
+        <div class="cost">${params.costRange}</div>
+        <div class="cost-label">approved additional cost · approved ${new Date(params.approvedAt).toUTCString()}</div>
+      </div>
+      ${githubRow}
+    </div>
+    <a href="${params.requestUrl}" class="button">View proof pack →</a>
+    <div class="footer">Sent by Monad · monad.app</div>
+  </div>
+</body>
+</html>`
+}
+
+export async function sendDeveloperApprovalEmail(params: {
+  to: string
+  clientName: string
+  requestSummary: string
+  costRange: string
+  approvedAt: string
+  projectName: string
+  requestUrl: string
+  githubIssueUrl?: string
+}) {
+  return getResend().emails.send({
+    from: FROM(),
+    to: params.to,
+    subject: `✓ ${params.clientName} approved — ${params.costRange} · ${params.projectName}`,
+    html: buildDeveloperApprovalHtml(params),
+  })
+}

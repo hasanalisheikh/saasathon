@@ -142,6 +142,9 @@ function ApprovalForm({ token, costMin, costMax }: { token: string; costMin: num
         Approve and schedule
       </button>
 
+    </form>
+
+    <form action={`/api/approve/${token}`} method="POST" className="px-6 pb-6">
       <button
         type="submit"
         name="action"

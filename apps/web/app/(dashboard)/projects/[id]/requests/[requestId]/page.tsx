@@ -16,22 +16,38 @@ export default function RequestReviewPage() {
   const [reply, setReply] = useState('')
   const [tone, setTone] = useState<'friendly' | 'professional' | 'firm'>('professional')
   const [sending, setSending] = useState(false)
+  const [analysing, setAnalysing] = useState(false)
   const [accidentalYes, setAccidentalYes] = useState(false)
 
+  async function loadRequest() {
+    const [reqRes, projRes] = await Promise.all([
+      fetch(`/api/requests/${requestId}`),
+      fetch(`/api/projects/${id}`),
+    ])
+    const reqData = await reqRes.json()
+    const projData = await projRes.json()
+    setRequest(reqData)
+    setProject(projData)
+    setReply(reqData.draft_reply ?? '')
+  }
+
   useEffect(() => {
-    async function load() {
-      const [reqRes, projRes] = await Promise.all([
-        fetch(`/api/requests/${requestId}`),
-        fetch(`/api/projects/${id}`),
-      ])
-      const reqData = await reqRes.json()
-      const projData = await projRes.json()
-      setRequest(reqData)
-      setProject(projData)
-      setReply(reqData.draft_reply ?? '')
-    }
-    load()
+    loadRequest()
   }, [id, requestId])
+
+  async function reanalyse() {
+    setAnalysing(true)
+    try {
+      await fetch('/api/ai/analyse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: requestId }),
+      })
+      await loadRequest()
+    } finally {
+      setAnalysing(false)
+    }
+  }
 
   function checkAccidentalYes(text: string) {
     const lower = text.toLowerCase()
@@ -131,6 +147,31 @@ export default function RequestReviewPage() {
 
         {/* RIGHT — AI Analysis (40%) */}
         <div className="w-[40%] p-6 space-y-5" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
+
+          {/* Panel header with re-analyse button */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wider" style={{ color: '#8892a4' }}>AI Analysis</p>
+            <button
+              onClick={reanalyse}
+              disabled={analysing}
+              className="text-xs px-3 py-1 rounded flex items-center gap-1.5"
+              style={{
+                background: !request?.classification ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
+                color: !request?.classification ? '#f59e0b' : '#4a5568',
+                border: !request?.classification ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                cursor: analysing ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {analysing ? (
+                <>
+                  <span className="inline-block animate-spin">↻</span>
+                  Analysing…
+                </>
+              ) : (
+                <>↻ Re-analyse</>
+              )}
+            </button>
+          </div>
 
           {/* Classification badge */}
           <div className="p-4 rounded-lg" style={{ background: `${classColor}15`, border: `1px solid ${classColor}40` }}>

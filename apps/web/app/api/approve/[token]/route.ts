@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createIssue, buildIssueBody } from '@/lib/github'
+import { sendDeveloperApprovalEmail } from '@/lib/resend'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   try {
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
       const project = request.project as Record<string, unknown>
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+      let githubIssueUrl: string | null = null
 
       // Create GitHub issue if repo connected
       if (project.github_repo_name && project.github_installation_id) {
@@ -72,10 +74,41 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
             github_issue_number: issue.number,
             github_issue_url: issue.url,
           }).eq('id', request.id)
+
+          githubIssueUrl = issue.url
         } catch (err) {
           console.error('GitHub issue creation failed:', err)
           // Non-fatal — approval still worked
         }
+      }
+
+      // Notify the developer
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', project.user_id as string)
+          .single()
+
+        if (profile?.email) {
+          const costRange = request.cost_min && request.cost_max
+            ? `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`
+            : 'TBC'
+
+          await sendDeveloperApprovalEmail({
+            to: profile.email,
+            clientName: (project.client_name as string | undefined) ?? 'Your client',
+            requestSummary: request.raw_email_subject ?? 'Feature request',
+            costRange,
+            approvedAt: now,
+            projectName: project.name as string,
+            requestUrl: `${appUrl}/projects/${project.id as string}/requests/${request.id}`,
+            githubIssueUrl: githubIssueUrl ?? undefined,
+          })
+        }
+      } catch (err) {
+        console.error('Developer notification failed:', err)
+        // Non-fatal
       }
     }
 
