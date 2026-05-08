@@ -247,7 +247,7 @@ function CalendarEventRow({ event }: { event: CalendarEvent }) {
       <Card className={cn("border-l-[3px] transition-all hover:ring-foreground/20", accent)}>
         <CardContent>
           <div className="flex items-start gap-4">
-            <div className="flex w-24 shrink-0 flex-col">
+            <div className="flex w-16 sm:w-24 shrink-0 flex-col">
               <span className="text-xs text-muted-foreground">{formatMonth(event.date)}</span>
               <span className="text-2xl font-semibold leading-none">{formatDay(event.date)}</span>
               <span className="mt-1 text-xs text-muted-foreground">{formatTime(event.date)}</span>

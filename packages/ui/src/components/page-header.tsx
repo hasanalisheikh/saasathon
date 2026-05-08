@@ -6,7 +6,7 @@ function PageHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="page-header"
-      className={cn("flex items-center justify-between mb-6", className)}
+      className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6", className)}
       {...props}
     />
   )
@@ -36,7 +36,7 @@ function PageActions({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="page-actions"
-      className={cn("flex items-center gap-2", className)}
+      className={cn("flex items-center gap-2 self-start sm:self-auto", className)}
       {...props}
     />
   )

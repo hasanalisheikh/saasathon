@@ -132,7 +132,7 @@ export default async function ProjectDetailPage({
       </PageHeader>
 
       {/* Project Details Placeholders */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-12 gap-y-1 mb-4 -mt-4 max-w-[60%]">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 md:gap-x-12 gap-y-4 mb-4 -mt-4 max-w-full md:max-w-[60%]">
         <div className="flex flex-col gap-0.5 items-start">
           <span className="text-xs uppercase text-muted-foreground">Clients</span>
           <a href="#" target="_blank" rel="noreferrer" className="group/link flex items-center gap-1.5 hover:underline">
@@ -189,7 +189,7 @@ export default async function ProjectDetailPage({
 
       {/* Tabs */}
       <Tabs defaultValue={activeTab}>
-        <TabsList variant="line" className="mb-6">
+        <TabsList variant="line" className="mb-6 flex-wrap md:flex-nowrap overflow-x-auto max-w-full justify-start h-auto pb-1">
           {TABS.map((tab) => (
             <TabsTrigger key={tab} value={tab}>
               {TAB_LABELS[tab]}
@@ -199,12 +199,12 @@ export default async function ProjectDetailPage({
 
         <TabsContent value="requests">
           {/* Request filters */}
-          <div className="flex gap-2 mb-4 flex-wrap">
+          <div className="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">
             {STATUS_FILTERS.map((f) => (
               <Badge
                 key={f}
                 variant={f === activeFilter ? "default" : "outline"}
-                className="capitalize cursor-pointer"
+                className="capitalize cursor-pointer shrink-0"
                 render={<Link href={`?tab=requests&filter=${f}`} />}
               >
                 {f.replace(/_/g, ' ')}

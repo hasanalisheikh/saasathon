@@ -202,19 +202,19 @@ function IntegrationCard({
   return (
     <Card className={cn("flex flex-col relative bg-muted/40 transition-colors", ready ? "border-primary/30" : "border-border/80")}>
       <CardHeader className="flex-none pb-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3 mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex items-center gap-3 mb-2 sm:mb-0">
             {typeof icon === "string" ? (
               <Icon icon={icon} className={cn("w-6 h-6 shrink-0", iconColorClass)} />
             ) : (
               React.createElement(icon, { className: cn("w-6 h-6 shrink-0", iconColorClass) })
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <CardTitle className="text-base">{title}</CardTitle>
               <StatusPill ready={ready} />
             </div>
           </div>
-          {action}
+          {action && <div className="self-start sm:self-auto">{action}</div>}
         </div>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
@@ -246,12 +246,12 @@ function ProjectIntegrationRow({
   actionHref: string
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-input/10 px-3 py-2">
-      <div className="min-w-0">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-md border border-border bg-input/10 px-3 py-2">
+      <div className="min-w-0 w-full sm:w-auto">
         <p className="truncate text-xs font-medium">{project.name}</p>
         <p className="truncate text-xs text-muted-foreground">{project.client_name} · {value}</p>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
         <StatusPill ready={ready} compact />
         <Button variant="ghost" size="sm" render={<Link href={actionHref} />} nativeButton={false}>
           {actionLabel}
