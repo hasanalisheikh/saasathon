@@ -1,4 +1,7 @@
+"use client"
+
 import * as React from "react"
+
 import { cn } from "@workspace/ui/lib/utils"
 
 function Label({ className, ...props }: React.ComponentProps<"label">) {
@@ -6,8 +9,8 @@ function Label({ className, ...props }: React.ComponentProps<"label">) {
     <label
       data-slot="label"
       className={cn(
-        "text-foreground text-xs font-medium leading-none select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
-        className,
+        "flex items-center gap-2 text-xs/relaxed leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        className
       )}
       {...props}
     />
