@@ -38,6 +38,13 @@ enable_signup = true
 enable_anonymous_sign_ins = false
 minimum_password_length = 8
 
+[auth.rate_limit]
+# Disabled for team testing — increase before production
+sign_ins_per_minute = 1000
+token_refreshes_per_hour = 1000
+sign_ups_per_hour = 1000
+email_sent_per_hour = 1000
+
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
