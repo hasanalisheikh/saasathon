@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { logout } from "@/lib/actions/auth"
 import { redirect } from "next/navigation"
-import { SidebarProvider, SidebarInset } from "@workspace/ui/components/sidebar"
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@workspace/ui/components/sidebar"
 import { AppSidebar } from "./_components/app-sidebar"
 import { ResizableSidebar } from "./_components/resizable-sidebar"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@workspace/ui/components/resizable"
@@ -38,10 +38,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
             logoutAction={logout}
           />
         </ResizableSidebar>
-        <ResizableHandle />
+        <ResizableHandle className="hidden md:flex" />
         <ResizablePanel defaultSize={85} className="overflow-hidden">
           <SidebarInset className="h-full flex flex-col overflow-hidden">
-            <header className="px-6 pt-6 shrink-0 bg-background">
+            <header className="px-6 pt-6 shrink-0 bg-background flex items-center gap-2">
+              <SidebarTrigger className="-ml-1 md:hidden" />
               <DynamicBreadcrumb projects={projects || []} />
             </header>
             <div className="flex-1 min-h-0 overflow-y-auto">

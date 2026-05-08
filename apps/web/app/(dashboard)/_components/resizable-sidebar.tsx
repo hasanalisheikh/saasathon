@@ -46,6 +46,7 @@ export function ResizableSidebar({ children }: { children: React.ReactNode }) {
       minSize={isCollapsed ? COLLAPSED_SIZE : EXPANDED_MIN}
       maxSize={isCollapsed ? COLLAPSED_SIZE : EXPANDED_MAX}
       className={cn(
+        "hidden md:block",
         isCollapsed ? "min-w-[48px] max-w-[48px]" : "min-w-[240px] max-w-[400px]"
       )}
     >

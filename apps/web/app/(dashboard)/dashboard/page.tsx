@@ -54,7 +54,7 @@ export default async function DashboardPage() {
       </PageHeader>
 
       {/* Metrics */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard label="Requests This Month" value={String(requestsThisMonth)} />
         <MetricCard label="Out-of-Scope Caught" value={String(outOfScopeCaught)} accent="red" />
         <MetricCard
