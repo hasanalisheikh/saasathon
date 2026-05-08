@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
@@ -26,6 +27,14 @@ interface ProjectSnippet {
 }
 
 export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsContent />
+    </Suspense>
+  )
+}
+
+function SettingsContent() {
   const searchParams = useSearchParams()
   const githubStatus = searchParams.get('github')
 

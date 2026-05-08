@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -7,6 +8,14 @@ import { BrandMark } from '@/components/brand-mark'
 import { broadcastEmailVerified } from '@/lib/auth/cross-tab-sync'
 
 export default function VerifiedPage() {
+  return (
+    <Suspense>
+      <VerifiedContent />
+    </Suspense>
+  )
+}
+
+function VerifiedContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const verified = searchParams.get('verified')
