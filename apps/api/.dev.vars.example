@@ -1,0 +1,5 @@
+# Wrangler local dev secrets — copy to .dev.vars (gitignored)
+OPENAI_API_KEY=sk-...
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ALLOWED_ORIGIN=http://localhost:3000
