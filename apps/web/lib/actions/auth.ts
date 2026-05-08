@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { redirect } from "next/navigation"
 
 function redirectWithError(path: string, message: string): never {
@@ -48,6 +49,12 @@ export async function signup(formData: FormData) {
   if (error) {
     redirectWithError("/signup", error.message)
   }
+
+  const admin = createAdminClient()
+  await admin.from("profiles").upsert(
+    { id: data.user!.id, email, full_name: fullName },
+    { onConflict: "id" }
+  )
 
   if (!data.session) {
     redirect("/login?message=Check%20your%20email%20to%20confirm%20your%20account.")
