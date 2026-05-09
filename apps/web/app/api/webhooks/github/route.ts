@@ -213,6 +213,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Handle installation events (GitHub App)
+    if (event === 'installation' && (payload.action === 'created' || payload.action === 'new_permissions_accepted')) {
+      const installationId = payload.installation.id
+      const githubUsername = payload.sender.login
+
+      // Link installation ID to the user profile by matching username
+      // (This assumes the user has already connected their GitHub account once via OAuth to set the username)
+      await supabase
+        .from('profiles')
+        .update({ github_installation_id: String(installationId) })
+        .eq('github_username', githubUsername)
+
+      return NextResponse.json({ ok: true })
+    }
+
     // Find project by repo
     const repoFullName = payload.repository?.full_name
     if (!repoFullName) return NextResponse.json({ ok: true })
@@ -240,6 +255,37 @@ export async function POST(req: NextRequest) {
         plainSummary = await translateCommits(commits).catch(() => null)
       }
 
+      // Scan PR for Monad markers
+      const prText = `${payload.pull_request.title}\n${payload.pull_request.body ?? ''}`
+      const markers = parseGithubTaskMarkers(prText)
+      
+      // Also look for "Closes #123" and find if #123 is a monad-linked issue
+      const closesRegex = /(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/gi
+      let match
+      while ((match = closesRegex.exec(prText)) !== null) {
+        const issueNumber = parseInt(match[1]!, 10)
+        const { data: linkedRequest } = await supabase
+          .from('requests')
+          .select('id')
+          .eq('project_id', project.id)
+          .eq('github_issue_number', issueNumber)
+          .single()
+        
+        if (linkedRequest) {
+          // If a PR closes a linked issue, we can mark all tasks for that request as completed
+          const { data: linkedTasks } = await supabase
+            .from('request_tasks')
+            .select('github_marker')
+            .eq('request_id', linkedRequest.id)
+          
+          if (linkedTasks) {
+            linkedTasks.forEach((t: { github_marker: string }) => {
+              if (t.github_marker) markers.push(t.github_marker)
+            })
+          }
+        }
+      }
+
       // Check for unapproved work
       const { data: approvedRequests } = await supabase
         .from('requests')
@@ -258,8 +304,7 @@ export async function POST(req: NextRequest) {
         isUnapproved = result?.is_approved_work === false && (result?.confidence ?? 0) > 60
       }
 
-      const markers = parseGithubTaskMarkers(`${payload.pull_request.title}\n${payload.pull_request.body ?? ''}`)
-      completedTasksForNotification = await completeTasksByMarkers(supabase, markers)
+      completedTasksForNotification = await completeTasksByMarkers(supabase, [...new Set(markers)])
 
       const affectedRequestIds = [...new Set(completedTasksForNotification.map((task) => task.request_id))]
       requestIdForEvent = affectedRequestIds[0] ?? null
