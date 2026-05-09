@@ -296,6 +296,23 @@ export async function listUserInstallations(accessToken: string) {
     }))
     .filter((installation) => Boolean(parseGitHubInstallationId(installation.id)))
 }
+export async function listUserRepos(accessToken: string) {
+  const response = await requestGitHubJson<
+    Array<{ id: number; full_name: string; private: boolean }>
+  >(
+    'https://api.github.com/user/repos?per_page=100&sort=updated',
+    {
+      headers: getGitHubAppHeaders(accessToken),
+    },
+    'Failed to list user repositories'
+  )
+
+  return response.map((repo) => ({
+    id: String(repo.id),
+    name: repo.full_name,
+    private: repo.private,
+  }))
+}
 
 export async function createIssue(params: {
   installationId: string
