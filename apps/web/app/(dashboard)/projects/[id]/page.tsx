@@ -4,6 +4,8 @@ import { getConfiguredEnv } from "@/lib/env"
 import { notFound } from "next/navigation"
 import { buildGitHubConnectPath, getGitHubStatusMessage } from "@/lib/github-connect"
 import { isGitHubAppConfigured, isGitHubInstallationId } from "@/lib/github-config"
+import { parseGitHubInstallationId } from "@/lib/github"
+import { listRepoIssues, type InstallationRepoIssue } from "@/lib/github-app"
 import { cn } from "@workspace/ui/lib/utils"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
@@ -146,6 +148,21 @@ export default async function ProjectDetailPage({
   const githubRepoUrl = project.github_repo_name
     ? `https://github.com/${project.github_repo_name}`
     : null
+  const githubInstallationId = parseGitHubInstallationId(project.github_installation_id)
+  const [githubOwner = "", githubRepo = ""] = (project.github_repo_name as string | null)?.split("/") ?? []
+  const githubIssuesResult =
+    githubAppReady && githubInstallationId && githubOwner && githubRepo
+      ? await loadRepoIssues({
+          installationId: githubInstallationId,
+          owner: githubOwner,
+          repo: githubRepo,
+        })
+      : { issues: [] as InstallationRepoIssue[], error: null as string | null }
+  const linkedIssueNumbers = new Set(
+    (requests ?? [])
+      .map((request) => request.github_issue_number)
+      .filter((issueNumber): issueNumber is number => typeof issueNumber === "number")
+  )
   const projectCreatedLabel = new Date(project.created_at as string).toLocaleDateString()
   const appUrl = getConfiguredEnv("NEXT_PUBLIC_APP_URL")
 
@@ -416,6 +433,56 @@ export default async function ProjectDetailPage({
             </Card>
           )}
 
+          {project.github_repo_name && (
+            <div className="mb-6 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Existing issues</p>
+                  <p className="text-xs text-muted-foreground">
+                    Recent issues in the connected repository.
+                  </p>
+                </div>
+                {githubRepoUrl && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    render={
+                      <a href={`${githubRepoUrl}/issues`} target="_blank" rel="noreferrer" />
+                    }
+                    nativeButton={false}
+                  >
+                    View all issues
+                  </Button>
+                )}
+              </div>
+
+              {githubIssuesResult.error ? (
+                <Card>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">{githubIssuesResult.error}</p>
+                  </CardContent>
+                </Card>
+              ) : !githubIssuesResult.issues.length ? (
+                <EmptyState>
+                  <EmptyStateTitle>No issues found.</EmptyStateTitle>
+                  <EmptyStateDescription>
+                    Open issues from the connected repository will appear here.
+                  </EmptyStateDescription>
+                </EmptyState>
+              ) : (
+                <div className="space-y-2">
+                  {githubIssuesResult.issues.map((issue) => (
+                    <GitHubIssueRow
+                      key={issue.number}
+                      issue={issue}
+                      isLinkedToMonad={linkedIssueNumbers.has(issue.number)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {!githubEvents?.length ? (
             <EmptyState>
               <EmptyStateTitle>No GitHub activity yet.</EmptyStateTitle>
@@ -502,6 +569,82 @@ export default async function ProjectDetailPage({
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+async function loadRepoIssues(params: {
+  installationId: string
+  owner: string
+  repo: string
+}) {
+  try {
+    const issues = await listRepoIssues({
+      installationId: params.installationId,
+      owner: params.owner,
+      repo: params.repo,
+      limit: 12,
+      state: "open",
+    })
+
+    return { issues, error: null as string | null }
+  } catch (error) {
+    console.error("Failed to load GitHub issues for project page:", error)
+    return {
+      issues: [] as InstallationRepoIssue[],
+      error: "Monad couldn't load issues from the connected repository right now.",
+    }
+  }
+}
+
+function GitHubIssueRow({
+  issue,
+  isLinkedToMonad,
+}: {
+  issue: InstallationRepoIssue
+  isLinkedToMonad: boolean
+}) {
+  return (
+    <Card>
+      <CardContent>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <a
+                href={issue.url}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate text-sm font-medium hover:underline"
+              >
+                #{issue.number} {issue.title}
+              </a>
+              <Badge variant="outline">{issue.state}</Badge>
+              {isLinkedToMonad && <Badge variant="secondary">Linked to Monad request</Badge>}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>Updated {new Date(issue.updatedAt).toLocaleString()}</span>
+              {issue.assigneeLogin && <span>Assigned to {issue.assigneeLogin}</span>}
+            </div>
+            {issue.labels.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {issue.labels.slice(0, 4).map((label) => (
+                  <Badge key={label} variant="outline">
+                    {label}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+          <a
+            href={issue.url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex-shrink-0 text-xs text-blue-400 hover:underline"
+          >
+            View →
+          </a>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

@@ -110,6 +110,17 @@ export type InstallationRepo = {
   private: boolean
 }
 
+export type InstallationRepoIssue = {
+  assigneeLogin: string | null
+  createdAt: string
+  labels: string[]
+  number: number
+  state: string
+  title: string
+  updatedAt: string
+  url: string
+}
+
 export async function listInstallationRepos(installationId: string): Promise<InstallationRepo[]> {
   const accessToken = await getInstallationAccessToken(installationId)
   const data = await requestGitHubJson<{
@@ -128,6 +139,56 @@ export async function listInstallationRepos(installationId: string): Promise<Ins
     ownerLogin: repo.owner.login,
     private: repo.private,
   }))
+}
+
+export async function listRepoIssues(params: {
+  installationId: string
+  owner: string
+  repo: string
+  limit?: number
+  state?: 'open' | 'closed' | 'all'
+}): Promise<InstallationRepoIssue[]> {
+  const accessToken = await getInstallationAccessToken(params.installationId)
+  const perPage = Math.min(Math.max(params.limit ?? 20, 1), 100)
+  const searchParams = new URLSearchParams({
+    per_page: String(perPage),
+    sort: 'updated',
+    direction: 'desc',
+    state: params.state ?? 'open',
+  })
+
+  const data = await requestGitHubJson<
+    Array<{
+      assignee?: { login?: string | null } | null
+      created_at: string
+      html_url: string
+      labels?: Array<{ name?: string | null }>
+      number: number
+      pull_request?: object
+      state: string
+      title: string
+      updated_at: string
+    }>
+  >(
+    `https://api.github.com/repos/${params.owner}/${params.repo}/issues?${searchParams.toString()}`,
+    {
+      headers: getGitHubApiHeaders(accessToken),
+    },
+    'Failed to list repository issues'
+  )
+
+  return data
+    .filter((issue) => !issue.pull_request)
+    .map((issue) => ({
+      assigneeLogin: issue.assignee?.login?.trim() || null,
+      createdAt: issue.created_at,
+      labels: (issue.labels ?? []).map((label) => label.name?.trim() ?? '').filter(Boolean),
+      number: issue.number,
+      state: issue.state,
+      title: issue.title,
+      updatedAt: issue.updated_at,
+      url: issue.html_url,
+    }))
 }
 
 export async function getPullRequestContext(params: {
