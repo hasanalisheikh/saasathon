@@ -2,6 +2,7 @@ import Link from 'next/link'
 import {
   Check,
   CheckCircle2,
+  ExternalLink,
   Fingerprint,
   MessageSquareText,
   ShieldCheck,
@@ -44,6 +45,44 @@ const evidenceItems = [
   'Verifiable conversation links',
   'Automated feature updates',
   'Mutual accountability audit log',
+]
+
+const scopeCreepStats = [
+  {
+    value: '52%',
+    title: 'of projects hit uncontrolled scope changes',
+    description: 'PMI found that more than half of projects completed in the prior year experienced scope creep.',
+    source: 'PMI Pulse of the Profession',
+    href: 'https://www.pmi.org/learning/library/scope-creep-rising-11308',
+  },
+  {
+    value: '57%',
+    title: 'of agencies lose $1K-$5K every month',
+    description: 'Ignition found another 30% lose more than $5K monthly on unbilled projects and tasks.',
+    source: 'Ignition Agency Pricing Report',
+    href: 'https://www.ignitionapp.com/news/2025-agency-pricing-cashflow-report',
+  },
+  {
+    value: '1%',
+    title: 'of agencies bill every out-of-scope request',
+    description: 'The Drum reported that almost every agency absorbs at least some out-of-scope work.',
+    source: 'The Drum / Ignition',
+    href: 'https://www.thedrum.com/news/cash-flow-crunch-us-agencies-struggle-grow-late-payments-and-scope-creep-bite',
+  },
+  {
+    value: '58.7%',
+    title: 'of MSPs cite scope creep as their top challenge',
+    description: 'Moovila and The Channel Company found scope creep ranked above timeline and scheduling issues.',
+    source: 'Moovila MSP Trends',
+    href: 'https://www.prnewswire.com/news-releases/project-management-scope-creep-tops-list-of-challenges-for-59-of-msps-moovila-report-finds-302590885.html',
+  },
+  {
+    value: '45%',
+    title: 'average budget overrun on large IT projects',
+    description: 'McKinsey and Oxford also found those projects delivered 56% less value than predicted.',
+    source: 'McKinsey + Oxford',
+    href: 'https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/delivering-large-scale-it-projects-on-time-on-budget-and-on-value',
+  },
 ]
 
 
@@ -121,6 +160,47 @@ export default function LandingPage() {
             <CheckCircle2 className="size-4 text-[#097fe8]" />
             Zero uncompensated scope extensions
           </p>
+        </div>
+      </section>
+
+      <section className="bg-background px-5 pt-20 pb-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+            <div>
+              <p className="mb-2 text-sm font-semibold text-primary">The problem</p>
+              <h2 className="max-w-3xl text-3xl font-bold sm:text-4xl">
+                Scope creep is quiet until it reaches the invoice.
+              </h2>
+            </div>
+            <p className="max-w-2xl text-base leading-relaxed text-muted-foreground lg:ml-auto">
+              It starts as a quick favour, a small revision, or one extra feature. Without a formal approval trail,
+              those informal asks become missed timelines, swallowed margin, and awkward client conversations after
+              the work is already done.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {scopeCreepStats.map((stat) => (
+              <a
+                key={stat.title}
+                className="group flex min-h-[250px] flex-col justify-between rounded-lg border border-border bg-card p-5 text-card-foreground transition-all hover:border-[#097fe8]/60 hover:bg-muted/40"
+                href={stat.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${stat.title} source: ${stat.source}`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-4xl font-bold tracking-tight text-foreground">{stat.value}</p>
+                    <ExternalLink className="mt-1 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-[#097fe8]" />
+                  </div>
+                  <h3 className="mt-5 text-sm font-bold leading-snug text-foreground">{stat.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{stat.description}</p>
+                </div>
+                <p className="mt-6 text-xs font-semibold text-primary">{stat.source}</p>
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 

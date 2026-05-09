@@ -177,3 +177,11 @@
 .animate-jitter {
   animation: jitter 0.15s infinite steps(1);
 }
+
+@layer utilities {
+  .recommended-sticker {
+    border-radius: 9999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+}

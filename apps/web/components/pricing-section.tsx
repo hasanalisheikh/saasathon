@@ -72,8 +72,10 @@ export function PricingSection() {
                     <div className="flex items-start justify-between gap-4">
                       <h3 className="text-2xl font-bold text-foreground">{plan.name}</h3>
                       {plan.highlighted && (
-                        <span className="shrink-0 rounded-md border border-border bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
-                          Best fit
+                        <span
+                          className="recommended-sticker px-4 py-2 text-sm font-bold"
+                        >
+                          Recommended
                         </span>
                       )}
                     </div>
@@ -81,7 +83,7 @@ export function PricingSection() {
                       <span className="text-4xl font-bold text-foreground">{plan.price}</span>
                       <span className="text-[15px] font-medium text-muted-foreground">{plan.sub}</span>
                     </div>
-                    <p className="mt-4 min-h-12 text-[15px] leading-relaxed text-muted-foreground">{plan.description}</p>
+                    <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground sm:min-h-[8.25rem] lg:min-h-[9rem] xl:min-h-[7.25rem] 2xl:min-h-[6.75rem]">{plan.description}</p>
                   </div>
 
                   <Link
@@ -119,11 +121,11 @@ export function PricingSection() {
                 <span className="text-4xl font-bold text-foreground">{studioPlan.price}</span>
                 <span className="text-[15px] font-medium text-muted-foreground">{studioPlan.sub}</span>
               </div>
-              <p className="mt-4 min-h-12 text-[15px] leading-relaxed text-muted-foreground">{studioPlan.description}</p>
+              <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground sm:min-h-[8.25rem] lg:min-h-[9rem] xl:min-h-[7.25rem] 2xl:min-h-[6.75rem]">{studioPlan.description}</p>
             </div>
 
             <Link
-              className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-background text-[15px] font-semibold text-foreground transition hover:bg-muted"
+              className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-background text-[15px] font-semibold text-foreground transition hover:bg-muted dark:border-white dark:bg-white dark:text-neutral-950 dark:hover:bg-white/90"
               href="/signup"
             >
               {studioPlan.cta}
