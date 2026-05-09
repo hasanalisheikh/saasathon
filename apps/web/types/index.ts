@@ -102,7 +102,7 @@ export type RequestStatus =
 export type ImplementationStatus = 'not_started' | 'in_progress' | 'completed'
 export type AnalysisStatus = 'queued' | 'running' | 'completed' | 'failed'
 
-export type RequestSource = 'email' | 'widget' | 'manual'
+export type RequestSource = 'email' | 'widget' | 'manual' | 'slack'
 
 export type ReplyTone = 'friendly' | 'professional' | 'firm'
 
@@ -176,6 +176,9 @@ export interface Request {
   // GitHub
   github_issue_number: number | null
   github_issue_url: string | null
+  // Slack
+  slack_thread_ts: string | null
+  slack_channel_id: string | null
   created_at: string
   updated_at: string
 }

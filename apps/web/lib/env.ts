@@ -84,3 +84,11 @@ export function getInboundEmailDomain(): string {
     'INBOUND_EMAIL_DOMAIN is required to generate inbound project email addresses.'
   )
 }
+
+export function isSlackConfigured(): boolean {
+  return Boolean(
+    getConfiguredEnv('SLACK_CLIENT_ID') &&
+    getConfiguredEnv('SLACK_CLIENT_SECRET') &&
+    getConfiguredEnv('SLACK_SIGNING_SECRET')
+  )
+}
