@@ -6,7 +6,7 @@ const SUGGESTED_ACTION_VALUES = ['accept', 'quote_separately', 'clarify', 'decli
 const PRICING_MODEL_VALUES = ['fixed_fee', 'hourly', 'retainer', 'milestone', 'unknown'] as const
 const CLIENT_REPLY_INTENT_VALUES = ['approval', 'included', 'decline'] as const
 
-const REQUEST_ANALYSIS_PROMPT_VERSION = 'request-analysis/v4'
+const REQUEST_ANALYSIS_PROMPT_VERSION = 'request-analysis/v5'
 const SCOPE_EXTRACTION_PROMPT_VERSION = 'scope-extraction/v1'
 const COMMIT_TRANSLATION_PROMPT_VERSION = 'commit-translation/v1'
 const UNAPPROVED_WORK_PROMPT_VERSION = 'unapproved-work/v1'
@@ -102,8 +102,17 @@ export function buildRequestAnalysisMessages(params: {
         '  - 0 means the request is completely and clearly out_of_scope.',
         '  - 100 means the request is completely and clearly in_scope.',
         '  - Lower numbers mean the request is further out of scope. Higher numbers mean it is more clearly in scope.',
+        '  - Use the full range honestly. Do not jump to extremes when the evidence is mixed.',
+        '  - 0-20: clearly out_of_scope.',
+        '  - 21-39: leans out_of_scope, but there is still meaningful uncertainty or mixed evidence.',
+        '  - 40-60: genuinely mixed, borderline, or underspecified. This band should usually pair with ambiguous or clarification_needed.',
+        '  - 61-79: leans in_scope, but there is still meaningful uncertainty or mixed evidence.',
+        '  - 80-100: clearly in_scope.',
         '  - For ambiguous or clarification_needed requests, confidence should usually sit near the middle, roughly 40-60, unless the scope evidence clearly leans one way.',
         '  - Do not use a high number for an out_of_scope request or a low number for an in_scope request just because you feel certain.',
+        '  - If there is substantial evidence on both sides, do not force a binary answer. Use ambiguous and explain both interpretations.',
+        '  - If the missing detail is the main blocker to classification, use clarification_needed rather than guessing which side wins.',
+        '  - When confidence lands between roughly 35 and 65, a binary classification should be rare and must be strongly justified by direct scope evidence.',
         '',
         'EVIDENCE RULES:',
         '  - Prefer exact scope evidence over general impressions.',
@@ -160,9 +169,13 @@ Rules:
 - Never invent scope evidence that is not present in the inputs.
 - Do not let client wording like "quick", "simple", "just", or "while you're in there" reduce the implementation assessment.
 - Treat new integrations, automations, workflows, admin surfaces, permissions, reporting, payment, scheduling, messaging, or data-model expansion as strong out_of_scope signals unless explicitly covered.
-- If the request mixes in-scope and out-of-scope work, classify based on the dominant commercial reality and explain the mixed nature clearly in reasoning and draft_reply.
+- If the request mixes in-scope and out-of-scope work, explain the mixed nature clearly. Only classify it by dominant commercial reality when the out-of-scope portion is clearly the main commercial implication. If the split is genuinely debatable, use ambiguous instead of forcing a side.
 - Set confidence as a scope-position score: 0 = completely out of scope, 100 = completely in scope.
+- Use the full range honestly: 0-20 clearly out_of_scope, 21-39 leans out_of_scope, 40-60 genuinely mixed or underspecified, 61-79 leans in_scope, 80-100 clearly in_scope.
 - For ambiguous or clarification_needed requests, usually keep confidence near the middle, roughly 40-60, unless the evidence clearly leans one way.
+- If there is substantial evidence on both sides, do not force a binary classification. Use ambiguous and explain both sides in reasoning.
+- If missing detail is the main blocker, use clarification_needed rather than guessing.
+- If confidence is between roughly 35 and 65, a binary classification should be rare and needs direct scope evidence.
 - Keep draft_reply professional, calm, and commercially clear.
 - If the request is out of scope, the reply should explain that clearly without sounding defensive.
 - If clarification is needed, ask only the minimum questions needed to unblock a decision.
