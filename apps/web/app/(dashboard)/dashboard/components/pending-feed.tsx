@@ -67,11 +67,11 @@ export function PendingFeed({ requests }: PendingFeedProps) {
           </EmptyState>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-md border border-border/60 bg-background">
+        <div className="overflow-hidden rounded-md border border-border/60 bg-muted/15">
           <div className="max-h-[336px] overflow-y-auto">
             <Table className="text-sm">
               <TableHeader>
-                <TableRow className="border-border/60 bg-muted/10 hover:bg-muted/10">
+                <TableRow className="border-border/60 bg-muted/30 hover:bg-muted/30">
                   <TableHead className="h-9 w-12 pl-4 text-sm/5 font-normal text-muted-foreground">
                     Type
                   </TableHead>
@@ -130,7 +130,7 @@ function PendingRow({ request }: { request: PendingRequest }) {
   return (
     <TableRow
       className={cn(
-        "border-l-[3px] border-l-sky-500 border-border/50 hover:bg-muted/10",
+        "border-l-[3px] border-l-sky-500 border-border/50 bg-muted/20 hover:bg-muted/30",
         isAlert && "border-l-amber-500"
       )}
     >

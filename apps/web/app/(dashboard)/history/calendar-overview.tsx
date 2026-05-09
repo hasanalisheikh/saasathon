@@ -112,14 +112,14 @@ function CalendarOverview({ events }: CalendarOverviewProps) {
   )
 
   return (
-    <Card>
+    <Card className="bg-muted/25 dark:bg-muted/30">
       <CardContent className="pt-6">
         <div className="grid gap-6 lg:grid-cols-[minmax(18rem,21rem)_1fr]">
           <div className="flex flex-col">
             <div className="mb-3 flex h-6 items-center">
               <h3 className="font-semibold leading-none tracking-tight">Request history</h3>
             </div>
-            <div className="rounded-md border bg-background p-3">
+            <div className="rounded-md border bg-muted/20 p-3">
               <Calendar
                 mode="single"
                 selected={selectedDate}
@@ -158,7 +158,7 @@ function CalendarOverview({ events }: CalendarOverviewProps) {
             </div>
 
             {selectedEvents.length ? (
-              <div className="max-h-[25rem] divide-y overflow-y-auto rounded-md border">
+              <div className="max-h-[25rem] divide-y overflow-y-auto rounded-md border bg-muted/15">
                 {selectedEvents.map((event) => (
                   <CalendarOverviewEventRow key={event.id} event={event} />
                 ))}
@@ -182,12 +182,12 @@ function CalendarOverviewEventRow({ event }: { event: CalendarOverviewEvent }) {
   return (
     <Link
       href={event.href}
-      className="block px-3 py-3 transition-colors hover:bg-muted/40"
+      className="block bg-muted/20 px-3 py-3 transition-colors hover:bg-muted/30"
     >
       <div className="flex min-w-0 items-start gap-3">
         <div
           className={cn(
-            "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-background",
+            "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-muted/40",
             meta.className
           )}
         >

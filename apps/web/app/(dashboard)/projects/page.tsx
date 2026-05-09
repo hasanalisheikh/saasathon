@@ -58,7 +58,7 @@ export default async function ProjectsPage() {
 function ProjectCard({ project }: { project: any }) {
   return (
     <Link href={`/projects/${project.id as string}`} className="block">
-      <Card className="transition-all hover:ring-foreground/20">
+      <Card className="bg-muted/25 transition-all hover:bg-muted/35 hover:ring-foreground/20 dark:bg-muted/30 dark:hover:bg-muted/40">
         <CardHeader>
           <CardTitle className="font-semibold">{project.name as string}</CardTitle>
           <div className="flex items-start justify-end">

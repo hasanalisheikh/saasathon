@@ -269,10 +269,10 @@ export function DocumentUploadZone() {
       ) : documents.length > 0 ? (
         /* Documents Display */
         viewType === 'list' ? (
-          <div className="border rounded-lg bg-card">
+          <div className="rounded-lg border bg-muted/15">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
                   <TableHead className="w-[400px]">Name</TableHead>
                   <TableHead>Size</TableHead>
                   <TableHead>Date Added</TableHead>
@@ -281,7 +281,7 @@ export function DocumentUploadZone() {
               </TableHeader>
               <TableBody>
                 {documents.map((doc) => (
-                  <TableRow key={doc.id}>
+                  <TableRow key={doc.id} className="bg-muted/20 hover:bg-muted/30">
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary/10 text-primary rounded-lg shrink-0">
@@ -321,16 +321,16 @@ export function DocumentUploadZone() {
             {documents.map((doc) => (
               <div 
                 key={doc.id} 
-                className="group relative flex flex-col border rounded-xl overflow-hidden bg-card hover:border-primary/50 transition-colors shadow-sm"
+                className="group relative flex flex-col overflow-hidden rounded-xl border bg-muted/25 shadow-sm transition-colors hover:border-primary/50 hover:bg-muted/35 dark:bg-muted/30 dark:hover:bg-muted/40"
               >
                 <div 
-                  className="flex-1 flex flex-col items-center justify-center p-8 bg-muted/20 cursor-pointer"
+                  className="flex-1 flex cursor-pointer flex-col items-center justify-center bg-muted/20 p-8"
                   onClick={() => handleDownload(doc.file_path, doc.name)}
                 >
                   <FileIcon className="w-12 h-12 text-primary/40 group-hover:text-primary transition-colors" />
                 </div>
                 
-                <div className="p-4 border-t bg-card flex flex-col gap-1">
+                <div className="flex flex-col gap-1 border-t bg-muted/20 p-4">
                   <h4 
                     className="font-medium text-sm truncate cursor-pointer hover:underline"
                     onClick={() => handleDownload(doc.file_path, doc.name)}

@@ -226,6 +226,26 @@
   }
 }
 
+@keyframes monad-wave-resize {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  12% {
+    opacity: 0.55;
+  }
+
+  68% {
+    opacity: 0.18;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.16);
+  }
+}
+
 @layer utilities {
   .recommended-sticker {
     border-radius: 9999px;

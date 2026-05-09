@@ -614,10 +614,10 @@ function HistoryClient({
             </div>
 
             {exportPreviewEvents.length ? (
-              <div className="max-h-[calc(90vh-13.5rem)] min-h-0 min-w-0 overflow-auto rounded-md border border-border/60 [&_[data-slot=table-container]]:min-w-max [&_[data-slot=table-container]]:overflow-visible">
+              <div className="max-h-[calc(90vh-13.5rem)] min-h-0 min-w-0 overflow-auto rounded-md border border-border/60 bg-muted/15 [&_[data-slot=table-container]]:min-w-max [&_[data-slot=table-container]]:overflow-visible">
                 <Table className="min-w-[1180px] text-xs">
                   <TableHeader>
-                    <TableRow className="bg-muted/20 hover:bg-muted/20">
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
                       {EXPORT_FIELDS.map((field) => {
                         const checked = exportFields.includes(field.id)
 
@@ -653,7 +653,7 @@ function HistoryClient({
                   </TableHeader>
                   <TableBody>
                     {exportPreviewEvents.map((event) => (
-                      <TableRow key={event.id} className="hover:bg-muted/10">
+                      <TableRow key={event.id} className="bg-muted/20 hover:bg-muted/30">
                         {EXPORT_FIELDS.map((field) => {
                           const checked = exportFields.includes(field.id)
 
@@ -708,7 +708,7 @@ function HistoryClient({
 
 function HistoryMetric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md border border-border/60 bg-muted/10 px-4 py-3">
+    <div className="rounded-md border border-border/60 bg-muted/25 px-4 py-3 dark:bg-muted/30">
       <p className="text-xs/5 text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl/7 font-semibold">{value}</p>
     </div>
@@ -717,10 +717,10 @@ function HistoryMetric({ label, value }: { label: string; value: number }) {
 
 function HistoryEventTable({ events }: { events: HistoryEvent[] }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-border/60 bg-background">
+    <div className="overflow-x-auto rounded-md border border-border/60 bg-muted/15">
       <Table className="min-w-[1080px] text-sm">
         <TableHeader>
-          <TableRow className="border-border/60 bg-muted/10 hover:bg-muted/10">
+          <TableRow className="border-border/60 bg-muted/30 hover:bg-muted/30">
             <TableHead className="h-9 min-w-72 pl-4 text-sm/5 font-normal text-muted-foreground">
               Event
             </TableHead>
@@ -760,12 +760,12 @@ function HistoryEventTableRow({ event }: { event: HistoryEvent }) {
   const Icon = meta.icon
 
   return (
-    <TableRow className="border-border/50 hover:bg-muted/10">
+    <TableRow className="border-border/50 bg-muted/20 hover:bg-muted/30">
       <TableCell className="py-2.5 pl-4">
         <div className="flex min-w-0 items-start gap-3">
           <div
             className={cn(
-              "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-background",
+              "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-muted/40",
               meta.className
             )}
           >

@@ -1,11 +1,21 @@
 "use client"
 
 import Link from "next/link"
-import { LogOutIcon, ChevronsUpDownIcon, SettingsIcon } from "lucide-react"
+import { useTheme } from "next-themes"
+import {
+  ChevronsUpDownIcon,
+  LogOutIcon,
+  MonitorIcon,
+  MoonIcon,
+  SettingsIcon,
+  SunIcon,
+} from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
@@ -23,6 +33,12 @@ import {
 
 const DICEBEAR_AVATAR_URL =
   "https://api.dicebear.com/9.x/identicon/svg?seed=Alexander"
+
+const THEME_OPTIONS = [
+  { value: "light", label: "Light", icon: SunIcon },
+  { value: "dark", label: "Dark", icon: MoonIcon },
+  { value: "system", label: "System", icon: MonitorIcon },
+] as const
 
 interface NavUserProps {
   user: {
@@ -45,8 +61,10 @@ function getUserInitials(name: string) {
 
 export function NavUser({ user, logoutAction }: NavUserProps) {
   const { isMobile } = useSidebar()
+  const { setTheme, theme } = useTheme()
   const avatarLabel = user.name || user.email || "User"
   const initials = getUserInitials(avatarLabel)
+  const activeTheme = theme ?? "system"
 
   return (
     <SidebarMenu>
@@ -100,6 +118,15 @@ export function NavUser({ user, logoutAction }: NavUserProps) {
               <SettingsIcon className="mr-2 size-4" />
               Settings
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup value={activeTheme} onValueChange={setTheme}>
+              {THEME_OPTIONS.map((option) => (
+                <DropdownMenuRadioItem key={option.value} value={option.value}>
+                  <option.icon className="mr-2 size-4" />
+                  {option.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
             <form action={logoutAction}>
               <DropdownMenuItem render={<button type="submit" className="w-full" />}>

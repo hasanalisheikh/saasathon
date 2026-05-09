@@ -29,7 +29,7 @@ function MetricCard({
   ...props
 }: MetricCardProps) {
   return (
-    <Card className={cn("gap-2", className)} {...props}>
+    <Card className={cn("gap-2 bg-muted/25 dark:bg-muted/30", className)} {...props}>
       <CardContent>
         <p className="text-sm text-muted-foreground mb-1">{label}</p>
         <p

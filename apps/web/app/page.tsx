@@ -8,7 +8,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { BrandMark } from '@/components/brand-mark'
-import { HeroSignal } from '@/components/hero-signal'
+import { HeroSignal } from '../components/hero-signal'
 import { WorkflowSection } from '@/components/workflow-section'
 import { PricingSection } from '@/components/pricing-section'
 
@@ -92,7 +92,7 @@ const platformFeatures: PlatformFeature[] = [
 
 export default function LandingPage() {
   return (
-    <main className="relative min-h-screen bg-background text-foreground">
+    <main className="dark relative min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-40 px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr] items-center gap-4 sm:grid-cols-3">
           <div className="flex items-center justify-start">
@@ -122,8 +122,8 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      <section className="relative flex min-h-[calc(100svh-74px)] flex-col overflow-hidden">
-        <div className="relative flex flex-1 items-center px-5 py-8 sm:py-10">
+      <section className="relative flex min-h-[calc(100svh-298px)] flex-col overflow-hidden">
+        <div className="relative flex flex-1 items-center px-5 py-6 sm:py-8">
           <HeroSignal />
           <div className="relative z-10 mx-auto max-w-3xl text-center">
             <h1 className="font-sans text-5xl font-bold tracking-tight leading-none sm:text-[4.4rem] sm:leading-15">

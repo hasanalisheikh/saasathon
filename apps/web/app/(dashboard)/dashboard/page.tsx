@@ -177,11 +177,11 @@ function ProjectsAtGlance({ projects }: { projects: DashboardProject[] }) {
           </EmptyState>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-md border border-border/60 bg-background">
+        <div className="overflow-hidden rounded-md border border-border/60 bg-muted/15">
           <div className="max-h-[336px] overflow-y-auto">
             <Table className="text-sm">
               <TableHeader>
-                <TableRow className="border-border/60 bg-muted/10 hover:bg-muted/10">
+                <TableRow className="border-border/60 bg-muted/30 hover:bg-muted/30">
                   <TableHead className="h-9 min-w-48 px-4 text-sm/5 font-normal text-muted-foreground">
                     Project
                   </TableHead>
@@ -224,7 +224,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
     .reduce((sum, request) => sum + (((request.cost_min ?? 0) + (request.cost_max ?? 0)) / 2), 0)
 
   return (
-    <TableRow className="border-border/50 hover:bg-muted/10">
+    <TableRow className="border-border/50 bg-muted/20 hover:bg-muted/30">
       <TableCell className="px-4 py-2.5">
         <Link
           href={`/projects/${project.id}`}

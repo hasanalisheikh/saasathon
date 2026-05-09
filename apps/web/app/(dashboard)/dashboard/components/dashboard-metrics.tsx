@@ -19,7 +19,6 @@ export function DashboardMetrics({
         label="Protected This Month"
         value={`$${Math.round(protectedThisMonth).toLocaleString()}`}
         accent="neutral"
-        large
       />
       <MetricCard
         label="Approval Rate"

@@ -544,10 +544,10 @@ function DocumentTable({
   onDownload: (documentId: string) => Promise<void>
 }) {
   return (
-    <div className="overflow-hidden rounded-md border border-border/60 bg-background">
+    <div className="overflow-hidden rounded-md border border-border/60 bg-muted/15">
       <Table className="text-sm">
         <TableHeader>
-          <TableRow className="border-border/60 bg-muted/10 hover:bg-muted/10">
+          <TableRow className="border-border/60 bg-muted/30 hover:bg-muted/30">
             <TableHead className="h-9 w-12 pl-4 text-sm/5 font-normal text-muted-foreground">
               Icon
             </TableHead>
@@ -586,7 +586,7 @@ function DocumentTable({
 
             return (
               <React.Fragment key={document.id}>
-                <TableRow className="border-border/50 hover:bg-muted/10">
+                <TableRow className="border-border/50 bg-muted/20 hover:bg-muted/30">
                   <TableCell className="py-2.5 pl-4">
                     <DocumentIcon />
                   </TableCell>
@@ -640,7 +640,7 @@ function DocumentTable({
                 </TableRow>
 
                 {editing ? (
-                  <TableRow className="bg-muted/20 hover:bg-muted/20">
+                  <TableRow className="bg-muted/25 hover:bg-muted/25">
                     <TableCell colSpan={10} className="p-4">
                       <div className="space-y-4">
                         <DocumentEditor
@@ -755,7 +755,7 @@ function DocumentCard({
   return (
     <Card
       className={cn(
-        "relative border border-border/80 bg-card/95",
+        "relative border border-border/80 bg-muted/25 dark:bg-muted/30",
         layout === "grid" && "h-full"
       )}
     >

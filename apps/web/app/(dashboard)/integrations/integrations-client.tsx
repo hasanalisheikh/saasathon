@@ -201,7 +201,7 @@ function CatalogueCard({
   title,
 }: CatalogueItem) {
   return (
-    <Card className="group relative flex flex-col border-border/80 bg-muted/40 transition-colors hover:border-primary/30">
+    <Card className="group relative flex flex-col border-border/80 bg-muted/25 transition-colors hover:border-primary/30 hover:bg-muted/35 dark:bg-muted/30 dark:hover:bg-muted/40">
       <DropdownMenu>
         <DropdownMenuTrigger className="absolute right-4 top-4 cursor-pointer rounded-md p-1.5 text-muted-foreground opacity-0 outline-none transition-colors hover:bg-muted hover:text-foreground group-hover:opacity-100">
           <MoreHorizontal className="h-4 w-4" />
@@ -356,7 +356,7 @@ function GitHubProjectPickerDialog({
 
           <div className="max-h-[320px] space-y-2 overflow-y-auto">
             {filteredProjects.length === 0 ? (
-              <div className="rounded-md border border-dashed border-border px-3 py-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-md border border-dashed border-border bg-muted/15 px-3 py-8 text-center text-sm text-muted-foreground">
                 No projects found.
               </div>
             ) : (
@@ -364,7 +364,7 @@ function GitHubProjectPickerDialog({
                 <button
                   key={project.id}
                   onClick={() => onSelectProject(project)}
-                  className="flex w-full items-center justify-between rounded-md border border-border px-3 py-3 text-left transition-colors hover:bg-muted/50"
+                  className="flex w-full items-center justify-between rounded-md border border-border bg-muted/20 px-3 py-3 text-left transition-colors hover:bg-muted/30"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{project.name}</p>
@@ -568,7 +568,7 @@ function SlackModal({
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
-              <div className="rounded-lg border border-border/80 bg-muted/40 p-4 text-sm text-muted-foreground">
+              <div className="rounded-lg border border-border/80 bg-muted/25 p-4 text-sm text-muted-foreground dark:bg-muted/30">
                 Monad will monitor the channel you pick and automatically turn client messages into tracked scope requests.
               </div>
               <div className="flex justify-end pt-2">
@@ -686,7 +686,7 @@ function ProjectIntegrationCard({
 
   return (
     <>
-      <Card className="group relative flex flex-col border-border/80 bg-muted/40 transition-colors hover:border-primary/30">
+      <Card className="group relative flex flex-col border-border/80 bg-muted/25 transition-colors hover:border-primary/30 hover:bg-muted/35 dark:bg-muted/30 dark:hover:bg-muted/40">
         <CardHeader className="flex-1 pb-0 pr-24">
           <CardTitle className="truncate text-base">{project.name}</CardTitle>
           <CardDescription className="truncate">{project.client_name}</CardDescription>
@@ -738,7 +738,7 @@ function ProjectIntegrationCard({
           <div className="flex flex-wrap items-center gap-2">
             {connected.length > 0 ? (
               connected.map((connection) => (
-                <Badge key={connection.id} variant="secondary" className="flex items-center gap-2 border border-border bg-background px-3 py-2 text-sm font-normal">
+                <Badge key={connection.id} variant="secondary" className="flex items-center gap-2 border border-border bg-muted/30 px-3 py-2 text-sm font-normal">
                   {typeof connection.icon === "string" ? (
                     <Icon icon={connection.icon} className={`h-10 w-10 shrink-0 ${connection.colorClass || ""}`} />
                   ) : (
@@ -778,7 +778,7 @@ function ConnectedCardsContent({
 }) {
   if (projects.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border px-3 py-12 text-center">
+      <div className="rounded-md border border-dashed border-border bg-muted/15 px-3 py-12 text-center">
         <p className="text-sm text-muted-foreground">You don&apos;t have any projects yet.</p>
         <p className="text-sm text-muted-foreground">Projects you create will appear here to manage their integrations.</p>
       </div>

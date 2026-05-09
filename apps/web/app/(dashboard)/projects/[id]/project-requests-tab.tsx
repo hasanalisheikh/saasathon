@@ -340,8 +340,8 @@ function RequestBoardColumn({
   return (
     <Card
       className={cn(
-        "min-h-[32rem] w-[320px] shrink-0 rounded-lg border border-border/70 bg-muted/35 py-0 ring-0 transition-colors",
-        isDropTarget && "border-ring/50 bg-muted/55"
+        "min-h-[32rem] w-[320px] shrink-0 rounded-lg border border-border/70 bg-muted/25 py-0 ring-0 transition-colors dark:bg-muted/30",
+        isDropTarget && "border-ring/50 bg-muted/45 dark:bg-muted/50"
       )}
       onDragLeave={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
@@ -370,7 +370,7 @@ function RequestBoardColumn({
               {column.description}
             </CardDescription>
           </div>
-          <span className="rounded-full border border-border/70 bg-background/35 px-2 py-0.5 text-xs/5 text-muted-foreground">
+          <span className="rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 text-xs/5 text-muted-foreground">
             {column.requests.length}
           </span>
         </div>
@@ -390,7 +390,7 @@ function RequestBoardColumn({
             />
           ))
         ) : (
-          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/80 bg-background/25 px-4 py-8 text-center text-xs/5 text-muted-foreground">
+          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/80 bg-muted/20 px-4 py-8 text-center text-xs/5 text-muted-foreground">
             {column.emptyLabel}
           </div>
         )}
@@ -431,8 +431,8 @@ function RequestBoardCard({
     >
       <Card
         className={cn(
-          "border border-border/80 bg-background/80 py-0 shadow-sm transition-colors hover:border-foreground/25 hover:bg-background",
-          "dark:bg-muted/55 dark:hover:bg-muted/75",
+          "border border-border/80 bg-muted/25 py-0 shadow-sm transition-colors hover:border-foreground/25 hover:bg-muted/35",
+          "dark:bg-muted/35 dark:hover:bg-muted/40",
           "cursor-grab active:cursor-grabbing",
           isDragging && "opacity-50 ring-1 ring-primary/40",
           isUpdating && "opacity-70"
@@ -494,10 +494,10 @@ function RequestTable({
   requests: ProjectRequestListItem[]
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border/70 bg-card">
+    <div className="overflow-hidden rounded-lg border border-border/70 bg-muted/15">
       <Table>
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
+          <TableRow className="bg-muted/30 hover:bg-muted/30">
             <TableHead className="w-[38%] pl-4">Request</TableHead>
             <TableHead>Classification</TableHead>
             <TableHead>Status</TableHead>
@@ -507,7 +507,7 @@ function RequestTable({
         </TableHeader>
         <TableBody>
           {requests.map((request) => (
-            <TableRow key={request.id}>
+            <TableRow key={request.id} className="bg-muted/20 hover:bg-muted/30">
               <TableCell className="pl-4">
                 <div className="min-w-0">
                   <Link
