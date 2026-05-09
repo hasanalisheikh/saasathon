@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient()
 
-  // Delete profile first — cascades to projects, requests, github_events, widget_comments
+  // Delete profile first so project-owned records cascade before auth deletion.
   const { error: profileError } = await admin.from('profiles').delete().eq('id', user.id)
   if (profileError) {
     return NextResponse.json({ error: 'Failed to delete account data.' }, { status: 500 })

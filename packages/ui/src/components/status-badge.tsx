@@ -166,11 +166,6 @@ const sourceConfig = {
     className:
       "border-amber-200 bg-amber-50/80 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200",
   },
-  widget: {
-    label: "Widget",
-    className:
-      "border-indigo-200 bg-indigo-50/80 text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-200",
-  },
   manual: {
     label: "Manual",
     className:

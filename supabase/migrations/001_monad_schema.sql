@@ -93,20 +93,6 @@ CREATE TABLE github_events (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Website Widget Comments
-CREATE TABLE widget_comments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  page_url TEXT,
-  element_selector TEXT,
-  x_position FLOAT,
-  y_position FLOAT,
-  comment_text TEXT NOT NULL,
-  client_name TEXT,
-  converted_to_request_id UUID REFERENCES requests(id),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- Auto-update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
@@ -147,4 +133,3 @@ CREATE INDEX idx_requests_project_id ON requests(project_id);
 CREATE INDEX idx_requests_status ON requests(status);
 CREATE INDEX idx_requests_approval_token ON requests(approval_token);
 CREATE INDEX idx_github_events_project_id ON github_events(project_id);
-CREATE INDEX idx_widget_comments_project_id ON widget_comments(project_id);

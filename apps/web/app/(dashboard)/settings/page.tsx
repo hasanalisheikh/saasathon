@@ -42,7 +42,6 @@ interface GitHubStatusResponse {
 interface ProjectSnippet {
   id: string
   name: string
-  widget_token: string
   github_repo_name: string | null
   github_installation_id: string | null
 }
@@ -79,7 +78,7 @@ function SettingsContent() {
         supabase.from('profiles').select('full_name, email, company_name, hourly_rate').eq('id', user.id).single(),
         supabase
           .from('projects')
-          .select('id, name, widget_token, github_repo_name, github_installation_id')
+          .select('id, name, github_repo_name, github_installation_id')
           .eq('user_id', user.id)
           .order('created_at'),
         fetch('/api/github/status'),
@@ -448,10 +447,6 @@ function SettingsContent() {
         </Card>
       </Section>
 
-      <Section title="Widget">
-        <WidgetSnippet appUrl={diagnostics?.appUrl ?? null} projects={projects} />
-      </Section>
-
       <Section title="Danger Zone">
         <DeleteAccountForm />
       </Section>
@@ -683,57 +678,5 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="text-xs uppercase tracking-wider mb-4 text-muted-foreground/50">{title}</h2>
       {children}
     </div>
-  )
-}
-
-function WidgetSnippet({ appUrl, projects }: { appUrl: string | null; projects: ProjectSnippet[] }) {
-  const [copied, setCopied] = useState(false)
-  const [selectedId, setSelectedId] = useState<string>('')
-
-  const selected = projects.find(p => p.id === selectedId) ?? projects[0]
-
-  const snippet = !appUrl
-    ? 'NEXT_PUBLIC_APP_URL must be configured before Monad can generate an embed snippet.'
-    : selected
-    ? `<script src="${appUrl}/widget.js"\n  data-project-id="${selected.id}"\n  data-client-token="${selected.widget_token}"\n></script>`
-    : `<script src="${appUrl}/widget.js"\n  data-project-id="YOUR_PROJECT_ID"\n  data-client-token="YOUR_CLIENT_TOKEN"\n></script>`
-
-  const copy = () => {
-    if (!appUrl || !selected) return
-    navigator.clipboard.writeText(snippet)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <Card size="sm">
-      <CardContent>
-        <div className="flex items-center justify-between mb-3">
-          {projects.length > 0 ? (
-            <select
-              className="text-xs bg-transparent border border-border rounded px-2 py-1 text-foreground font-mono"
-              value={selectedId || selected?.id || ''}
-              onChange={e => setSelectedId(e.target.value)}
-              disabled={!appUrl}
-            >
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          ) : (
-            <p className="text-xs text-muted-foreground">Create a project to get your embed snippet</p>
-          )}
-          <Button variant="ghost" size="sm" onClick={copy} disabled={!appUrl || !selected}>
-            {copied ? 'Copied ✓' : 'Copy'}
-          </Button>
-        </div>
-        <pre className="text-xs overflow-x-auto whitespace-pre-wrap break-all font-mono text-primary leading-relaxed">
-          {snippet}
-        </pre>
-        <p className="text-xs text-muted-foreground/50 mt-2">
-          Embed on your client&apos;s site. The token authenticates comments to this project.
-        </p>
-      </CardContent>
-    </Card>
   )
 }

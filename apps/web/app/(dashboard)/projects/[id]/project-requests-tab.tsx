@@ -204,7 +204,7 @@ export function ProjectRequestsTab({
         <EmptyState>
         <EmptyStateTitle>No requests yet.</EmptyStateTitle>
         <EmptyStateDescription>
-          Add a request manually, capture it from Slack, or convert widget feedback to start building your board.
+          Add a request manually or capture it from Slack to start building your board.
         </EmptyStateDescription>
       </EmptyState>
     )

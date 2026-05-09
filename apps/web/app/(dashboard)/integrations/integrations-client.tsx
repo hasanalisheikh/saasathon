@@ -478,43 +478,6 @@ function EmailModal({
   )
 }
 
-function WidgetModal({
-  onOpenChange,
-  open,
-  project,
-}: {
-  onOpenChange: (open: boolean) => void
-  open: boolean
-  project: ProjectIntegration
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Embed Website Widget</DialogTitle>
-          <DialogDescription>
-            Copy and paste this snippet into the <code>&lt;head&gt;</code> of your client&apos;s website to enable visual feedback.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label>Embed Code</Label>
-            <div className="relative">
-              <pre className="overflow-x-auto rounded-md border border-border/50 bg-muted/50 p-4 text-sm font-mono">
-                {`<script>\n  window.MONAD_PROJECT_ID = "${project.id}";\n</script>\n<script src="https://monad.dev/widget.js" async></script>`}
-              </pre>
-              <Button size="sm" variant="secondary" className="absolute right-2 top-2 h-7" onClick={() => alert("Copied snippet!")}>Copy</Button>
-            </div>
-          </div>
-          <div className="flex justify-end pt-2">
-            <Button onClick={() => onOpenChange(false)}>Done</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 function SlackModal({
   onOpenChange,
   open,
@@ -700,7 +663,6 @@ function ProjectIntegrationCard({
   slackWorkspaceName: string | null
 }) {
   const [emailModalOpen, setEmailModalOpen] = useState(false)
-  const [widgetModalOpen, setWidgetModalOpen] = useState(false)
   const [slackModalOpen, setSlackModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
 
@@ -717,9 +679,6 @@ function ProjectIntegrationCard({
   }
   if (project.inbound_email) {
     connected.push({ id: "email", icon: "lucide:mail", title: "Inbound Email", label: project.inbound_email, colorClass: "text-foreground" })
-  }
-  if (project.widget_token) {
-    connected.push({ id: "widget", icon: "lucide:code-2", title: "Widget", label: "Widget Active", colorClass: "text-foreground" })
   }
   if (project.slack_channel_name) {
     connected.push({ id: "slack", icon: "logos:slack-icon", title: "Slack", label: `#${project.slack_channel_name}`, colorClass: "" })
@@ -759,10 +718,6 @@ function ProjectIntegrationCard({
                   <DropdownMenuItem onClick={() => setEmailModalOpen(true)} className="flex w-full cursor-pointer items-center">
                     <Icon icon="lucide:mail" className="mr-2 h-4 w-4 text-foreground" />
                     Inbound Email
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setWidgetModalOpen(true)} className="flex w-full cursor-pointer items-center">
-                    <Icon icon="lucide:code-2" className="mr-2 h-4 w-4 text-foreground" />
-                    Website Widget
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setSlackModalOpen(true)} className="flex w-full cursor-pointer items-center">
                     <Icon icon="logos:slack-icon" className="mr-2 h-4 w-4" />
@@ -805,7 +760,6 @@ function ProjectIntegrationCard({
       </Card>
 
       <EmailModal open={emailModalOpen} onOpenChange={setEmailModalOpen} project={project} />
-      <WidgetModal open={widgetModalOpen} onOpenChange={setWidgetModalOpen} project={project} />
       <SlackModal open={slackModalOpen} onOpenChange={setSlackModalOpen} project={project} slackWorkspaceName={slackWorkspaceName} />
     </>
   )

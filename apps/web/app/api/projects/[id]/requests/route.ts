@@ -25,8 +25,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const rawEmailBody = String(body.raw_email_body ?? "").trim()
     const rawEmailSubject = String(body.raw_email_subject ?? "").trim()
     const rawEmailFrom = String(body.raw_email_from ?? "").trim()
-    const commentId: string | null = body.comment_id ?? null
-    const source = commentId ? "widget" : "manual"
 
     if (!rawEmailBody) {
       return NextResponse.json({ error: "Request body is required" }, { status: 400 })
@@ -39,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         raw_email_from: rawEmailFrom || null,
         raw_email_subject: rawEmailSubject || null,
         raw_email_body: rawEmailBody,
-        source,
+        source: "manual",
         status: "pending_review",
         analysis_status: "queued",
       })
@@ -48,14 +46,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     if (error || !request) {
       return NextResponse.json({ error: error?.message ?? "Request creation failed" }, { status: 500 })
-    }
-
-    if (commentId) {
-      await supabase
-        .from("widget_comments")
-        .update({ converted_to_request_id: request.id })
-        .eq("id", commentId)
-        .eq("project_id", id)
     }
 
     const analysis = await analyseAndPersistRequest(request.id)

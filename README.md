@@ -8,7 +8,7 @@ Built during SaaSathon 2026 as a full-stack productivity SaaS MVP.
 
 ## The Problem
 
-Freelancers and agencies lose margin when client requests arrive casually through Slack, email, or website comments:
+Freelancers and agencies lose margin when client requests arrive casually through Slack, email, or quick calls:
 
 - "Can we just add bookings?"
 - "Could this also support online ordering?"
@@ -20,7 +20,7 @@ Those asks often become unpaid work because the developer has to choose between 
 
 Monad provides an end-to-end workflow for scope-change management:
 
-1. A client request is captured from manual entry, Slack, email, or an embeddable website widget.
+1. A client request is captured from manual entry, Slack, or email.
 2. AI compares the request against the project scope, documents, exclusions, hourly rate, and task categories.
 3. Monad classifies the request as in scope, out of scope, ambiguous, or needing clarification.
 4. It generates evidence, technical breakdown, effort range, cost estimate, timeline impact, task list, and a client-ready reply.
@@ -36,7 +36,6 @@ Monad provides an end-to-end workflow for scope-change management:
 - GitHub App integration for installation flow, repo linking, issue creation, and webhook-based progress updates.
 - Document ingestion so contracts, scope briefs, and supporting files can inform analysis.
 - Proof-pack PDF generation for project history, evidence, estimates, and approval records.
-- Embeddable browser widget for turning website comments into Monad requests.
 - Dashboard metrics for protected revenue, pending requests, approval rate, and project activity.
 
 ## Tech Stack
@@ -53,14 +52,12 @@ Monad provides an end-to-end workflow for scope-change management:
 - Slack OAuth and signed webhooks
 - Resend and Postmark integration points
 - React PDF rendering
-- Vanilla JavaScript widget bundled with esbuild
 
 ## Repository Structure
 
 ```text
 apps/web              Main Next.js SaaS application
 packages/ui           Shared design system and UI components
-packages/widget       Embeddable browser widget source
 supabase/migrations   Database schema, RLS, and integration migrations
 monad-prd.md          Product requirements and demo narrative
 ```
@@ -75,7 +72,6 @@ monad-prd.md          Product requirements and demo narrative
 - `/api/ai/analyse` - request analysis endpoint
 - `/api/webhooks/slack` - Slack inbound request capture
 - `/api/webhooks/github` - GitHub implementation progress sync
-- `/api/widget/comment` - widget comment intake
 
 ## Local Development
 
@@ -137,4 +133,3 @@ Monad classifies the request as out of scope, surfaces the scope evidence, estim
 ## Why This Project Matters
 
 Monad is built around a practical productivity problem: protecting client relationships while making unpaid scope creep visible before it becomes lost revenue. The product combines AI reasoning, approval workflow, collaboration tools, and implementation tracking into one focused SaaS experience.
-

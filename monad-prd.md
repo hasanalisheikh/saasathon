@@ -113,9 +113,8 @@ Every choice below was made for maximum build speed without sacrificing quality.
 | Optional email | Resend + Postmark | Deferred until after the MVP |
 | GitHub | GitHub App + REST API + Webhooks | Real integration, impressive demo |
 | PDF | @react-pdf/renderer | React-native PDF generation |
-| Website widget | Vanilla JS bundle (esbuild) | Zero dependencies, embeds anywhere |
 | Deployment | Vercel | Instant, free, GitHub-connected |
-| Monorepo | Turborepo (optional if time allows) | Shared packages between app + widget |
+| Monorepo | Turborepo (optional if time allows) | Shared packages for app and UI |
 
 ## 2.2 Repository Structure
 
@@ -206,17 +205,9 @@ monad/
 │       │
 │       ├── types/
 │       │   └── index.ts             # All TypeScript types
-│       │
-│       └── public/
-│           └── widget/
-│               └── monad.js         # Built widget bundle
 │
 └── packages/
-    └── widget/                      # Website commenting widget
-        ├── src/
-        │   └── index.ts             # Vanilla JS widget source
-        └── dist/
-            └── monad-widget.js      # Bundled output
+    └── ui/                          # Shared UI components and styles
 ```
 
 ## 2.3 Database Schema (Supabase/Postgres)
@@ -260,7 +251,7 @@ CREATE TABLE requests (
   raw_email_subject TEXT,
   raw_email_body TEXT NOT NULL,
   raw_email_from TEXT,
-  source TEXT DEFAULT 'email',       -- email, widget, manual
+  source TEXT DEFAULT 'email',       -- email, manual, slack
   
   -- AI Analysis
   classification TEXT,               -- in_scope, out_of_scope, ambiguous, clarification_needed
@@ -313,19 +304,6 @@ CREATE TABLE github_events (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Widget Comments
-CREATE TABLE widget_comments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  page_url TEXT,
-  element_selector TEXT,
-  x_position FLOAT,
-  y_position FLOAT,
-  comment_text TEXT NOT NULL,
-  client_name TEXT,
-  converted_to_request_id UUID REFERENCES requests(id),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
 ```
 
 ## 2.4 Key AI Flows
@@ -581,7 +559,7 @@ These are non-negotiable. If nothing else works, these must be flawless.
 
 ### F4. Request Intake (MVP)
 - Manual request capture on the project page is the live intake path
-- Developers paste the client message from Slack, email, call notes, or widget context into Monad
+- Developers paste the client message from Slack, email, or call notes into Monad
 - Create `request` record in DB
 - Trigger AI analysis immediately
 - Notify developer (in-app — badge on inbox)
@@ -685,35 +663,6 @@ After client approval:
 - Warning card: "This PR may contain unapproved work — no matching client request found"
 - Developer can link it to a request or mark as internal
 
-### F14. Website Commenting Widget
-**Vanilla JS snippet, hosted at `/widget/monad.js`**
-
-Developer embeds in staging site:
-```html
-<script 
-  src="https://monad.app/widget/monad.js" 
-  data-project-id="abc123"
-  data-client-token="xyz789">
-</script>
-```
-
-Widget behaviour:
-- Floating "Leave a comment" button (bottom-right, amber)
-- Click anywhere on page to place a comment pin
-- Comment input box appears
-- On submit: POST to Monad API with page URL, element position, comment text
-- Comment immediately appears in platform as a new request
-- AI analyses it the same as any other request
-- Developer reviews and quotes in the same flow
-
-Widget design:
-- Minimal — single floating button
-- Pin markers when in comment mode
-- Dark tooltip showing existing comment pins
-- Mobile-friendly
-
----
-
 ## Sprint 3 — Full Product (Polish + Remaining Ideas)
 
 ### F15. Settings Page
@@ -797,7 +746,6 @@ This is the feature that makes people gasp in the demo.
 - GitHub integration (issue creation)
 - PDF proof pack export
 - GitHub webhook → client notifications
-- Website commenting widget
 - Unapproved work detection
 - Analytics dashboard
 - Remove Monad branding from approval emails
@@ -907,15 +855,13 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 
 ---
 
-## Person C — "The Builder" (Full Stack + Widget)
+## Person C — "The Builder" (Full Stack)
 
 **Owns:**
 - Project creation wizard (new project page, scope input, rate card)
 - Project detail page (tabs: Requests, GitHub, Proof Pack)
 - Individual request history list
 - Settings page
-- Website commenting widget (vanilla JS bundle)
-- Widget embed API endpoint
 - GitHub webhook event display (GitHub tab)
 - Analytics dashboard
 - **Manual request input** (core MVP path and Slack bridge for demo)
@@ -925,8 +871,7 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 2. Project detail page + request history (Hour 6–12)
 3. Fallback manual paste input + trigger AI (Hour 12–15)
 4. Settings page skeleton (Hour 15–18)
-5. Widget (Hour 20–28)
-6. Analytics dashboard (Hour 28–35)
+5. Analytics dashboard (Hour 20–35)
 
 ---
 
@@ -939,8 +884,8 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 | 6–10 | Dashboard + inbox | Manual + Slack-ready intake | Project detail page |
 | 10–16 | **Request Review Screen** | Approval handler + share-ready state | Request history list |
 | 16–20 | Client Approval Page | GitHub issue creation | Fallback paste input |
-| 20–25 | Polish review screen | GitHub App setup | Widget start |
-| 25–30 | Connect flows end-to-end | GitHub webhooks | Widget cont. |
+| 20–25 | Polish review screen | GitHub App setup | Analytics dashboard |
+| 25–30 | Connect flows end-to-end | GitHub webhooks | Request history polish |
 | 30–35 | Analytics display | PDF generation | Analytics dashboard |
 | 35–38 | Demo polish + seed data | Bug fixes | Bug fixes |
 | 38–40 | **Full demo rehearsal** | **Full demo rehearsal** | **Full demo rehearsal** |
@@ -1081,7 +1026,7 @@ feat: add request review screen
 fix: approval token validation
 ui: polish client approval page
 api: github issue creation endpoint
-db: add widget_comments table
+db: add request task tables
 demo: seed data for Marcus project
 ```
 
@@ -1095,7 +1040,6 @@ demo: seed data for Marcus project
 | GitHub App setup takes too long | Medium | Medium | Prepare the GitHub App credentials and install flow before demo day |
 | Claude too slow (>10s) | Low | Medium | Show loading state, cache results |
 | PDF generation buggy | Medium | Low | Just show in-app, skip export if needed |
-| Widget breaks staging site | Medium | Low | Don't demo widget if unstable |
 | Supabase RLS misconfigured | High | High | Test auth + data isolation early |
 | Demo WiFi fails | Low | High | Run demo on localhost, have Vercel backup |
 
@@ -1137,7 +1081,7 @@ Complete wireframe descriptions for every page. Person A builds all of these.
 
 **Section 2 — How it works**
 Three steps, horizontal on desktop, stacked on mobile:
-1. `Capture the request` — "Paste the Slack message, widget note, or client ask into Monad. Nothing about your delivery workflow changes."
+1. `Capture the request` — "Paste the Slack message, email, or client ask into Monad. Nothing about your delivery workflow changes."
 2. `AI analyses the request` — "Monad checks it against your scope, estimates cost, and drafts a professional reply."
 3. `Client approves, GitHub tracks it` — "One-click approval. GitHub issue created. Audit trail built."
 
@@ -1211,7 +1155,7 @@ Bottom of sidebar:
   - Left colour bar = classification colour
   - Top row: client name (bold) + project name (muted) + time ago (right-aligned, muted)
   - Middle: email subject (truncated at 80 chars)
-  - Bottom row: classification badge + cost estimate chip (if out of scope) + source badge (email/widget/manual)
+  - Bottom row: classification badge + cost estimate chip (if out of scope) + source badge (email/manual/slack)
 - Empty state: amber icon + "No new requests. Your inbox is clear." (show when inbox empty)
 
 **Recent Activity section (below inbox):**
@@ -1339,7 +1283,7 @@ Each card (`--bg-surface`, border, hover lift):
 **Two-column layout (60/40 split):**
 
 **LEFT PANEL — Raw Client Email:**
-- Panel header: "Client Request" (label) + source badge (EMAIL / WIDGET / MANUAL)
+- Panel header: "Client Request" (label) + source badge (EMAIL / MANUAL / SLACK)
 - Email metadata card:
   - From: `marcus@rusticatable.com`
   - To: `project-abc123@inbound.monad.app`
@@ -1553,7 +1497,7 @@ export type RequestStatus =
   | 'deferred'
   | 'accepted_in_scope'
 
-export type RequestSource = 'email' | 'widget' | 'manual'
+export type RequestSource = 'email' | 'manual' | 'slack'
 
 export type ReplyTone = 'friendly' | 'professional' | 'firm'
 
@@ -1649,21 +1593,6 @@ export interface GitHubEvent {
   created_at: string
 }
 
-// ─── Widget Comments ──────────────────────────────────────────────────────────
-
-export interface WidgetComment {
-  id: string
-  project_id: string
-  page_url: string
-  element_selector: string | null
-  x_position: number
-  y_position: number
-  comment_text: string
-  client_name: string | null
-  converted_to_request_id: string | null
-  created_at: string
-}
-
 // ─── API Payloads ─────────────────────────────────────────────────────────────
 
 export interface AnalyseRequestPayload {
@@ -1703,7 +1632,6 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE github_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE widget_comments ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: users can only see/edit their own profile
 CREATE POLICY "Users own their profile"
@@ -1727,15 +1655,6 @@ CREATE POLICY "Users access requests for their projects"
 -- GitHub events: same as requests
 CREATE POLICY "Users access github_events for their projects"
   ON github_events FOR ALL
-  USING (
-    project_id IN (
-      SELECT id FROM projects WHERE user_id = auth.uid()
-    )
-  );
-
--- Widget comments: same
-CREATE POLICY "Users access widget_comments for their projects"
-  ON widget_comments FOR ALL
   USING (
     project_id IN (
       SELECT id FROM projects WHERE user_id = auth.uid()
@@ -1933,168 +1852,6 @@ Return JSON:
   "reasoning": "why this is or is not approved work"
 }
 `
-```
-
----
-
-# PART 16: WEBSITE COMMENTING WIDGET
-
-## Widget Source (`packages/widget/src/index.ts`)
-
-Full implementation guide for the vanilla JS widget.
-
-```typescript
-// Monad Website Commenting Widget
-// Embed: <script src="https://monad.app/widget/monad.js" data-project-id="xxx" data-client-token="yyy">
-
-(function() {
-  const projectId = document.currentScript?.getAttribute('data-project-id')
-  const clientToken = document.currentScript?.getAttribute('data-client-token')
-  const API_URL = 'https://monad.app/api/widget/comment'
-
-  if (!projectId) return
-
-  // Inject styles
-  const style = document.createElement('style')
-  style.textContent = `
-    #monad-widget-btn {
-      position: fixed; bottom: 24px; right: 24px; z-index: 99999;
-      background: #f59e0b; color: #080c14; border: none; border-radius: 6px;
-      padding: 10px 16px; font-family: monospace; font-size: 13px;
-      cursor: pointer; box-shadow: 0 4px 12px rgba(245,158,11,0.4);
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    #monad-widget-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(245,158,11,0.5); }
-    #monad-widget-btn.active { background: #ef4444; color: white; }
-    .monad-pin {
-      position: absolute; width: 28px; height: 28px; z-index: 99998;
-      background: #f59e0b; border-radius: 50%; border: 2px solid white;
-      cursor: pointer; transform: translate(-50%, -50%);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: bold; color: #080c14;
-    }
-    #monad-comment-box {
-      position: fixed; z-index: 99999;
-      background: #0f1624; border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 8px; padding: 16px; width: 280px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    }
-    #monad-comment-box textarea {
-      width: 100%; height: 80px; background: #080c14;
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;
-      color: #f0f4ff; font-family: monospace; font-size: 13px;
-      padding: 8px; resize: none; box-sizing: border-box;
-    }
-    #monad-comment-box button {
-      background: #f59e0b; color: #080c14; border: none;
-      border-radius: 4px; padding: 8px 16px; cursor: pointer;
-      font-family: monospace; font-size: 12px; margin-top: 8px;
-    }
-  `
-  document.head.appendChild(style)
-
-  // State
-  let isActive = false
-  let pinCount = 0
-
-  // Floating button
-  const btn = document.createElement('button')
-  btn.id = 'monad-widget-btn'
-  btn.textContent = '+ Leave comment'
-  document.body.appendChild(btn)
-
-  btn.addEventListener('click', () => {
-    isActive = !isActive
-    btn.textContent = isActive ? '✕ Cancel' : '+ Leave comment'
-    btn.classList.toggle('active', isActive)
-    document.body.style.cursor = isActive ? 'crosshair' : ''
-  })
-
-  // Click to place pin
-  document.addEventListener('click', (e) => {
-    if (!isActive) return
-    if ((e.target as Element).closest('#monad-widget-btn')) return
-
-    e.preventDefault()
-    e.stopPropagation()
-
-    const x = e.pageX
-    const y = e.pageY
-
-    // Place pin
-    pinCount++
-    const pin = document.createElement('div')
-    pin.className = 'monad-pin'
-    pin.textContent = String(pinCount)
-    pin.style.left = x + 'px'
-    pin.style.top = y + 'px'
-    document.body.appendChild(pin)
-
-    // Show comment box near pin
-    showCommentBox(x, y, pin)
-    isActive = false
-    btn.textContent = '+ Leave comment'
-    btn.classList.remove('active')
-    document.body.style.cursor = ''
-  }, true)
-
-  function showCommentBox(x: number, y: number, pin: HTMLElement) {
-    const box = document.createElement('div')
-    box.id = 'monad-comment-box'
-    box.style.left = Math.min(x + 16, window.innerWidth - 300) + 'px'
-    box.style.top = Math.min(y + 16, window.scrollY + window.innerHeight - 160) + 'px'
-
-    box.innerHTML = `
-      <div style="color:#8892a4;font-size:11px;margin-bottom:8px;font-family:monospace;">LEAVE A COMMENT</div>
-      <textarea placeholder="Describe what you'd like changed..."></textarea>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button id="monad-submit-btn">Submit</button>
-        <button id="monad-cancel-btn" style="background:transparent;color:#8892a4;border:1px solid rgba(255,255,255,0.1);">Cancel</button>
-      </div>
-    `
-    document.body.appendChild(box)
-
-    box.querySelector('#monad-cancel-btn')!.addEventListener('click', () => {
-      box.remove()
-      pin.remove()
-      pinCount--
-    })
-
-    box.querySelector('#monad-submit-btn')!.addEventListener('click', async () => {
-      const text = (box.querySelector('textarea') as HTMLTextAreaElement).value.trim()
-      if (!text) return
-
-      await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          project_id: projectId,
-          client_token: clientToken,
-          page_url: window.location.href,
-          x_position: x / document.documentElement.scrollWidth,
-          y_position: y / document.documentElement.scrollHeight,
-          comment_text: text
-        })
-      })
-
-      box.innerHTML = `<div style="color:#10b981;font-family:monospace;font-size:13px;padding:8px;">✓ Comment sent to developer</div>`
-      setTimeout(() => box.remove(), 2000)
-    })
-  }
-})()
-```
-
-## Widget API Endpoint (`/api/widget/comment/route.ts`)
-
-```typescript
-export async function POST(req: Request) {
-  const { project_id, page_url, x_position, y_position, comment_text } = await req.json()
-
-  // 1. Save widget comment to DB
-  // 2. Create a request record with source = 'widget'
-  // 3. Trigger AI analysis
-  // 4. Return 200
-}
 ```
 
 ---
@@ -2793,7 +2550,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|widget).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
 ```
 
@@ -3215,7 +2972,7 @@ function timeAgo(date: string) {
   return `${Math.floor(seconds / 86400)}d ago`
 }
 
-const sourceLabel = { email: 'EMAIL', widget: 'WIDGET', manual: 'MANUAL' }
+const sourceLabel = { email: 'EMAIL', manual: 'MANUAL', slack: 'SLACK' }
 
 interface Props {
   request: RequestWithProject

@@ -5,7 +5,6 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE github_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE widget_comments ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: users own their profile
 CREATE POLICY "Users own their profile"
@@ -29,15 +28,6 @@ CREATE POLICY "Users access requests for their projects"
 -- GitHub events: same
 CREATE POLICY "Users access github_events for their projects"
   ON github_events FOR ALL
-  USING (
-    project_id IN (
-      SELECT id FROM projects WHERE user_id = auth.uid()
-    )
-  );
-
--- Widget comments: same
-CREATE POLICY "Users access widget_comments for their projects"
-  ON widget_comments FOR ALL
   USING (
     project_id IN (
       SELECT id FROM projects WHERE user_id = auth.uid()

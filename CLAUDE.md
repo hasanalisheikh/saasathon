@@ -29,7 +29,6 @@ Monad intercepts client requests, analyses them against the agreed project scope
 | Optional email | Resend + Postmark (deferred from MVP) |
 | GitHub | GitHub App + REST API |
 | PDF | @react-pdf/renderer |
-| Website widget | Vanilla JS (esbuild — `packages/widget`) |
 | Deployment | Vercel |
 | Monorepo | Turborepo + Bun workspaces |
 
@@ -60,7 +59,6 @@ monad/
 │   └── types/index.ts         # All TypeScript types
 ├── packages/
 │   ├── ui/                    # shadcn/ui components + Monad design tokens (globals.css)
-│   └── widget/                # Vanilla JS commenting widget (esbuild)
 └── supabase/
     ├── migrations/001_monad_schema.sql
     └── migrations/002_monad_rls.sql
@@ -93,7 +91,7 @@ Classification badge colours:
 
 ## Database (Supabase)
 
-Tables: `profiles`, `projects`, `requests`, `github_events`, `widget_comments`
+Tables: `profiles`, `projects`, `requests`, `github_events`
 
 Key fields on `requests`:
 - `classification` — `in_scope | out_of_scope | ambiguous | clarification_needed`
@@ -186,4 +184,4 @@ bun dev         # starts apps/web on :3000
 
 - **Person A** — Frontend/UX: design system, landing, auth, dashboard, Request Review Screen, Approval Page
 - **Person B** — Backend/AI: Supabase, OpenRouter/Gemini, GitHub API, approval handler, PDF, Slack-ready intake architecture
-- **Person C** — Full Stack: project wizard, project detail, request history, settings, widget, analytics
+- **Person C** — Full Stack: project wizard, project detail, request history, settings, analytics

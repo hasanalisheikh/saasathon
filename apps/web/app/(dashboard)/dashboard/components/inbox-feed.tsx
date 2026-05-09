@@ -11,7 +11,7 @@ import {
 import {
   ClassificationBadge,
 } from "@workspace/ui/components/status-badge"
-import { Mail, MessageSquare, PenTool, GitPullRequest, AlertTriangle } from "lucide-react"
+import { Mail, PenTool, GitPullRequest, AlertTriangle } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -108,8 +108,6 @@ export function InboxFeed({ requests }: InboxFeedProps) {
 
 function SourceIcon({ source }: { source: string }) {
   switch (source) {
-    case 'widget':
-      return <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
     case 'manual':
       return <PenTool className="w-3.5 h-3.5 text-muted-foreground" />
     case 'github':

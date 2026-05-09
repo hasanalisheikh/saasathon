@@ -48,20 +48,6 @@ const fakeSupabase = {
       }
     }
 
-    if (table === 'widget_comments') {
-      return {
-        update() {
-          return {
-            eq() {
-              return {
-                eq: async () => ({}),
-              }
-            },
-          }
-        },
-      }
-    }
-
     throw new Error(`Unexpected table: ${table}`)
   },
 }

@@ -11,7 +11,6 @@ export type ProjectIntegration = {
   inbound_email: string | null
   github_repo_name: string | null
   github_installation_id: string | null
-  widget_token: string | null
   slack_channel_id: string | null
   slack_channel_name: string | null
 }
@@ -25,7 +24,7 @@ export default async function IntegrationsPage() {
   const [projectsResult, profileResult] = await Promise.all([
     supabase
       .from("projects")
-      .select("id, name, client_name, inbound_email, github_repo_name, github_installation_id, widget_token, slack_channel_id, slack_channel_name")
+      .select("id, name, client_name, inbound_email, github_repo_name, github_installation_id, slack_channel_id, slack_channel_name")
       .eq("user_id", user!.id)
       .order("created_at", { ascending: false })
       .returns<ProjectIntegration[]>(),

@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
-import { CopyIcon, EllipsisIcon, MailIcon, PencilIcon, PlusIcon } from 'lucide-react'
+import { EllipsisIcon, MailIcon, PencilIcon, PlusIcon } from 'lucide-react'
 import { Button } from '@workspace/ui/components/button'
 import {
   DropdownMenu,
@@ -16,20 +16,11 @@ import type { Project } from '@/types'
 import { EditProjectModal } from './edit-project-modal'
 
 interface ProjectPageActionsProps {
-  appUrl: string | null
   project: Project
 }
 
-export function ProjectPageActions({ appUrl, project }: ProjectPageActionsProps) {
+export function ProjectPageActions({ project }: ProjectPageActionsProps) {
   const [editOpen, setEditOpen] = useState(false)
-
-  const widgetSnippet = useMemo(
-    () =>
-      appUrl
-        ? `<script src="${appUrl}/widget.js" data-project-id="${project.id}" data-client-token="${project.widget_token}"></script>`
-        : null,
-    [appUrl, project.id, project.widget_token],
-  )
 
   async function copyText(value: string, label: string) {
     try {
@@ -65,16 +56,6 @@ export function ProjectPageActions({ appUrl, project }: ProjectPageActionsProps)
             Add request
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            disabled={!widgetSnippet}
-            onClick={() => {
-              if (!widgetSnippet) return
-              copyText(widgetSnippet, 'Widget embed')
-            }}
-          >
-            <CopyIcon />
-            Copy widget embed
-          </DropdownMenuItem>
           <DropdownMenuItem
             disabled={!project.inbound_email}
             onClick={() => {

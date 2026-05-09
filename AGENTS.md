@@ -8,7 +8,6 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 - Main app: `apps/web` (Next.js App Router + Supabase + API routes).
 - Shared packages:
   - `packages/ui` (shared UI components/styles)
-  - `packages/widget` (embeddable browser comment widget compiled to `apps/web/public/widget.js`)
 
 ## Critical context from existing project rules/docs
 - `CLAUDE.md` points to `monad-prd.md` as the canonical product reference; read that first for product intent before major changes.
@@ -36,10 +35,6 @@ Run from repository root unless noted.
 - Run a single test file from repo root: `bun test apps/web/lib/github.test.ts`
 - Run a single API route test file: `bun test apps/web/app/api/ai/analyse/route.test.ts`
 
-### Widget package
-- Build widget once: `bun run --cwd packages/widget build`
-- Watch/rebuild widget during development: `bun run --cwd packages/widget dev`
-
 ## Environment and runtime configuration
 - Copy example env: `apps/web/.env.local.example` -> `apps/web/.env.local`.
 - App runtime expects Supabase + app URL variables at minimum; many API paths hard-fail when required env is missing.
@@ -65,7 +60,7 @@ Run from repository root unless noted.
   - Slack workspace/channel linkage (`011_slack_integration.sql`, `012_slack_thread.sql`)
 
 ### 3) Core request lifecycle (most important flow)
-1. A request is created from manual input, inbound email, Slack webhook, or widget conversion.
+1. A request is created from manual input, inbound email, or Slack webhook.
 2. AI analysis runs via `analyseAndPersistRequest` (`apps/web/lib/request-analysis.ts`), which:
    - validates baseline scope context (scope text/structured scope/documents),
    - calls AI contract logic (`apps/web/lib/ai.ts` + `apps/web/lib/ai-contract.ts`) or mock mode,

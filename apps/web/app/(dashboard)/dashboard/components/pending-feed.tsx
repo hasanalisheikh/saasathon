@@ -12,7 +12,7 @@ import {
   ClassificationBadge,
   StatusBadge,
 } from "@workspace/ui/components/status-badge"
-import { AlertTriangle, GitPullRequest, Mail, MessageSquare, PenTool } from "lucide-react"
+import { AlertTriangle, GitPullRequest, Mail, PenTool } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -110,8 +110,6 @@ export function PendingFeed({ requests }: PendingFeedProps) {
 
 function SourceIcon({ source }: { source: string }) {
   switch (source) {
-    case "widget":
-      return <MessageSquare className="size-3.5 text-muted-foreground" />
     case "manual":
       return <PenTool className="size-3.5 text-muted-foreground" />
     case "github":

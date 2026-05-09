@@ -42,7 +42,6 @@ export interface Project {
   hourly_rate: number | null
   task_categories: TaskCategory[]
   status: ProjectStatus
-  widget_token: string
   created_at: string
   updated_at: string
 }
@@ -102,7 +101,7 @@ export type RequestStatus =
 export type ImplementationStatus = 'not_started' | 'in_progress' | 'completed'
 export type AnalysisStatus = 'queued' | 'running' | 'completed' | 'failed'
 
-export type RequestSource = 'email' | 'widget' | 'manual' | 'slack'
+export type RequestSource = 'email' | 'manual' | 'slack'
 
 export type ReplyTone = 'friendly' | 'professional' | 'firm'
 
@@ -225,21 +224,6 @@ export interface GitHubEvent {
   client_notified: boolean
   client_notified_at: string | null
   is_unapproved_work: boolean
-  created_at: string
-}
-
-// ─── Widget Comments ──────────────────────────────────────────────────────────
-
-export interface WidgetComment {
-  id: string
-  project_id: string
-  page_url: string
-  element_selector: string | null
-  x_position: number
-  y_position: number
-  comment_text: string
-  client_name: string | null
-  converted_to_request_id: string | null
   created_at: string
 }
 

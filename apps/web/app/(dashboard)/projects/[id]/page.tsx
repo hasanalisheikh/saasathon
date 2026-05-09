@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
-import { getConfiguredEnv } from "@/lib/env"
 import { notFound } from "next/navigation"
 import { buildGitHubConnectPath, getGitHubStatusMessage } from "@/lib/github-connect"
 import { isGitHubAppConfigured, isGitHubInstallationId } from "@/lib/github-config"
@@ -29,7 +28,6 @@ import {
 } from "@workspace/ui/components/empty-state"
 import { ProjectPageActions } from "./project-page-actions"
 import { ProjectRequestsTab } from "./project-requests-tab"
-import { WidgetCommentsTab } from "./widget-comments-tab"
 import {
   Calendar,
   ExternalLink,
@@ -37,7 +35,6 @@ import {
   FileText,
   GitBranch,
   Inbox,
-  MessageSquareCode,
   type LucideIcon,
 } from "lucide-react"
 import { Icon } from "@iconify/react"
@@ -45,7 +42,6 @@ import { Icon } from "@iconify/react"
 const TABS = [
   "requests",
   "documents",
-  "widget",
   "github",
   "proof-pack",
 ] as const
@@ -54,7 +50,6 @@ type Tab = (typeof TABS)[number]
 const TAB_ICONS: Record<Tab, LucideIcon> = {
   requests: Inbox,
   documents: FileText,
-  widget: MessageSquareCode,
   github: GitBranch,
   "proof-pack": FileCheck2,
 }
@@ -90,7 +85,6 @@ export default async function ProjectDetailPage({
     { data: requests },
     { data: projectDocuments },
     { data: githubEvents },
-    { data: widgetComments },
   ] = await Promise.all([
     supabase
       .from("requests")
@@ -109,12 +103,6 @@ export default async function ProjectDetailPage({
       .eq("project_id", id)
       .order("created_at", { ascending: false })
       .limit(50),
-    supabase
-      .from("widget_comments")
-      .select("*")
-      .eq("project_id", id)
-      .is("converted_to_request_id", null)
-      .order("created_at", { ascending: false }),
   ])
 
   const approvedRequests = (requests ?? []).filter(
@@ -123,17 +111,12 @@ export default async function ProjectDetailPage({
   const pendingRequests = (requests ?? []).filter(
     (r) => r.status === "pending_review"
   )
-  const unconvertedCommentCount = (widgetComments ?? []).length
   const TAB_LABELS: Record<Tab, string> = {
     requests: "Requests",
     documents:
       (projectDocuments?.length ?? 0) > 0
         ? `Documents (${projectDocuments!.length})`
         : "Documents",
-    widget:
-      unconvertedCommentCount > 0
-        ? `Widget (${unconvertedCommentCount})`
-        : "Widget",
     github: "GitHub",
     "proof-pack": "Proof Pack",
   }
@@ -164,7 +147,6 @@ export default async function ProjectDetailPage({
       .filter((issueNumber): issueNumber is number => typeof issueNumber === "number")
   )
   const projectCreatedLabel = new Date(project.created_at as string).toLocaleDateString()
-  const appUrl = getConfiguredEnv("NEXT_PUBLIC_APP_URL")
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -178,7 +160,7 @@ export default async function ProjectDetailPage({
           </PageDescription>
         </div>
         <PageActions className="self-start pt-0.5">
-          <ProjectPageActions appUrl={appUrl} project={project} />
+          <ProjectPageActions project={project} />
         </PageActions>
       </PageHeader>
 
@@ -294,10 +276,6 @@ export default async function ProjectDetailPage({
             projectId={id}
             requests={requests ?? []}
           />
-        </TabsContent>
-
-        <TabsContent value="widget">
-          <WidgetCommentsTab comments={widgetComments ?? []} projectId={id} />
         </TabsContent>
 
         <TabsContent value="documents">

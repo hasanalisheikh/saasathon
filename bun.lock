@@ -124,15 +124,6 @@
         "typescript": "^5.9.3",
       },
     },
-    "packages/widget": {
-      "name": "@workspace/widget",
-      "version": "0.0.1",
-      "devDependencies": {
-        "@workspace/typescript-config": "workspace:*",
-        "esbuild": "^0.25.0",
-        "typescript": "^5.9.3",
-      },
-    },
   },
   "packages": {
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
@@ -754,8 +745,6 @@
     "@workspace/typescript-config": ["@workspace/typescript-config@workspace:packages/typescript-config"],
 
     "@workspace/ui": ["@workspace/ui@workspace:packages/ui"],
-
-    "@workspace/widget": ["@workspace/widget@workspace:packages/widget"],
 
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.13", "", {}, "sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw=="],
 
