@@ -25,6 +25,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
 
+  const commitHash = getCommitHash()
+
   return (
     <SidebarProvider className="h-svh overflow-hidden" style={{ "--sidebar-width": "100%" } as React.CSSProperties}>
       <ResizablePanelGroup direction="horizontal" autoSaveId="sidebar-layout">
@@ -44,6 +46,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <header className="px-6 pt-6 shrink-0 bg-background flex items-center gap-2">
               <SidebarTrigger className="-ml-1 md:hidden" />
               <DynamicBreadcrumb projects={projects || []} />
+              <div className="ml-auto rounded border border-border px-2 py-1 text-xs text-muted-foreground">
+                build {commitHash}
+              </div>
             </header>
             <div className="flex-1 min-h-0 overflow-y-auto">
               {children}
@@ -53,4 +58,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </ResizablePanelGroup>
     </SidebarProvider>
   )
+}
+
+function getCommitHash() {
+  const fullHash =
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ||
+    process.env.NEXT_PUBLIC_COMMIT_SHA ||
+    process.env.GIT_COMMIT_SHA
+
+  if (!fullHash) return "unknown"
+  return fullHash.slice(0, 7)
 }
