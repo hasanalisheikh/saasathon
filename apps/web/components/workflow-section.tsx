@@ -42,16 +42,16 @@ export function WorkflowSection() {
   }, [])
 
   return (
-    <section id="how" className="px-5 py-20 bg-neutral-50">
+    <section id="how" className="bg-background px-5 py-20">
       <div className="mx-auto max-w-7xl">
-        <div className="grid lg:grid-cols-[1fr_1.5fr] items-stretch bg-card border border-border rounded-3xl  overflow-hidden">
+        <div className="grid items-stretch overflow-hidden rounded-3xl border border-border bg-card lg:grid-cols-[1fr_1.5fr]">
           {/* Left Column */}
           <div className="px-8 py-10 box-border flex flex-col justify-center">
             <p className="mb-2 text-sm font-semibold text-muted-foreground">Workflow</p>
             <h2 className="mb-6 text-3xl font-bold sm:text-4xl text-foreground">
               Engineered for the critical moment scope expands.
             </h2>
-            <button className="mb-10 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+            <button className="mb-10 flex h-8 w-8 items-center justify-center rounded-full bg-[#097fe8] text-white transition-colors hover:bg-[#097fe8]/90">
               <ArrowRight className="size-4" />
             </button>
 
@@ -63,7 +63,7 @@ export function WorkflowSection() {
                   <button
                     key={step.title}
                     onClick={() => setActiveStep(index)}
-                    className="flex flex-col p-4 text-left transition-all border-b border-border last:border-b-0 hover:bg-neutral-100 hover:border-transparent hover:rounded-xl dark:hover:bg-muted/50"
+                    className="flex flex-col border-b border-border p-4 text-left transition-all last:border-b-0 hover:rounded-xl hover:border-transparent hover:bg-muted/60"
                   >
                     <div className="flex items-center gap-4">
                       <div className={cn(

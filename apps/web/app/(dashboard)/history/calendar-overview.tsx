@@ -13,13 +13,7 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 import { Badge } from "@workspace/ui/components/badge"
 import { Calendar, CalendarDayButton } from "@workspace/ui/components/calendar"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
+import { Card, CardContent } from "@workspace/ui/components/card"
 import {
   ClassificationBadge,
   StatusBadge,
@@ -118,59 +112,59 @@ function CalendarOverview({ events }: CalendarOverviewProps) {
   )
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <div>
-          <CardTitle>Request calendar</CardTitle>
-          <CardDescription>
-            {formatMonthYear(selectedDate)}
-          </CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <Card>
+      <CardContent className="pt-6">
         <div className="grid gap-6 lg:grid-cols-[minmax(18rem,21rem)_1fr]">
-          <div className="rounded-md border bg-background p-3">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date: Date | undefined) => {
-                if (date) setSelectedDate(date)
-              }}
-              modifiers={{ hasEvents: eventDates }}
-              modifiersClassNames={{
-                hasEvents: "text-primary",
-              }}
-              components={dayButtonComponents}
-              className="w-full p-0 [--cell-size:--spacing(9)]"
-              classNames={{
-                root: "w-full",
-                months: "relative flex w-full flex-col gap-4",
-                month: "flex w-full flex-col gap-4",
-                table: "w-full border-collapse",
-              }}
-            />
+          <div className="flex flex-col">
+            <div className="mb-3 flex h-6 items-center">
+              <h3 className="font-semibold leading-none tracking-tight">Request history</h3>
+            </div>
+            <div className="rounded-md border bg-background p-3">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date: Date | undefined) => {
+                  if (date) setSelectedDate(date)
+                }}
+                modifiers={{ hasEvents: eventDates }}
+                modifiersClassNames={{
+                  hasEvents: "text-primary",
+                }}
+                components={dayButtonComponents}
+                className="w-full p-0 [--cell-size:--spacing(9)]"
+                classNames={{
+                  root: "w-full",
+                  months: "relative flex w-full flex-col gap-4",
+                  month: "flex w-full flex-col gap-4",
+                  table: "w-full border-collapse",
+                }}
+              />
+            </div>
           </div>
 
-          <div className="min-w-0">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">{formatFullDate(selectedDate)}</p>
-                <p className="text-xs text-muted-foreground">
+          <div className="flex min-w-0 flex-col">
+            <div className="mb-3 flex h-6 shrink-0 items-center">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  {formatFullDate(selectedDate)}
+                </span>
+                <span>&middot;</span>
+                <span>
                   {selectedEvents.length
                     ? `${selectedEvents.length} ${selectedEvents.length === 1 ? "event" : "events"}`
                     : "No events"}
-                </p>
+                </span>
               </div>
             </div>
 
             {selectedEvents.length ? (
-              <div className="divide-y rounded-md border">
+              <div className="max-h-[25rem] divide-y overflow-y-auto rounded-md border">
                 {selectedEvents.map((event) => (
                   <CalendarOverviewEventRow key={event.id} event={event} />
                 ))}
               </div>
             ) : (
-              <div className="flex min-h-36 items-center justify-center rounded-md border border-dashed bg-muted/20 px-4 text-center text-sm text-muted-foreground">
+              <div className="flex min-h-48 items-center justify-center rounded-md border border-dashed bg-muted/20 px-4 text-center text-sm text-muted-foreground">
                 No request activity on this day.
               </div>
             )}
@@ -241,13 +235,6 @@ function startOfDay(date: Date) {
   const next = new Date(date)
   next.setHours(0, 0, 0, 0)
   return next
-}
-
-function formatMonthYear(date: Date) {
-  return new Intl.DateTimeFormat("en", {
-    month: "long",
-    year: "numeric",
-  }).format(date)
 }
 
 function formatFullDate(date: Date) {

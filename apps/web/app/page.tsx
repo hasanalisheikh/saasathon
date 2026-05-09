@@ -1,20 +1,10 @@
 import Link from 'next/link'
-import type { LucideIcon } from 'lucide-react'
 import {
-  ArrowRight,
   Check,
   CheckCircle2,
-  CircleDollarSign,
-  Clock3,
-  FileText,
   Fingerprint,
-  GitBranch,
-  GitPullRequest,
-  LockKeyhole,
   MessageSquareText,
-  ScanLine,
   ShieldCheck,
-  Sparkles,
   Workflow,
 } from 'lucide-react'
 import { BrandMark } from '@/components/brand-mark'
@@ -60,7 +50,7 @@ const evidenceItems = [
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-neutral-50 text-foreground relative">
+    <main className="relative min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-40 px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto grid max-w-7xl grid-cols-3 items-center gap-4">
           <div className="flex items-center justify-start">
@@ -120,15 +110,15 @@ export default function LandingPage() {
       <section className="bg-muted/50 border-y border-border px-5 py-6">
         <div className="mx-auto flex max-w-4xl justify-between flex-wrap gap-4 text-sm text-muted-foreground font-medium">
           <p className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-primary" />
+            <CheckCircle2 className="size-4 text-[#097fe8]" />
             Itemised receipts halt invoice shock
           </p>
           <p className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-primary" />
+            <CheckCircle2 className="size-4 text-[#097fe8]" />
             Absolute clarity on deliverables
           </p>
           <p className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-primary" />
+            <CheckCircle2 className="size-4 text-[#097fe8]" />
             Zero uncompensated scope extensions
           </p>
         </div>
@@ -136,7 +126,7 @@ export default function LandingPage() {
 
       <WorkflowSection />
 
-      <section className="px-5 py-4 bg-neutral-50">
+      <section className="bg-background px-5 py-4">
         <div className="mx-auto max-w-7xl">
           <div className=" mb-8">
             <h2 className="text-3xl font-bold sm:text-4xl">
@@ -149,7 +139,7 @@ export default function LandingPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {platformFeatures.map((feature) => (
               <div key={feature.title} className="border border-border bg-card text-card-foreground p-6 rounded-lg">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-full mb-4 ${feature.color}`}>
+                <div className={`mb-4 flex h-8 w-8 items-center justify-center rounded-full ${feature.color}`}>
                   <feature.icon className="size-4 text-white" />
                 </div>
                 <h3 className="font-bold mb-2">{feature.title}</h3>
@@ -173,7 +163,7 @@ export default function LandingPage() {
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {evidenceItems.map((item) => (
                 <p className="flex items-center gap-3 text-sm text-foreground" key={item}>
-                  <span className="flex size-4 shrink-0 items-center justify-center rounded bg-blue-500 text-white">
+                  <span className="flex size-4 shrink-0 items-center justify-center rounded bg-[#097fe8] text-white">
                     <Check className="size-2.5" strokeWidth={3} />
                   </span>
                   {item}
@@ -203,4 +193,3 @@ export default function LandingPage() {
     </main>
   )
 }
-

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 const pricing = [
   {
@@ -44,8 +44,11 @@ const pricing = [
 ]
 
 export function PricingSection() {
+  const primaryPlans = pricing.slice(0, 2)
+  const studioPlan = pricing[2]!
+
   return (
-    <section id="pricing" className="px-5 py-20 sm:px-8 lg:px-12 bg-neutral-50">
+    <section id="pricing" className="bg-background px-5 py-20 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div className="max-w-2xl">
@@ -62,7 +65,7 @@ export function PricingSection() {
           {/* Starter and Pro Group */}
           <div className="p-8 sm:p-10 flex flex-col border border-border rounded-3xl bg-card">
             <div className="grid sm:grid-cols-2 gap-x-10 gap-y-10 h-full">
-              {pricing.slice(0, 2).map((plan) => (
+              {primaryPlans.map((plan) => (
                 <div key={plan.name} className="flex flex-col">
                   <div>
                     <div className="flex items-start justify-between gap-4">
@@ -81,7 +84,7 @@ export function PricingSection() {
                   </div>
 
                   <Link
-                    className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md text-[15px] font-semibold transition bg-blue-50 text-blue-600 hover:bg-blue-100"
+                    className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md bg-secondary text-[15px] font-semibold text-secondary-foreground transition hover:bg-secondary/80"
                     href="/signup"
                   >
                     {plan.cta}
@@ -106,23 +109,23 @@ export function PricingSection() {
           </div>
 
           {/* Studio Plan */}
-          <div className="p-8 sm:p-10 bg-blue-50 rounded-3xl flex flex-col">
+          <div className="flex flex-col rounded-3xl border border-border bg-muted/50 p-8 sm:p-10">
             <div>
               <div className="flex items-start justify-between gap-4">
-                <h3 className="text-2xl font-bold text-foreground">{pricing[2].name}</h3>
+                <h3 className="text-2xl font-bold text-foreground">{studioPlan.name}</h3>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-foreground">{pricing[2].price}</span>
-                <span className="text-[15px] font-medium text-muted-foreground">{pricing[2].sub}</span>
+                <span className="text-4xl font-bold text-foreground">{studioPlan.price}</span>
+                <span className="text-[15px] font-medium text-muted-foreground">{studioPlan.sub}</span>
               </div>
-              <p className="mt-4 min-h-12 text-[15px] leading-relaxed text-muted-foreground">{pricing[2].description}</p>
+              <p className="mt-4 min-h-12 text-[15px] leading-relaxed text-muted-foreground">{studioPlan.description}</p>
             </div>
 
             <Link
-              className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md text-[15px] font-semibold transition bg-blue-100 text-blue-700 hover:bg-blue-200"
+              className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-background text-[15px] font-semibold text-foreground transition hover:bg-muted"
               href="/signup"
             >
-              {pricing[2].cta}
+              {studioPlan.cta}
             </Link>
 
             <div className="mt-8 flex-1">
@@ -130,7 +133,7 @@ export function PricingSection() {
                 Everything in Pro, and:
               </p>
               <ul className="space-y-3">
-                {pricing[2].features.filter(f => f !== 'Everything in Pro').map((feature) => (
+                {studioPlan.features.filter(f => f !== 'Everything in Pro').map((feature) => (
                   <li className="flex items-start gap-3 text-[15px] text-muted-foreground" key={feature}>
                     <Check className="mt-0.5 size-4 shrink-0 text-foreground" />
                     <span className="leading-tight">{feature}</span>

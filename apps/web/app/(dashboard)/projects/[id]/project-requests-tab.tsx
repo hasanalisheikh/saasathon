@@ -93,7 +93,7 @@ const REQUEST_STATUS_COLUMNS: RequestStatusColumn[] = [
     description: "Work accepted as part of the original agreement.",
     emptyLabel: "No requests have been accepted in scope.",
     icon: CheckCircle2,
-    accentClassName: "text-primary",
+    accentClassName: "text-emerald-400",
   },
   {
     status: "deferred",
@@ -325,8 +325,8 @@ function RequestBoardColumn({
   return (
     <Card
       className={cn(
-        "min-h-[32rem] w-[320px] shrink-0 rounded-lg bg-muted/80 py-0 ring-0 transition-colors",
-        isDropTarget && "bg-muted"
+        "min-h-[32rem] w-[320px] shrink-0 rounded-lg border border-border/70 bg-muted/35 py-0 ring-0 transition-colors",
+        isDropTarget && "border-ring/50 bg-muted/55"
       )}
       onDragLeave={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
@@ -355,7 +355,7 @@ function RequestBoardColumn({
               {column.description}
             </CardDescription>
           </div>
-          <span className="text-xs/5 text-muted-foreground">
+          <span className="rounded-full border border-border/70 bg-background/35 px-2 py-0.5 text-xs/5 text-muted-foreground">
             {column.requests.length}
           </span>
         </div>
@@ -375,7 +375,7 @@ function RequestBoardColumn({
             />
           ))
         ) : (
-          <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-border bg-background/30 px-4 py-8 text-center text-xs/5 text-muted-foreground">
+          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/80 bg-background/25 px-4 py-8 text-center text-xs/5 text-muted-foreground">
             {column.emptyLabel}
           </div>
         )}
@@ -416,7 +416,8 @@ function RequestBoardCard({
     >
       <Card
         className={cn(
-          "border border-border/70 bg-card py-0 transition-colors hover:border-foreground/20",
+          "border border-border/80 bg-background/80 py-0 shadow-sm transition-colors hover:border-foreground/25 hover:bg-background",
+          "dark:bg-muted/55 dark:hover:bg-muted/75",
           "cursor-grab active:cursor-grabbing",
           isDragging && "opacity-50 ring-1 ring-primary/40",
           isUpdating && "opacity-70"

@@ -7,7 +7,7 @@ import {
   FolderIcon, 
   FileTextIcon, 
   BlocksIcon, 
-  CalendarIcon, 
+  HistoryIcon, 
   PlusIcon,
   SearchIcon 
 } from "lucide-react"
@@ -34,7 +34,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/documents", label: "Documents", icon: FileTextIcon },
   { href: "/integrations", label: "Integrations", icon: BlocksIcon },
-  { href: "/calendar", label: "Calendar", icon: CalendarIcon },
+  { href: "/history", label: "History", icon: HistoryIcon },
 ]
 
 

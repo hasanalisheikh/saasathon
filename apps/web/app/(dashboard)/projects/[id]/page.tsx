@@ -199,7 +199,7 @@ export default async function ProjectDetailPage({
               rel="noreferrer"
               className="group/link flex items-center gap-1.5 hover:underline"
             >
-              <Icon icon="logos:github-icon" className="h-4 w-4" />
+              <Icon icon="lucide:github" className="h-4 w-4 text-foreground" />
               <span className="max-w-[12rem] truncate text-sm">
                 {project.github_repo_name}
               </span>
@@ -210,7 +210,7 @@ export default async function ProjectDetailPage({
               href={githubConnected ? githubSetupHref : githubConnectHref}
               className="group/link flex items-center gap-1.5 hover:underline"
             >
-              <Icon icon="logos:github-icon" className="h-4 w-4" />
+              <Icon icon="lucide:github" className="h-4 w-4 text-foreground" />
               <span className="text-sm">
                 {githubConnected ? "Choose repository" : "Install GitHub App"}
               </span>
@@ -218,7 +218,10 @@ export default async function ProjectDetailPage({
             </Link>
           ) : (
             <div className="flex items-center gap-1.5">
-              <Icon icon="logos:github-icon" className="h-4 w-4 opacity-60" />
+              <Icon
+                icon="lucide:github"
+                className="h-4 w-4 text-muted-foreground"
+              />
               <span className="text-sm text-muted-foreground">Setup required</span>
             </div>
           )}

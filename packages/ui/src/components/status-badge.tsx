@@ -6,10 +6,26 @@ import { Badge } from "@workspace/ui/components/badge"
 /* ─── Classification ──────────────────────────────────────────────────── */
 
 const classificationConfig = {
-  in_scope:               { label: "IN SCOPE",  variant: "default" as const },
-  out_of_scope:           { label: "OUT OF SCOPE", variant: "destructive" as const },
-  ambiguous:              { label: "AMBIGUOUS", variant: "secondary" as const },
-  clarification_needed:   { label: "CLARIFY",  variant: "outline" as const },
+  in_scope: {
+    label: "IN SCOPE",
+    className:
+      "border-emerald-600/25 bg-emerald-50 text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-300",
+  },
+  out_of_scope: {
+    label: "OUT OF SCOPE",
+    className:
+      "border-red-600/25 bg-red-50 text-red-700 dark:border-red-500/35 dark:bg-red-500/10 dark:text-red-300",
+  },
+  ambiguous: {
+    label: "AMBIGUOUS",
+    className:
+      "border-amber-600/25 bg-amber-50 text-amber-700 dark:border-amber-500/35 dark:bg-amber-500/10 dark:text-amber-300",
+  },
+  clarification_needed: {
+    label: "CLARIFY",
+    className:
+      "border-sky-600/25 bg-sky-50 text-sky-700 dark:border-sky-500/35 dark:bg-sky-500/10 dark:text-sky-300",
+  },
 } as const
 
 type Classification = keyof typeof classificationConfig
@@ -29,9 +45,10 @@ function ClassificationBadge({
 
   return (
     <Badge
-      variant={config.variant}
+      variant="outline"
       className={cn(
         "uppercase tracking-wider text-[0.6rem] font-medium",
+        config.className,
         className
       )}
       {...props}
@@ -44,12 +61,36 @@ function ClassificationBadge({
 /* ─── Request Status ──────────────────────────────────────────────────── */
 
 const statusConfig = {
-  pending_review:    { label: "Pending", variant: "secondary" as const },
-  sent_to_client:    { label: "Sent", variant: "outline" as const },
-  approved:          { label: "Approved Add-On", variant: "default" as const },
-  declined:          { label: "Declined", variant: "destructive" as const },
-  deferred:          { label: "Deferred", variant: "outline" as const },
-  accepted_in_scope: { label: "Accepted In Scope", variant: "default" as const },
+  pending_review: {
+    label: "Pending",
+    className:
+      "border-amber-600/25 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300",
+  },
+  sent_to_client: {
+    label: "Sent",
+    className:
+      "border-sky-600/25 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300",
+  },
+  approved: {
+    label: "Approved Add-On",
+    className:
+      "border-emerald-600/25 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+  },
+  declined: {
+    label: "Declined",
+    className:
+      "border-red-600/25 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300",
+  },
+  deferred: {
+    label: "Deferred",
+    className:
+      "border-violet-600/25 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300",
+  },
+  accepted_in_scope: {
+    label: "Accepted In Scope",
+    className:
+      "border-emerald-600/25 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+  },
 } as const
 
 type RequestStatus = keyof typeof statusConfig
@@ -61,13 +102,13 @@ interface StatusBadgeProps extends Omit<React.ComponentProps<typeof Badge>, "var
 function StatusBadge({ status, className, ...props }: StatusBadgeProps) {
   const config = statusConfig[status as RequestStatus] ?? {
     label: status,
-    variant: "outline" as const,
+    className: "border-border bg-muted/40 text-muted-foreground",
   }
 
   return (
     <Badge
-      variant={config.variant}
-      className={cn("text-[0.6rem] font-medium", className)}
+      variant="outline"
+      className={cn("text-[0.6rem] font-medium", config.className, className)}
       {...props}
     >
       {config.label}
@@ -78,9 +119,20 @@ function StatusBadge({ status, className, ...props }: StatusBadgeProps) {
 /* ─── Project Status ──────────────────────────────────────────────────── */
 
 const projectStatusConfig = {
-  active:    { label: "Active",    variant: "default" as const },
-  completed: { label: "Completed", variant: "secondary" as const },
-  archived:  { label: "Archived",  variant: "outline" as const },
+  active: {
+    label: "Active",
+    className:
+      "border-emerald-600/25 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+  },
+  completed: {
+    label: "Completed",
+    className:
+      "border-sky-600/25 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300",
+  },
+  archived: {
+    label: "Archived",
+    className: "border-border bg-muted/40 text-muted-foreground",
+  },
 } as const
 
 type ProjectStatus = keyof typeof projectStatusConfig
@@ -92,14 +144,15 @@ interface ProjectStatusBadgeProps extends Omit<React.ComponentProps<typeof Badge
 function ProjectStatusBadge({ status, className, ...props }: ProjectStatusBadgeProps) {
   const config = projectStatusConfig[status as ProjectStatus] ?? {
     label: status,
-    variant: "outline" as const,
+    className: "border-border bg-muted/40 text-muted-foreground",
   }
 
   return (
     <Badge
-      variant={config.variant}
+      variant="outline"
       className={cn(
         "uppercase tracking-wider text-[0.6rem] font-medium rounded-full",
+        config.className,
         className
       )}
       {...props}
@@ -112,9 +165,18 @@ function ProjectStatusBadge({ status, className, ...props }: ProjectStatusBadgeP
 /* ─── Source Badge ─────────────────────────────────────────────────────── */
 
 const sourceConfig = {
-  email:  { variant: "default" as const },
-  widget: { variant: "secondary" as const },
-  manual: { variant: "outline" as const },
+  email: {
+    className:
+      "border-amber-600/20 bg-amber-50 text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200",
+  },
+  widget: {
+    className:
+      "border-violet-600/20 bg-violet-50 text-violet-700 dark:border-violet-500/25 dark:bg-violet-500/10 dark:text-violet-200",
+  },
+  manual: {
+    className:
+      "border-sky-600/20 bg-sky-50 text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-200",
+  },
 } as const
 
 type RequestSource = keyof typeof sourceConfig
@@ -125,14 +187,15 @@ interface SourceBadgeProps extends Omit<React.ComponentProps<typeof Badge>, "var
 
 function SourceBadge({ source, className, ...props }: SourceBadgeProps) {
   const config = sourceConfig[source as RequestSource] ?? {
-    variant: "outline" as const,
+    className: "border-border bg-muted/40 text-muted-foreground",
   }
 
   return (
     <Badge
-      variant={config.variant}
+      variant="outline"
       className={cn(
         "uppercase tracking-wider text-[0.6rem] font-medium",
+        config.className,
         className
       )}
       {...props}
@@ -146,10 +209,10 @@ function SourceBadge({ source, className, ...props }: SourceBadgeProps) {
 
 function getClassificationColorClass(classification: string | null): string {
   switch (classification) {
-    case "out_of_scope":         return "border-destructive bg-destructive/10"
-    case "in_scope":             return "border-primary bg-primary/10"
-    case "ambiguous":            return "border-secondary bg-secondary/10"
-    case "clarification_needed": return "border-muted bg-muted/10"
+    case "out_of_scope":         return "border-red-500/50 bg-red-500/10"
+    case "in_scope":             return "border-emerald-500/50 bg-emerald-500/10"
+    case "ambiguous":            return "border-amber-500/50 bg-amber-500/10"
+    case "clarification_needed": return "border-sky-500/50 bg-sky-500/10"
     default:                     return "border-border bg-transparent"
   }
 }
