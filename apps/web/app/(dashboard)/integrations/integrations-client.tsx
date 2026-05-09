@@ -533,6 +533,7 @@ function SlackModal({
   const [linking, setLinking] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [changingChannel, setChangingChannel] = useState(false)
+  const [channelError, setChannelError] = useState("")
 
   const hasWorkspace = Boolean(slackWorkspaceName)
   const hasChannel = Boolean(project.slack_channel_id)
@@ -541,6 +542,7 @@ function SlackModal({
   useEffect(() => {
     if (!open || !showPicker) return
     setLoading(true)
+    setChannelError("")
     fetch("/api/slack/channels")
       .then((r) => r.json())
       .then((data: { channels?: { id: string; name: string }[] }) => {
@@ -555,12 +557,18 @@ function SlackModal({
     const ch = channels.find((c) => c.id === selectedChannelId)
     if (!ch) return
     setLinking(true)
+    setChannelError("")
     try {
-      await fetch("/api/slack/link-channel", {
+      const response = await fetch("/api/slack/link-channel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ project_id: project.id, channel_id: ch.id, channel_name: ch.name }),
       })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        setChannelError((data as { error?: string }).error ?? "Failed to link Slack channel.")
+        return
+      }
       router.refresh()
       onOpenChange(false)
       setChangingChannel(false)
@@ -619,6 +627,11 @@ function SlackModal({
                 Invite the Monad bot to the channel first with <code>/invite @Monad</code>.
               </DialogDescription>
             </DialogHeader>
+            {channelError && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {channelError}
+              </div>
+            )}
             <div className="space-y-4 pt-2">
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading channels…</p>

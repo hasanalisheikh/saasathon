@@ -1,8 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { LogOutIcon, ChevronsUpDownIcon, SunIcon, MoonIcon, SettingsIcon } from "lucide-react"
-import { useTheme } from "next-themes"
+import { LogOutIcon, ChevronsUpDownIcon, SettingsIcon } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +45,6 @@ function getUserInitials(name: string) {
 
 export function NavUser({ user, logoutAction }: NavUserProps) {
   const { isMobile } = useSidebar()
-  const { theme, setTheme } = useTheme()
   const avatarLabel = user.name || user.email || "User"
   const initials = getUserInitials(avatarLabel)
 
@@ -101,14 +99,6 @@ export function NavUser({ user, logoutAction }: NavUserProps) {
             <DropdownMenuItem render={<Link href="/settings" />}>
               <SettingsIcon className="mr-2 size-4" />
               Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-              {theme === "dark" ? (
-                <SunIcon className="mr-2 size-4" />
-              ) : (
-                <MoonIcon className="mr-2 size-4" />
-              )}
-              Toggle Theme
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <form action={logoutAction}>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { ArrowRight, MessageSquareText, ScanLine, GitPullRequest } from 'lucide-react'
+import { MessageSquareText, ScanLine, GitPullRequest } from 'lucide-react'
 import { cn } from '@workspace/ui/lib/utils'
 
 const workflowSteps = [
@@ -51,9 +51,6 @@ export function WorkflowSection() {
             <h2 className="mb-6 text-3xl font-bold sm:text-4xl text-foreground">
               Engineered for the critical moment scope expands.
             </h2>
-            <button className="mb-10 flex h-8 w-8 items-center justify-center rounded-full bg-[#097fe8] text-white transition-colors hover:bg-[#097fe8]/90">
-              <ArrowRight className="size-4" />
-            </button>
 
             <div className="flex flex-col">
               {workflowSteps.map((step, index) => {
