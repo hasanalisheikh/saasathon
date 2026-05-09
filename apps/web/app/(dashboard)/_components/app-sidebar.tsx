@@ -8,6 +8,7 @@ import {
   FileTextIcon, 
   BlocksIcon, 
   CalendarIcon, 
+  PlusIcon,
   SearchIcon 
 } from "lucide-react"
 import {
@@ -16,6 +17,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
@@ -120,27 +122,7 @@ export function AppSidebar({ user, projects, logoutAction, ...props }: AppSideba
         </SidebarGroup>
 
         <SidebarGroup className="py-0">
-          {state === "collapsed" ? (
-            <SidebarSeparator className="mx-0" />
-          ) : (
-            <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {projects.map((project) => (
-                <SidebarMenuItem key={project.id}>
-                  <SidebarMenuButton
-                    render={<Link href={`/projects/${project.id}`} />}
-                    isActive={pathname === `/projects/${project.id}` || pathname.startsWith(`/projects/${project.id}/`)}
-                    tooltip={project.name}
-                  >
-                    <FolderIcon />
-                    <span>{project.name}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <ProjectsSidebarGroup pathname={pathname} projects={projects} />
         </SidebarGroup>
       </SidebarContent>
 
@@ -148,5 +130,53 @@ export function AppSidebar({ user, projects, logoutAction, ...props }: AppSideba
         <NavUser user={user} logoutAction={logoutAction} />
       </SidebarFooter>
     </Sidebar>
+  )
+}
+
+function ProjectsSidebarGroup({
+  pathname,
+  projects,
+}: {
+  pathname: string
+  projects: { id: string; name: string }[]
+}) {
+  const { state } = useSidebar()
+
+  return (
+    <>
+      {state === "collapsed" ? (
+        <SidebarSeparator className="mx-0" />
+      ) : (
+        <div className="relative">
+          <SidebarGroupLabel className="pr-10">
+            Projects
+          </SidebarGroupLabel>
+          <SidebarGroupAction
+            className="top-1/2 right-2 -translate-y-1/2 text-sidebar-foreground/70 hover:bg-transparent hover:text-sidebar-foreground focus-visible:bg-transparent focus-visible:text-sidebar-foreground"
+            render={<Link href="/projects/new" />}
+            aria-label="Add project"
+            title="Add project"
+          >
+            <PlusIcon />
+          </SidebarGroupAction>
+        </div>
+      )}
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {projects.map((project) => (
+            <SidebarMenuItem key={project.id}>
+              <SidebarMenuButton
+                render={<Link href={`/projects/${project.id}`} />}
+                isActive={pathname === `/projects/${project.id}` || pathname.startsWith(`/projects/${project.id}/`)}
+                tooltip={project.name}
+              >
+                <FolderIcon />
+                <span>{project.name}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </>
   )
 }

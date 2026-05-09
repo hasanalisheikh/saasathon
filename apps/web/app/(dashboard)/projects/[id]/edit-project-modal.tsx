@@ -2,12 +2,21 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { SparklesIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import { Textarea } from '@workspace/ui/components/textarea'
-import { FormField, FormLabel } from '@workspace/ui/components/form-field'
-import { Card, CardContent } from '@workspace/ui/components/card'
-import { Badge } from '@workspace/ui/components/badge'
+import { FormError, FormField, FormHint, FormLabel } from '@workspace/ui/components/form-field'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@workspace/ui/components/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@workspace/ui/components/dialog'
+import { Separator } from '@workspace/ui/components/separator'
 import type { Project, ScopeStructured, TaskCategory } from '@/types'
 
 const SUGGESTED_CATEGORIES: TaskCategory[] = [
@@ -21,11 +30,14 @@ const SUGGESTED_CATEGORIES: TaskCategory[] = [
 
 interface Props {
   project: Project
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  hideTrigger?: boolean
 }
 
-export function EditProjectModal({ project }: Props) {
+export function EditProjectModal({ project, open: openProp, onOpenChange, hideTrigger = false }: Props) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [error, setError] = useState('')
@@ -41,6 +53,36 @@ export function EditProjectModal({ project }: Props) {
   const [taskCategories, setTaskCategories] = useState<TaskCategory[]>(
     project.task_categories ?? [],
   )
+  const open = openProp ?? internalOpen
+
+  function setOpen(nextOpen: boolean) {
+    if (openProp === undefined) {
+      setInternalOpen(nextOpen)
+    }
+
+    onOpenChange?.(nextOpen)
+  }
+
+  function resetForm() {
+    setName(project.name)
+    setClientName(project.client_name)
+    setClientEmail(project.client_email ?? '')
+    setHourlyRate(project.hourly_rate ?? '')
+    setScopeRaw(project.scope_raw ?? '')
+    setScopeStructured(project.scope_structured)
+    setTaskCategories(project.task_categories ?? [])
+    setSaving(false)
+    setExtracting(false)
+    setError('')
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen)
+
+    if (!nextOpen) {
+      resetForm()
+    }
+  }
 
   async function extractScope() {
     if (!scopeRaw.trim()) return
@@ -79,7 +121,7 @@ export function EditProjectModal({ project }: Props) {
       body: JSON.stringify(body),
     })
     if (res.ok) {
-      setOpen(false)
+      handleOpenChange(false)
       router.refresh()
     } else {
       const data = await res.json().catch(() => ({}))
@@ -97,176 +139,280 @@ export function EditProjectModal({ project }: Props) {
   }
 
   function addSuggested(cat: TaskCategory) {
-    setTaskCategories((cats) => [...cats, { ...cat }])
-  }
+    setTaskCategories((cats) => {
+      if (cats.some((existing) => existing.name.toLowerCase() === cat.name.toLowerCase())) {
+        return cats
+      }
 
-  if (!open) {
-    return (
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        Edit
-      </Button>
-    )
+      return [...cats, { ...cat }]
+    })
   }
 
   return (
-    <>
-      <div
-        className="fixed inset-0 z-40 bg-black/60"
-        onClick={() => setOpen(false)}
-        aria-hidden="true"
-      />
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {!hideTrigger && (
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+          Edit
+        </Button>
+      )}
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-lg rounded-lg border border-border bg-card shadow-xl flex flex-col max-h-[90vh]">
-          <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
-            <h2 className="text-sm font-semibold">Edit project</h2>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="border-b border-border px-6 py-5">
+          <DialogTitle>Edit project</DialogTitle>
+          <DialogDescription>
+            Update project details, refresh the extracted scope, and keep pricing ranges aligned
+            with the work you actually deliver.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <div className="space-y-6">
+              <section className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium">Project details</h3>
+                  <p className="text-xs/relaxed text-muted-foreground">
+                    These values are used throughout approvals, summaries, and pricing.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField className="sm:col-span-2">
+                    <FormLabel>Project name</FormLabel>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel>Client name</FormLabel>
+                    <Input value={clientName} onChange={(e) => setClientName(e.target.value)} required />
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel>Client email</FormLabel>
+                    <Input
+                      type="email"
+                      value={clientEmail}
+                      onChange={(e) => setClientEmail(e.target.value)}
+                      placeholder="client@company.com"
+                    />
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel>Hourly rate (USD)</FormLabel>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      value={hourlyRate}
+                      onChange={(e) => setHourlyRate(e.target.value)}
+                      placeholder="150"
+                    />
+                    <FormHint>Used as the baseline for cost estimates.</FormHint>
+                  </FormField>
+                </div>
+              </section>
+
+              <Separator />
+
+              <section className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium">Scope</h3>
+                  <p className="text-xs/relaxed text-muted-foreground">
+                    Keep a clean source-of-truth brief, then regenerate structured scope when it
+                    changes.
+                  </p>
+                </div>
+
+                <FormField>
+                  <FormLabel>Scope brief</FormLabel>
+                  <Textarea
+                    value={scopeRaw}
+                    onChange={(e) => {
+                      setScopeRaw(e.target.value)
+                      setScopeStructured(null)
+                    }}
+                    rows={8}
+                    placeholder="Describe what is in scope, what is excluded, and any revision or delivery expectations."
+                  />
+                  <FormHint>
+                    Re-extract after major edits so deliverables and exclusions stay current.
+                  </FormHint>
+                </FormField>
+
+                <div className="flex justify-start">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={extractScope}
+                    disabled={extracting || !scopeRaw.trim()}
+                  >
+                    <SparklesIcon />
+                    {extracting ? 'Extracting...' : 'Re-extract with AI'}
+                  </Button>
+                </div>
+
+                {scopeStructured && (
+                  <Card size="sm" className="border border-border/80 bg-muted/20">
+                    <CardHeader className="gap-1 border-b border-border/80">
+                      <CardTitle>Structured scope</CardTitle>
+                      <CardDescription>
+                        Generated from the brief above and used in downstream analysis.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-4">
+                      <ScopeRow icon="✓" label="Deliverables" items={scopeStructured.deliverables} />
+                      <ScopeRow
+                        icon="✗"
+                        label="Exclusions"
+                        items={scopeStructured.exclusions}
+                        variant="destructive"
+                      />
+
+                      {(scopeStructured.revision_limit || scopeStructured.timeline) && (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {scopeStructured.revision_limit && (
+                            <p className="text-xs/relaxed text-muted-foreground">
+                              Revisions: {scopeStructured.revision_limit}
+                            </p>
+                          )}
+                          {scopeStructured.timeline && (
+                            <p className="text-xs/relaxed text-muted-foreground">
+                              Timeline: {scopeStructured.timeline}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </section>
+
+              <Separator />
+
+              <section className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium">Task categories</h3>
+                  <p className="text-xs/relaxed text-muted-foreground">
+                    Shape the estimate ranges that Monad can reuse across similar requests.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {taskCategories.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-xs/relaxed text-muted-foreground">
+                      No task categories yet. Add one manually or start with a suggested category.
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden rounded-lg border border-border/80">
+                      <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto] gap-3 border-b border-border/80 bg-muted/30 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:grid">
+                        <span>Category</span>
+                        <span>Min hours</span>
+                        <span>Max hours</span>
+                        <span className="sr-only">Remove</span>
+                      </div>
+
+                      <div className="divide-y divide-border/80">
+                        {taskCategories.map((cat, i) => (
+                          <div
+                            key={`${cat.name}-${i}`}
+                            className="grid gap-3 bg-muted/10 p-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto] sm:items-end"
+                          >
+                            <FormField className="sm:space-y-0">
+                              <FormLabel className="sm:sr-only">Category</FormLabel>
+                              <Input
+                                value={cat.name}
+                                onChange={(e) => updateCategory(i, { name: e.target.value })}
+                                placeholder="Category name"
+                              />
+                            </FormField>
+
+                            <FormField className="sm:space-y-0">
+                              <FormLabel className="sm:sr-only">Min hours</FormLabel>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                inputMode="numeric"
+                                value={cat.min_hours}
+                                onChange={(e) => updateCategory(i, { min_hours: Number(e.target.value) })}
+                                placeholder="2"
+                              />
+                            </FormField>
+
+                            <FormField className="sm:space-y-0">
+                              <FormLabel className="sm:sr-only">Max hours</FormLabel>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                inputMode="numeric"
+                                value={cat.max_hours}
+                                onChange={(e) => updateCategory(i, { max_hours: Number(e.target.value) })}
+                                placeholder="6"
+                              />
+                            </FormField>
+
+                            <div className="flex items-end justify-end">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => removeCategory(i)}
+                                aria-label={`Remove ${cat.name || 'task category'}`}
+                              >
+                                <Trash2Icon />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-foreground">Suggested categories</p>
+                  <div className="flex flex-wrap gap-2">
+                  {SUGGESTED_CATEGORIES.map((suggested) => {
+                    const alreadyAdded = taskCategories.some(
+                      (category) => category.name.toLowerCase() === suggested.name.toLowerCase(),
+                    )
+
+                    return (
+                      <Button
+                        key={suggested.name}
+                        type="button"
+                        variant={alreadyAdded ? 'secondary' : 'outline'}
+                        size="sm"
+                        disabled={alreadyAdded}
+                        onClick={() => addSuggested(suggested)}
+                      >
+                        <PlusIcon />
+                        {alreadyAdded ? `${suggested.name} added` : suggested.name}
+                      </Button>
+                    )
+                  })}
+                  </div>
+                </div>
+              </section>
+
+              {error && <FormError>{error}</FormError>}
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-              <FormField>
-                <FormLabel>Project name</FormLabel>
-                <Input value={name} onChange={(e) => setName(e.target.value)} required />
-              </FormField>
-              <FormField>
-                <FormLabel>Client name</FormLabel>
-                <Input value={clientName} onChange={(e) => setClientName(e.target.value)} required />
-              </FormField>
-              <FormField>
-                <FormLabel>Client email</FormLabel>
-                <Input
-                  type="email"
-                  value={clientEmail}
-                  onChange={(e) => setClientEmail(e.target.value)}
-                />
-              </FormField>
-              <FormField>
-                <FormLabel>Hourly rate (USD)</FormLabel>
-                <Input
-                  type="number"
-                  value={hourlyRate}
-                  onChange={(e) => setHourlyRate(e.target.value)}
-                  className="w-28"
-                />
-              </FormField>
-
-              {/* Scope */}
-              <FormField>
-                <FormLabel>Scope</FormLabel>
-                <Textarea
-                  value={scopeRaw}
-                  onChange={(e) => {
-                    setScopeRaw(e.target.value)
-                    setScopeStructured(null)
-                  }}
-                  rows={6}
-                  placeholder="Describe what is and isn't in scope…"
-                />
-              </FormField>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={extractScope}
-                disabled={extracting || !scopeRaw.trim()}
-                className="border-primary/30 text-primary hover:bg-primary/10"
-              >
-                {extracting ? 'Extracting…' : 'Re-extract scope with AI'}
-              </Button>
-
-              {scopeStructured && (
-                <Card size="sm">
-                  <CardContent className="space-y-2">
-                    <ScopeRow icon="✓" label="Deliverables" items={scopeStructured.deliverables} />
-                    <ScopeRow
-                      icon="✗"
-                      label="Exclusions"
-                      items={scopeStructured.exclusions}
-                      variant="destructive"
-                    />
-                    {scopeStructured.revision_limit && (
-                      <p className="text-xs text-muted-foreground">
-                        ↻ Revisions: {scopeStructured.revision_limit}
-                      </p>
-                    )}
-                    {scopeStructured.timeline && (
-                      <p className="text-xs text-muted-foreground">
-                        ⏱ Timeline: {scopeStructured.timeline}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Task categories */}
-              <div>
-                <FormLabel className="mb-3">Task categories</FormLabel>
-                <div className="space-y-2 mb-3">
-                  {taskCategories.map((cat, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                      <Input
-                        value={cat.name}
-                        onChange={(e) => updateCategory(i, { name: e.target.value })}
-                        placeholder="Category name"
-                        className="flex-2"
-                      />
-                      <Input
-                        type="number"
-                        value={cat.min_hours}
-                        onChange={(e) => updateCategory(i, { min_hours: Number(e.target.value) })}
-                        placeholder="Min hrs"
-                        className="flex-1"
-                      />
-                      <Input
-                        type="number"
-                        value={cat.max_hours}
-                        onChange={(e) => updateCategory(i, { max_hours: Number(e.target.value) })}
-                        placeholder="Max hrs"
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => removeCategory(i)}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {SUGGESTED_CATEGORIES.map((s) => (
-                    <Badge
-                      key={s.name}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-muted"
-                      onClick={() => addSuggested(s)}
-                      render={<button type="button" />}
-                    >
-                      + {s.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {error && <p className="text-xs text-destructive">{error}</p>}
-            </div>
-
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border shrink-0">
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? 'Saving…' : 'Save changes'}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </>
+          <DialogFooter className="border-t border-border px-6 py-4">
+            <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving...' : 'Save changes'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -283,16 +429,18 @@ function ScopeRow({
 }) {
   if (!items.length) return null
   return (
-    <div>
-      <p className="text-xs mb-1 text-muted-foreground">{label}:</p>
-      {items.map((item, i) => (
-        <p
-          key={i}
-          className={`text-xs ${variant === 'destructive' ? 'text-destructive' : 'text-[var(--green-500)]'}`}
-        >
-          {icon} {item}
-        </p>
-      ))}
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-foreground">{label}</p>
+      <div className="space-y-1">
+        {items.map((item, i) => (
+          <p
+            key={i}
+            className={`text-xs/relaxed ${variant === 'destructive' ? 'text-destructive' : 'text-[var(--green-500)]'}`}
+          >
+            {icon} {item}
+          </p>
+        ))}
+      </div>
     </div>
   )
 }
