@@ -184,7 +184,7 @@ type IntegrationTab = (typeof integrationTabs)[number]["value"]
 function hasGitHubConnection(project: ProjectIntegration) {
   return Boolean(
     project.github_repo_name ||
-      isGitHubInstallationId(project.github_installation_id)
+    isGitHubInstallationId(project.github_installation_id)
   )
 }
 
@@ -964,7 +964,7 @@ export function IntegrationsPageClient({
         </div>
       </PageHeader>
 
-      <EnvironmentChecks envChecks={envChecks} />
+      {/* <EnvironmentChecks envChecks={envChecks} /> */}
 
       {githubMessage && (
         <div
