@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     const appUrl = getAppUrl()
     const approvalUrl = `${appUrl}/approve/${request.approval_token}`
-    const declineUrl = `${appUrl}/approve/${request.approval_token}?action=decline`
+    const declineUrl = approvalUrl
 
     const costRange = `$${costMin.toLocaleString()} – $${costMax.toLocaleString()}`
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { afterEach, describe, expect, it } from 'bun:test'
-import { getSlackUserDisplayName, postSlackMessage } from './slack'
+import { buildSlackApprovalMessage, getSlackUserDisplayName, postSlackMessage } from './slack'
 
 const originalFetch = globalThis.fetch
 let fetchCalls = []
@@ -44,6 +44,19 @@ describe('postSlackMessage', () => {
       text: 'hello',
       thread_ts: '1778327089.609469',
     })
+  })
+})
+
+describe('buildSlackApprovalMessage', () => {
+  it('uses a single review link for accept or decline actions', () => {
+    expect(buildSlackApprovalMessage({
+      developerReply: 'Please review this estimate.',
+      technicalBreakdown: 'Adds a booking flow and confirmation emails.',
+      costMin: 1200,
+      costMax: 1800,
+      approvalUrl: 'https://monad.app/approve/token_123',
+      declineUrl: 'https://monad.app/approve/token_123',
+    })).toContain('You can accept or decline this modification from here: https://monad.app/approve/token_123')
   })
 })
 

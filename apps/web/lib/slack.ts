@@ -145,8 +145,7 @@ export function buildSlackApprovalMessage(params: SlackApprovalMessageParams): s
     params.developerReply.trim(),
     `What this involves: ${params.technicalBreakdown.trim()}`,
     `This work is estimated at $${params.costMin.toLocaleString()}-$${params.costMax.toLocaleString()} and is outside the original project scope.`,
-    `Approve this work -> ${params.approvalUrl}`,
-    `Decline -> ${params.declineUrl}`,
+    `You can accept or decline this modification from here: ${params.approvalUrl}`,
   ].join('\n\n')
 }
 

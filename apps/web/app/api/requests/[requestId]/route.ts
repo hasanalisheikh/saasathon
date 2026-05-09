@@ -135,7 +135,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
 
     const appUrl = getAppUrl()
     const approvalUrl = `${appUrl}/approve/${existing.approval_token}`
-    const declineUrl = `${approvalUrl}?action=decline`
+    const declineUrl = approvalUrl
     const message = buildSlackApprovalMessage({
       developerReply: finalReply,
       technicalBreakdown: existing.technical_breakdown,

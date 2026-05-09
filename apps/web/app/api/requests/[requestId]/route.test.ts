@@ -189,7 +189,7 @@ describe('/api/requests/[requestId] PATCH', () => {
     expect(postSlackMessageCalls).toEqual([[
       'xoxb-test-token',
       'C_THREAD',
-      'reply:Here is the scoped quote for this extra work.\napprove:https://monad.app/approve/approval_token_123\ndecline:https://monad.app/approve/approval_token_123?action=decline',
+      'reply:Here is the scoped quote for this extra work.\napprove:https://monad.app/approve/approval_token_123\ndecline:https://monad.app/approve/approval_token_123',
       '1778327089.609469',
     ]])
     expect(lastRequestUpdate).toEqual({
@@ -219,7 +219,7 @@ describe('/api/requests/[requestId] PATCH', () => {
     expect(postSlackMessageCalls).toEqual([[
       'xoxb-test-token',
       'C_PROJECT',
-      'reply:Please review the approval link below.\napprove:https://monad.app/approve/approval_token_123\ndecline:https://monad.app/approve/approval_token_123?action=decline',
+      'reply:Please review the approval link below.\napprove:https://monad.app/approve/approval_token_123\ndecline:https://monad.app/approve/approval_token_123',
       undefined,
     ]])
     expect(lastRequestUpdate).toEqual({

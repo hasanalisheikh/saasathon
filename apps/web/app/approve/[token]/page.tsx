@@ -4,13 +4,10 @@ import { notFound } from 'next/navigation'
 
 export default async function ApprovePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ token: string }>
-  searchParams: Promise<{ action?: string }>
 }) {
   const { token } = await params
-  const { action } = await searchParams
   const supabase = await createServiceClient()
 
   const { data: request } = await supabase
@@ -20,37 +17,6 @@ export default async function ApprovePage({
     .single()
 
   if (!request) notFound()
-
-  // One-click decline from email link
-  if (action === 'decline' && !request.approved_at && !request.declined_at) {
-    await supabase
-      .from('requests')
-      .update({ status: 'declined', declined_at: new Date().toISOString() })
-      .eq('approval_token', token)
-
-    return (
-      <main className="relative min-h-screen overflow-hidden bg-[#020202] px-4 py-10 text-[#fafafa]">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 opacity-25"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(23,23,23,0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(23,23,23,0.13) 1px, transparent 1px)',
-            backgroundSize: '54px 54px',
-          }}
-        />
-        <div className="relative z-10 mx-auto w-full max-w-2xl">
-          <div className="mb-8 flex items-center justify-between gap-4">
-            <BrandMark size="sm" />
-            <p className="rounded-md border border-[#262626]/30 bg-[#171717]/80 px-3 py-1.5 text-xs font-semibold text-[#e5e5e5]">
-              Project scope review
-            </p>
-          </div>
-          <AlreadyActioned approved={false} />
-        </div>
-      </main>
-    )
-  }
 
   if (!request.approval_page_viewed_at) {
     await supabase
