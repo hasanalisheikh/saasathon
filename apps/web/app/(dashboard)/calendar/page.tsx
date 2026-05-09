@@ -14,6 +14,7 @@ import { Card, CardContent } from "@workspace/ui/components/card"
 import { EmptyState, EmptyStateDescription, EmptyStateIcon, EmptyStateTitle } from "@workspace/ui/components/empty-state"
 import { PageDescription, PageHeader, PageTitle } from "@workspace/ui/components/page-header"
 import { ClassificationBadge, StatusBadge } from "@workspace/ui/components/status-badge"
+import { CalendarOverview, type CalendarOverviewEvent } from "./calendar-overview"
 
 type CalendarRequest = {
   id: string
@@ -90,6 +91,7 @@ export default async function CalendarPage({
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   const upcomingEvents = events.filter((event) => new Date(event.date).getTime() >= startOfToday().getTime())
   const visibleEvents = events.length ? events : []
+  const calendarEvents = events.map(toCalendarOverviewEvent)
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -101,6 +103,8 @@ export default async function CalendarPage({
           </PageDescription>
         </div>
       </PageHeader>
+
+      <CalendarOverview key={`${statusFilter}:${projectFilter}`} events={calendarEvents} />
 
       <div className="mb-6 grid gap-3 md:grid-cols-3">
         <MetricCard label="Tracked requests" value={filteredRequests.length.toString()} />
@@ -170,6 +174,23 @@ export default async function CalendarPage({
   )
 }
 
+function toCalendarOverviewEvent(event: CalendarEvent): CalendarOverviewEvent {
+  const request = event.request
+
+  return {
+    id: event.id,
+    href: `/projects/${request.project_id}/requests/${request.id}`,
+    type: event.type,
+    title: event.title,
+    date: event.date,
+    subject: getRequestSubject(request),
+    projectName: request.project?.name ?? "Project",
+    clientName: request.project?.client_name ?? "Client",
+    status: request.status,
+    classification: request.classification,
+  }
+}
+
 function buildEvents(request: CalendarRequest): CalendarEvent[] {
   const events: CalendarEvent[] = [
     {
@@ -233,7 +254,7 @@ function buildEvents(request: CalendarRequest): CalendarEvent[] {
 function CalendarEventRow({ event }: { event: CalendarEvent }) {
   const request = event.request
   const href = `/projects/${request.project_id}/requests/${request.id}`
-  const subject = request.raw_email_subject || request.raw_email_body.slice(0, 80) || "Client request"
+  const subject = getRequestSubject(request)
   const accent = {
     requested: "border-muted",
     sent: "border-blue-400",
@@ -272,6 +293,10 @@ function CalendarEventRow({ event }: { event: CalendarEvent }) {
       </Card>
     </Link>
   )
+}
+
+function getRequestSubject(request: CalendarRequest) {
+  return request.raw_email_subject || request.raw_email_body.slice(0, 80) || "Client request"
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
