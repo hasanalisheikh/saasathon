@@ -4,11 +4,13 @@ import { Suspense } from 'react'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { FormField, FormLabel } from "@workspace/ui/components/form-field"
 import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
+import { buildGitHubConnectPath, getGitHubStatusMessage } from '@/lib/github-connect'
 
 const STRENGTH_HINT = 'Min. 8 characters · one uppercase letter · one special character (!@#$%^&*)'
 
@@ -17,6 +19,12 @@ interface Profile {
   email: string | null
   company_name: string | null
   hourly_rate: number | null
+  github_username: string | null
+}
+
+interface GitHubStatusResponse {
+  oauthReady: boolean
+  connected: boolean
   github_username: string | null
 }
 
@@ -44,6 +52,7 @@ function SettingsContent() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [githubInfo, setGitHubInfo] = useState<GitHubStatusResponse | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -51,12 +60,17 @@ function SettingsContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setUserEmail(user.email ?? '')
-      const [{ data: profileData }, { data: projectsData }] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
+      const [{ data: profileData }, { data: projectsData }, githubResponse] = await Promise.all([
+        supabase.from('profiles').select('full_name, email, company_name, hourly_rate, github_username').eq('id', user.id).single(),
         supabase.from('projects').select('id, name, widget_token').eq('user_id', user.id).order('created_at'),
+        fetch('/api/github/status'),
       ])
       if (profileData) setProfile(profileData)
       if (projectsData) setProjects(projectsData)
+      if (githubResponse.ok) {
+        const data = await githubResponse.json()
+        setGitHubInfo(data)
+      }
     }
     load()
   }, [])
@@ -91,7 +105,10 @@ function SettingsContent() {
     setSaving(false)
   }
 
-  const isGithubConnected = githubStatus === 'connected' || !!profile?.github_username
+  const isGithubConnected = githubStatus === 'connected' || githubInfo?.connected || !!profile?.github_username
+  const githubOauthReady = githubInfo?.oauthReady ?? true
+  const githubMessage = getGitHubStatusMessage(githubStatus)
+  const connectHref = buildGitHubConnectPath({ returnTo: '/settings' })
 
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-xl space-y-8">
@@ -189,18 +206,33 @@ function SettingsContent() {
                 <div>
                   <p className="text-sm mb-1">Not connected</p>
                   <p className="text-xs text-muted-foreground/50">
-                    Connect GitHub to create issues and track work automatically.
+                    {githubOauthReady
+                      ? 'Connect GitHub to create issues and track work automatically.'
+                      : 'GitHub OAuth is not configured yet. Add the GitHub client ID and secret to continue.'}
                   </p>
                 </div>
-                <Button variant="outline" render={<a href="/api/github/connect" />} nativeButton={false}>
-                  Connect GitHub
-                </Button>
+                {githubOauthReady ? (
+                  <Button
+                    variant="outline"
+                    render={<Link href={connectHref} />}
+                    nativeButton={false}
+                  >
+                    Connect GitHub
+                  </Button>
+                ) : (
+                  <Button variant="outline" disabled>
+                    Connect GitHub
+                  </Button>
+                )}
               </>
             )}
           </CardContent>
         </Card>
-        {githubStatus === 'error' && (
-          <p className="text-xs mt-2 text-destructive">GitHub connection failed. Please try again.</p>
+        {githubMessage && githubMessage.tone === 'error' && (
+          <p className="text-xs mt-2 text-destructive">{githubMessage.text}</p>
+        )}
+        {githubMessage && githubMessage.tone === 'success' && (
+          <p className="text-xs mt-2 text-emerald-600">{githubMessage.text}</p>
         )}
       </Section>
 

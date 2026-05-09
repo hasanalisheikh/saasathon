@@ -1,19 +1,4 @@
-import React from "react"
-import Link from "next/link"
-import {
-  BotIcon,
-  CheckCircle2Icon,
-  Code2Icon,
-  GitBranchIcon,
-  MailIcon,
-  TriangleAlertIcon,
-} from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
-import { cn } from "@workspace/ui/lib/utils"
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@workspace/ui/components/card"
-import { Icon } from "@iconify/react"
 import { IntegrationsPageClient } from "./integrations-client"
 
 export type ProjectIntegration = {
@@ -28,6 +13,7 @@ export type ProjectIntegration = {
 
 export type ProfileIntegration = {
   github_username: string | null
+  github_connected: boolean
 }
 
 export type EnvCheck = {
@@ -38,6 +24,7 @@ export type EnvCheck = {
 const envChecks: EnvCheck[] = [
   { label: "OpenRouter Gemini analysis", value: Boolean(process.env.OPENROUTER_API_KEY) || process.env.MOCK_AI === "true" },
   { label: "Client email", value: Boolean(process.env.RESEND_API_KEY) },
+  { label: "GitHub OAuth", value: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) },
   { label: "GitHub webhooks", value: Boolean(process.env.GITHUB_WEBHOOK_SECRET) },
   { label: "Inbound email", value: Boolean(process.env.POSTMARK_INBOUND_WEBHOOK_TOKEN) || Boolean(process.env.POSTMARK_SERVER_TOKEN) },
 ]
@@ -49,9 +36,9 @@ export default async function IntegrationsPage() {
   const [{ data: profile }, { data: projects }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("github_username")
+      .select("github_username, github_access_token")
       .eq("id", user!.id)
-      .single<ProfileIntegration>(),
+      .single<{ github_username: string | null; github_access_token: string | null }>(),
     supabase
       .from("projects")
       .select("id, name, client_name, inbound_email, github_repo_name, github_installation_id, widget_token")
@@ -61,16 +48,18 @@ export default async function IntegrationsPage() {
   ])
 
   const projectList = projects ?? []
-
-  // Enable demo mode by default for testing the UI
-  const isDemoMode = true
+  const safeProfile: ProfileIntegration | null = profile
+    ? {
+        github_username: profile.github_username,
+        github_connected: Boolean(profile.github_access_token),
+      }
+    : null
 
   return (
-    <IntegrationsPageClient 
+    <IntegrationsPageClient
       projects={projectList}
-      profile={profile}
+      profile={safeProfile}
       envChecks={envChecks}
-      isDemoMode={isDemoMode}
     />
   )
 }

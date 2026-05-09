@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { registerWebhook } from '@/lib/github'
 
+function isGitHubOAuthReady() {
+  return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET)
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -14,14 +18,24 @@ export async function POST(req: NextRequest) {
 
   const { data: project } = await supabase
     .from('projects')
-    .select('github_installation_id')
+    .select('id')
     .eq('id', projectId)
     .eq('user_id', user.id)
     .single()
 
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (!project.github_installation_id) {
-    return NextResponse.json({ error: 'GitHub not connected' }, { status: 400 })
+  if (!isGitHubOAuthReady()) {
+    return NextResponse.json({ error: 'GitHub OAuth is not configured' }, { status: 503 })
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('github_access_token')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.github_access_token) {
+    return NextResponse.json({ error: 'GitHub account not connected' }, { status: 400 })
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -31,7 +45,7 @@ export async function POST(req: NextRequest) {
   // Best-effort webhook registration — repo may already have one or token may lack write:repo_hook
   try {
     await registerWebhook({
-      accessToken: project.github_installation_id,
+      accessToken: profile.github_access_token,
       repoFullName,
       webhookUrl,
       secret: webhookSecret,
@@ -42,7 +56,11 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabase
     .from('projects')
-    .update({ github_repo_id: repoId, github_repo_name: repoFullName })
+    .update({
+      github_repo_id: repoId,
+      github_repo_name: repoFullName,
+      github_installation_id: profile.github_access_token,
+    })
     .eq('id', projectId)
     .eq('user_id', user.id)
 

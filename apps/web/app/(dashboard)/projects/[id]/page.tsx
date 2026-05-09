@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
+import { buildGitHubConnectPath, getGitHubStatusMessage } from "@/lib/github-connect"
 import { cn } from "@workspace/ui/lib/utils"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
@@ -34,15 +35,19 @@ import { Icon } from "@iconify/react"
 const TABS = ['requests', 'documents', 'widget', 'github', 'proof-pack'] as const
 type Tab = typeof TABS[number]
 
+function isGitHubOAuthReady() {
+  return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET)
+}
+
 export default async function ProjectDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ tab?: string; filter?: string }>
+  searchParams: Promise<{ tab?: string; filter?: string; github?: string }>
 }) {
   const { id } = await params
-  const { tab: rawTab, filter: rawFilter } = await searchParams
+  const { tab: rawTab, filter: rawFilter, github: githubStatus } = await searchParams
   const activeTab: Tab = (TABS as readonly string[]).includes(rawTab ?? '') ? (rawTab as Tab) : 'requests'
 
   const supabase = await createClient()
@@ -57,7 +62,7 @@ export default async function ProjectDetailPage({
 
   if (!project) notFound()
 
-  const [{ data: requests }, { data: projectDocuments }, { data: githubEvents }, { data: widgetComments }] = await Promise.all([
+  const [{ data: requests }, { data: projectDocuments }, { data: githubEvents }, { data: widgetComments }, { data: profile }] = await Promise.all([
     supabase
       .from('requests')
       .select('*')
@@ -81,6 +86,11 @@ export default async function ProjectDetailPage({
       .eq('project_id', id)
       .is('converted_to_request_id', null)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('github_access_token')
+      .eq('id', user!.id)
+      .single(),
   ])
 
   const approvedRequests = (requests ?? []).filter((r) => r.status === 'approved')
@@ -98,6 +108,14 @@ export default async function ProjectDetailPage({
     github: 'GitHub',
     'proof-pack': 'Proof Pack',
   }
+  const githubMessage = getGitHubStatusMessage(githubStatus ?? null)
+  const githubConnected = Boolean(profile?.github_access_token)
+  const githubConnectHref = buildGitHubConnectPath({
+    projectId: id,
+    returnTo: `/projects/${id}/github-setup`,
+  })
+  const githubSetupHref = `/projects/${id}/github-setup`
+  const githubOauthReady = isGitHubOAuthReady()
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -334,14 +352,35 @@ export default async function ProjectDetailPage({
                 <div>
                   <p className="text-sm mb-1">No GitHub repo linked</p>
                   <p className="text-xs text-muted-foreground">
-                    Connect a repo to auto-create issues on approval and track PR activity.
+                    {githubOauthReady
+                      ? 'Connect a repo to auto-create issues on approval and track PR activity.'
+                      : 'GitHub OAuth is not configured yet. Add the GitHub client ID and secret to continue.'}
                   </p>
                 </div>
-                <Button variant="outline" render={<a href={`/api/github/connect?state=${id}`} />} nativeButton={false}>
-                  Connect GitHub
-                </Button>
+                {githubOauthReady ? (
+                  <Button
+                    variant="outline"
+                    render={<Link href={githubConnected ? githubSetupHref : githubConnectHref} />}
+                    nativeButton={false}
+                  >
+                    {githubConnected ? 'Choose Repo' : 'Connect GitHub'}
+                  </Button>
+                ) : (
+                  <Button variant="outline" disabled>
+                    Connect GitHub
+                  </Button>
+                )}
               </CardContent>
             </Card>
+          )}
+
+          {githubMessage && (
+            <p className={cn(
+              "mb-4 text-xs",
+              githubMessage.tone === 'error' ? 'text-destructive' : 'text-emerald-600'
+            )}>
+              {githubMessage.text}
+            </p>
           )}
 
           {project.github_repo_name && (
@@ -442,7 +481,7 @@ export default async function ProjectDetailPage({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function GitHubEventRow({ event }: { event: any }) {
   const typeMap: Record<string, { label: string; color: string; icon: string }> = {
-    pr_merged: { label: 'PR Merged', color: 'text-violet-400', icon: '⎇' },
+    pr_merged: { label: 'PR Merged', color: 'text-foreground', icon: '⎇' },
     issue_closed: { label: 'Issue Closed', color: 'text-emerald-400', icon: '✓' },
     issue_updated: { label: 'Issue Updated', color: 'text-blue-400', icon: '☑' },
     push: { label: 'Push', color: 'text-blue-400', icon: '↑' },
