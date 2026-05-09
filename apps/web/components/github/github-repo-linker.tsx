@@ -94,17 +94,18 @@ export function GitHubRepoLinker({
   redirectAfterLink,
 }: GitHubRepoLinkerProps) {
   const router = useRouter()
-  const canLoadRepos = githubAppReady && hasGitHubInstallation
-  const canLoadInstallationOptions = githubAppReady && !hasGitHubInstallation
   const [repos, setRepos] = useState<Repo[]>([])
   const [installationOptions, setInstallationOptions] = useState<InstallationOption[]>([])
-  const [loadingRepos, setLoadingRepos] = useState(canLoadRepos)
-  const [loadingInstallations, setLoadingInstallations] = useState(canLoadInstallationOptions)
   const [error, setError] = useState<string | null>(null)
   const [attachingInstallation, setAttachingInstallation] = useState<string | null>(null)
   const [linking, setLinking] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [showInstallationSelection, setShowInstallationSelection] = useState(false)
+
+  const canLoadRepos = githubAppReady && hasGitHubInstallation && !showInstallationSelection
+  const canLoadInstallationOptions = githubAppReady && (!hasGitHubInstallation || showInstallationSelection)
+  const [loadingRepos, setLoadingRepos] = useState(canLoadRepos)
+  const [loadingInstallations, setLoadingInstallations] = useState(canLoadInstallationOptions)
 
   const statusNotice = getStatusMessage(githubStatus)
 
@@ -408,7 +409,7 @@ export function GitHubRepoLinker({
           onClick={() => setShowInstallationSelection(true)}
           className="text-xs"
         >
-          Change account
+          Change installation
         </Button>
       </div>
 
