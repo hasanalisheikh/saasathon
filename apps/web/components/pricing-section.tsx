@@ -45,7 +45,8 @@ const pricing = [
 
 export function PricingSection() {
   const primaryPlans = pricing.slice(0, 2)
-  const studioPlan = pricing[2]!
+  const studioPlan = pricing[2]
+  if (!studioPlan) return null
 
   return (
     <section id="pricing" className="bg-background px-5 py-20 sm:px-8 lg:px-12">
@@ -133,7 +134,7 @@ export function PricingSection() {
                 Everything in Pro, and:
               </p>
               <ul className="space-y-3">
-                {studioPlan.features.filter(f => f !== 'Everything in Pro').map((feature) => (
+                {studioPlan.features.filter((f) => f !== 'Everything in Pro').map((feature) => (
                   <li className="flex items-start gap-3 text-[15px] text-muted-foreground" key={feature}>
                     <Check className="mt-0.5 size-4 shrink-0 text-foreground" />
                     <span className="leading-tight">{feature}</span>

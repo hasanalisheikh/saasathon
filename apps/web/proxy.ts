@@ -13,7 +13,7 @@ const PUBLIC_PATHS = [
   '/',
 ]
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
   let user = null
 
@@ -44,9 +44,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  const isPublic = PUBLIC_PATHS.some((p) =>
-    pathname === p || pathname.startsWith(p + '/')
-  )
+  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
@@ -56,7 +54,8 @@ export async function middleware(request: NextRequest) {
 
   // Don't bounce authenticated users away from reset-password — they have a
   // temporary recovery session and need to submit the form.
-  const isAuthOnlyPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password'
+  const isAuthOnlyPage =
+    pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password'
   if (user && isAuthOnlyPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
