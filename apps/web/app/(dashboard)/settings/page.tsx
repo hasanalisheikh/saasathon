@@ -1,16 +1,29 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { RuntimeDiagnostics } from '@/lib/integrations'
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
 import { Input } from "@workspace/ui/components/input"
 import { FormField, FormLabel } from "@workspace/ui/components/form-field"
 import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
-import { buildGitHubConnectPath, getGitHubStatusMessage } from '@/lib/github-connect'
+import { getGitHubStatusMessage } from '@/lib/github-connect'
+import { isGitHubInstallationId } from '@/lib/github-config'
+import {
+  deriveGitHubAppUrls,
+  getGitHubMissingChecks,
+  resolveGitHubSettingsConnectHref,
+} from '@/lib/github-settings'
 
 const STRENGTH_HINT = 'Min. 8 characters · one uppercase letter · one special character (!@#$%^&*)'
 
@@ -19,20 +32,19 @@ interface Profile {
   email: string | null
   company_name: string | null
   hourly_rate: number | null
-  github_username: string | null
-  github_installation_id: string | null
 }
 
 interface GitHubStatusResponse {
-  oauthReady: boolean
-  connected: boolean
-  github_username: string | null
+  appReady: boolean
+  webhookReady: boolean
 }
 
 interface ProjectSnippet {
   id: string
   name: string
   widget_token: string
+  github_repo_name: string | null
+  github_installation_id: string | null
 }
 
 export default function SettingsPage() {
@@ -51,30 +63,25 @@ function SettingsContent() {
 
   const [githubInfo, setGitHubInfo] = useState<GitHubStatusResponse | null>(null)
   const [githubStatus, setGithubStatus] = useState<string | null>(null)
-  const [githubPat, setGitHubPat] = useState('')
-  const [githubPatSaving, setGitHubPatSaving] = useState(false)
-  const [githubPatError, setGitHubPatError] = useState('')
-  const [githubPatSuccess, setGitHubPatSuccess] = useState('')
+  const [githubPickerOpen, setGithubPickerOpen] = useState(false)
+  const [githubProjectQuery, setGithubProjectQuery] = useState('')
+  const [hasGitHubWebhookEvent, setHasGitHubWebhookEvent] = useState(false)
 
   useEffect(() => {
     const load = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      
-      // If we're returning from a GitHub installation, store the installation ID
-      const installationId = searchParams.get('installation_id')
-      if (installationId) {
-        await supabase
-          .from('profiles')
-          .update({ github_installation_id: installationId })
-          .eq('id', user.id)
-      }
 
       setUserEmail(user.email ?? '')
+      setGithubStatus(searchParams.get('github'))
       const [{ data: profileData }, { data: projectsData }, githubResponse] = await Promise.all([
-        supabase.from('profiles').select('full_name, email, company_name, hourly_rate, github_username, github_installation_id').eq('id', user.id).single(),
-        supabase.from('projects').select('id, name, widget_token').eq('user_id', user.id).order('created_at'),
+        supabase.from('profiles').select('full_name, email, company_name, hourly_rate').eq('id', user.id).single(),
+        supabase
+          .from('projects')
+          .select('id, name, widget_token, github_repo_name, github_installation_id')
+          .eq('user_id', user.id)
+          .order('created_at'),
         fetch('/api/github/status'),
       ])
       if (profileData) setProfile(profileData)
@@ -88,6 +95,18 @@ function SettingsContent() {
       if (diagnosticsRes.ok) {
         const diagnosticsData = await diagnosticsRes.json()
         setDiagnostics(diagnosticsData.diagnostics ?? null)
+      }
+
+      if (projectsData?.length) {
+        const { data: githubEventsData } = await supabase
+          .from('github_events')
+          .select('id')
+          .in('project_id', projectsData.map((project) => project.id))
+          .limit(1)
+
+        setHasGitHubWebhookEvent(Boolean(githubEventsData?.length))
+      } else {
+        setHasGitHubWebhookEvent(false)
       }
     }
     load()
@@ -123,49 +142,56 @@ function SettingsContent() {
     setSaving(false)
   }
 
-  const isGithubConnected = !!profile?.github_installation_id || githubInfo?.connected
-  const githubOauthReady = githubInfo?.oauthReady ?? true
+  const githubAppReady = githubInfo?.appReady ?? false
+  const githubWebhookReady = githubInfo?.webhookReady ?? false
   const githubMessage = getGitHubStatusMessage(githubStatus as any)
-  const connectHref = buildGitHubConnectPath({ returnTo: '/settings' })
+  const linkedGitHubProjects = projects.filter((project) => Boolean(project.github_repo_name))
+  const installedGitHubProjects = projects.filter((project) => isGitHubInstallationId(project.github_installation_id))
+  const githubAppUrls = deriveGitHubAppUrls(diagnostics?.appUrl ?? null)
+  const githubMissingChecks = getGitHubMissingChecks(diagnostics?.checks ?? [])
+  const filteredGitHubProjects = useMemo(
+    () =>
+      projects.filter((project) =>
+        project.name.toLowerCase().includes(githubProjectQuery.toLowerCase())
+      ),
+    [githubProjectQuery, projects]
+  )
+  const githubValidationChecklist = [
+    {
+      label: 'Vercel envs present',
+      status: githubMissingChecks.app.length === 0 ? 'Ready' : 'Needs setup',
+      tone: githubMissingChecks.app.length === 0 ? 'text-emerald-500' : 'text-destructive',
+    },
+    {
+      label: 'GitHub App URLs match deployment',
+      status: githubAppUrls ? 'Verify in GitHub App settings' : 'Add NEXT_PUBLIC_APP_URL first',
+      tone: githubAppUrls ? 'text-foreground' : 'text-destructive',
+    },
+    {
+      label: 'Project installed',
+      status: installedGitHubProjects.length > 0 ? `${installedGitHubProjects.length} project(s)` : 'None yet',
+      tone: installedGitHubProjects.length > 0 ? 'text-emerald-500' : 'text-muted-foreground',
+    },
+    {
+      label: 'Repository linked',
+      status: linkedGitHubProjects.length > 0 ? `${linkedGitHubProjects.length} project(s)` : 'None yet',
+      tone: linkedGitHubProjects.length > 0 ? 'text-emerald-500' : 'text-muted-foreground',
+    },
+    {
+      label: 'Webhook events received',
+      status: hasGitHubWebhookEvent ? 'Received' : 'No events yet',
+      tone: hasGitHubWebhookEvent ? 'text-emerald-500' : 'text-muted-foreground',
+    },
+  ]
 
-  const githubAppSlug = process.env.NEXT_PUBLIC_GITHUB_APP_SLUG || 'monad-app'
-  const installUrl = `https://github.com/apps/${githubAppSlug}/installations/new`
-
-  const handleConnectPat = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setGitHubPatSaving(true)
-    setGitHubPatError('')
-    setGitHubPatSuccess('')
-
-    try {
-      const response = await fetch('/api/github/pat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: githubPat }),
-      })
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error ?? 'Failed to connect GitHub token')
-      }
-
-      setGitHubInfo({
-        oauthReady: githubOauthReady,
-        connected: true,
-        github_username: data.github_username ?? null,
-      })
-      setProfile((current) => current ? { ...current, github_username: data.github_username ?? current.github_username } : current)
-      setGitHubPat('')
-      setGitHubPatSuccess('GitHub token connected successfully.')
-    } catch (err) {
-      setGitHubPatError(err instanceof Error ? err.message : 'Failed to connect GitHub token')
-    } finally {
-      setGitHubPatSaving(false)
-    }
+  function handleLaunchGitHub(project: ProjectSnippet) {
+    setGithubPickerOpen(false)
+    setGithubProjectQuery('')
+    window.location.assign(resolveGitHubSettingsConnectHref(project))
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 max-w-xl space-y-8">
+    <div className="flex-1 overflow-y-auto p-6 max-w-3xl space-y-8">
       <PageHeader>
         <div>
           <PageTitle>Settings</PageTitle>
@@ -232,7 +258,7 @@ function SettingsContent() {
         <Card size="sm">
           <CardContent>
             <p className="text-sm mb-2 text-foreground">
-              Manual request capture is live today. Slack is the MVP intake channel we&apos;re aligning the product around.
+              Manual request capture is live today and remains the recommended intake path while we finish native channel integrations.
             </p>
             <p className="text-xs text-muted-foreground/70">
               Native Slack intake is planned next. Until that ships, add requests manually from the project page and use the saved reply when you send the response back in Slack.
@@ -247,62 +273,139 @@ function SettingsContent() {
       <Section title="GitHub">
         <Card size="sm">
           <CardContent className="space-y-4">
-            {isGithubConnected ? (
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-emerald-500">●</span>
-                  <p className="text-sm">
-                    GitHub App Installed {profile?.github_username ? `(@${profile.github_username})` : ''}
+                  <span className={githubAppReady ? 'text-emerald-500' : 'text-destructive'}>●</span>
+                  <p className="text-sm font-medium">
+                    {githubAppReady ? 'GitHub App ready' : 'GitHub App setup incomplete'}
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  The Monad GitHub App is connected. Issues will be created automatically on approval, and PRs will be tracked.
+                  Launch the existing project-scoped GitHub flow from Settings, then finish install and repo linking on the project GitHub page.
                 </p>
               </div>
-            ) : (
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm mb-1">GitHub App not installed</p>
-                  <p className="text-xs text-muted-foreground/50">
-                    Install the Monad GitHub App to allow issue creation and automated task tracking.
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  render={<Link href={installUrl} />}
-                  nativeButton={false}
-                >
-                  Install Monad GitHub App
-                </Button>
-              </div>
-            )}
+              <Button
+                variant="outline"
+                onClick={() => setGithubPickerOpen(true)}
+                disabled={projects.length === 0}
+              >
+                Connect GitHub
+              </Button>
+            </div>
 
-            {(!githubOauthReady || !isGithubConnected) && (
-              <form id="github-pat" onSubmit={handleConnectPat} className="space-y-3 rounded-lg border border-border/80 bg-muted/30 p-4">
-                <div>
-                  <p className="text-sm font-medium">Connect with a personal access token</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Paste a GitHub token with `repo` scope. Monad will validate it and use it for repo browsing, linking, and issue creation.
-                  </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-border/80 bg-muted/30 p-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Core app envs</p>
+                <p className="mt-1 text-lg font-medium">
+                  {githubMissingChecks.app.length === 0 ? 'Ready' : 'Needs setup'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {githubMissingChecks.app.length === 0
+                    ? 'App credentials and public URL are configured.'
+                    : `Missing: ${githubMissingChecks.app.map((check) => check.label).join(', ')}`}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border/80 bg-muted/30 p-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Webhook</p>
+                <p className="mt-1 text-lg font-medium">
+                  {githubWebhookReady ? 'Configured' : 'Needs setup'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {githubWebhookReady
+                    ? 'Webhook verification is configured.'
+                    : githubMissingChecks.webhook.length > 0
+                      ? `Missing: ${githubMissingChecks.webhook.map((check) => check.label).join(', ')}`
+                      : 'Webhook verification still needs setup.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-border/80 bg-muted/30 p-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Installed</p>
+                <p className="mt-1 text-lg font-medium">{installedGitHubProjects.length} projects</p>
+                <p className="text-xs text-muted-foreground">Projects with the GitHub App installed.</p>
+              </div>
+              <div className="rounded-lg border border-border/80 bg-muted/30 p-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Linked repos</p>
+                <p className="mt-1 text-lg font-medium">{linkedGitHubProjects.length} projects</p>
+                <p className="text-xs text-muted-foreground">
+                  {hasGitHubWebhookEvent ? 'Webhook activity has been received.' : 'No GitHub webhook activity received yet.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border/80 p-4">
+              <p className="text-sm font-medium">GitHub App URLs</p>
+              {githubAppUrls ? (
+                <div className="mt-3 space-y-2">
+                  {[
+                    ['Homepage URL', githubAppUrls.homepageUrl],
+                    ['Setup URL', githubAppUrls.setupUrl],
+                    ['Callback URL', githubAppUrls.callbackUrl],
+                    ['Webhook URL', githubAppUrls.webhookUrl],
+                  ].map(([label, value]) => (
+                    <div key={label} className="grid gap-1 sm:grid-cols-[120px_1fr]">
+                      <span className="text-xs text-muted-foreground">{label}</span>
+                      <code className="break-all rounded bg-muted/40 px-2 py-1 text-xs text-foreground">
+                        {value}
+                      </code>
+                    </div>
+                  ))}
                 </div>
-                <FormField>
-                  <FormLabel>GitHub personal access token</FormLabel>
-                  <Input
-                    type="password"
-                    value={githubPat}
-                    onChange={(event) => setGitHubPat(event.target.value)}
-                    placeholder="ghp_..."
-                    autoComplete="off"
-                  />
-                </FormField>
-                <div className="flex items-center gap-3">
-                  <Button type="submit" disabled={githubPatSaving || !githubPat.trim()}>
-                    {githubPatSaving ? 'Validating…' : 'Connect GitHub Token'}
-                  </Button>
-                  {githubPatSuccess && <span className="text-xs text-emerald-600">{githubPatSuccess}</span>}
-                  {githubPatError && <span className="text-xs text-destructive">{githubPatError}</span>}
-                </div>
-              </form>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Add `NEXT_PUBLIC_APP_URL` to derive the exact GitHub App URLs for production.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border/80 p-4">
+              <p className="text-sm font-medium">Production checklist</p>
+              <div className="mt-3 space-y-2">
+                {githubValidationChecklist.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="text-muted-foreground">{item.label}</span>
+                    <span className={item.tone}>{item.status}</span>
+                  </div>
+                ))}
+              </div>
+              <ol className="mt-4 space-y-1 text-xs text-muted-foreground">
+                <li>1. Rotate `GITHUB_APP_CLIENT_SECRET` in GitHub App settings if it was exposed.</li>
+                <li>2. Update the GitHub App envs in Vercel and redeploy.</li>
+                <li>3. Copy the exact URLs above into the GitHub App homepage, setup, callback, and webhook fields.</li>
+                <li>4. Launch GitHub from a project, complete install, choose a repository, and verify webhook activity appears.</li>
+              </ol>
+            </div>
+
+            {projects.length > 0 ? (
+              <div className="space-y-2">
+                {projects.slice(0, 4).map((project) => (
+                  <div key={project.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/80 px-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{project.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {project.github_repo_name
+                          ? project.github_repo_name
+                          : isGitHubInstallationId(project.github_installation_id)
+                            ? 'GitHub App installed · choose repository'
+                            : 'Not connected yet'}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      render={<Link href={`/projects/${project.id}/github-setup`} />}
+                      nativeButton={false}
+                    >
+                      Manage
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Create a project first, then connect GitHub from that project.</p>
             )}
           </CardContent>
         </Card>
@@ -352,6 +455,65 @@ function SettingsContent() {
       <Section title="Danger Zone">
         <DeleteAccountForm />
       </Section>
+
+      <Dialog
+        open={githubPickerOpen}
+        onOpenChange={(open) => {
+          setGithubPickerOpen(open)
+          if (!open) setGithubProjectQuery('')
+        }}
+      >
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Choose a project</DialogTitle>
+            <DialogDescription>
+              Settings launches the same project-scoped GitHub flow. Pick the project you want to install or manage first.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <Input
+              placeholder="Search projects..."
+              value={githubProjectQuery}
+              onChange={(event) => setGithubProjectQuery(event.target.value)}
+            />
+            <div className="max-h-[320px] space-y-2 overflow-y-auto">
+              {filteredGitHubProjects.length === 0 ? (
+                <div className="rounded-md border border-dashed border-border px-3 py-8 text-center text-sm text-muted-foreground">
+                  No projects found.
+                </div>
+              ) : (
+                filteredGitHubProjects.map((project) => {
+                  const connectHref = resolveGitHubSettingsConnectHref(project)
+                  const launchLabel = isGitHubInstallationId(project.github_installation_id)
+                    ? 'Manage GitHub'
+                    : 'Install GitHub App'
+
+                  return (
+                    <button
+                      key={project.id}
+                      onClick={() => handleLaunchGitHub(project)}
+                      className="flex w-full items-center justify-between rounded-md border border-border px-3 py-3 text-left transition-colors hover:bg-muted/50"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{project.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {project.github_repo_name
+                            ? project.github_repo_name
+                            : isGitHubInstallationId(project.github_installation_id)
+                              ? 'GitHub App installed · choose repository'
+                              : 'Not connected yet'}
+                        </p>
+                        <p className="truncate text-[11px] text-muted-foreground/60">{connectHref}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{launchLabel}</span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

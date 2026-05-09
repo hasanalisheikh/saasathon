@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import React, { useCallback, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Icon } from "@iconify/react"
 import { BlocksIcon, CheckCircle2Icon, MoreHorizontal, TriangleAlertIcon } from "lucide-react"
@@ -34,6 +34,7 @@ import {
 } from "@workspace/ui/components/dropdown-menu"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { PageDescription, PageHeader, PageTitle } from "@workspace/ui/components/page-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { GitHubRepoLinker } from "@/components/github/github-repo-linker"
@@ -107,7 +108,7 @@ const clientChannelItems: CatalogueItem[] = [
     icon: "logos:slack-icon",
     title: "Slack",
     description: "Allow clients to submit scope requests directly from shared Slack channels.",
-    comingSoon: true,
+    // connected + onConnect are injected dynamically in BrowseCatalogue
   },
   {
     icon: "logos:discord-icon",
@@ -517,80 +518,157 @@ function SlackModal({
   onOpenChange,
   open,
   project,
+  slackWorkspaceName,
 }: {
   onOpenChange: (open: boolean) => void
   open: boolean
   project: ProjectIntegration
+  slackWorkspaceName: string | null
 }) {
-  const [selectedChannels, setSelectedChannels] = useState<string[]>([])
+  const router = useRouter()
+  const [channels, setChannels] = useState<{ id: string; name: string }[]>([])
+  const [selectedChannelId, setSelectedChannelId] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [linking, setLinking] = useState(false)
+  const [disconnecting, setDisconnecting] = useState(false)
+  const [changingChannel, setChangingChannel] = useState(false)
 
-  const mockChannels = [
-    { name: `#${project.client_name.toLowerCase().replace(/\s+/g, "-")}-project`, type: "channel" },
-    { name: `#general-${project.client_name.toLowerCase().replace(/\s+/g, "")}`, type: "channel" },
-    { name: `@${project.client_name} (Client)`, type: "user" },
-    { name: "@support-team", type: "user" },
-  ]
+  const hasWorkspace = Boolean(slackWorkspaceName)
+  const hasChannel = Boolean(project.slack_channel_id)
+  const showPicker = hasWorkspace && (!hasChannel || changingChannel)
 
-  const toggleChannel = (name: string) => {
-    setSelectedChannels((prev) =>
-      prev.includes(name) ? prev.filter((channel) => channel !== name) : [...prev, name]
-    )
+  useEffect(() => {
+    if (!open || !showPicker) return
+    setLoading(true)
+    fetch("/api/slack/channels")
+      .then((r) => r.json())
+      .then((data: { channels?: { id: string; name: string }[] }) => {
+        setChannels(data.channels ?? [])
+        if (project.slack_channel_id) setSelectedChannelId(project.slack_channel_id)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [open, showPicker, project.slack_channel_id])
+
+  async function handleLinkChannel() {
+    const ch = channels.find((c) => c.id === selectedChannelId)
+    if (!ch) return
+    setLinking(true)
+    try {
+      await fetch("/api/slack/link-channel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project_id: project.id, channel_id: ch.id, channel_name: ch.name }),
+      })
+      router.refresh()
+      onOpenChange(false)
+      setChangingChannel(false)
+    } finally {
+      setLinking(false)
+    }
+  }
+
+  async function handleDisconnect() {
+    setDisconnecting(true)
+    try {
+      await fetch("/api/slack/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project_id: project.id }),
+      })
+      router.refresh()
+      onOpenChange(false)
+    } finally {
+      setDisconnecting(false)
+    }
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          setSelectedChannels([])
-        }
-        onOpenChange(nextOpen)
-      }}
-    >
+    <Dialog open={open} onOpenChange={(next) => { onOpenChange(next); if (!next) setChangingChannel(false) }}>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Connect Slack Channel</DialogTitle>
-          <DialogDescription>
-            Select Slack channels or DMs to track requests for {project.name}.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 pt-2">
-          <div className="space-y-3">
-            <Input placeholder="Search channels or people..." />
-            <div className="max-h-[200px] space-y-2 overflow-y-auto pr-2">
-              {mockChannels.map((channel) => {
-                const isSelected = selectedChannels.includes(channel.name)
-                return (
-                  <button
-                    key={channel.name}
-                    onClick={() => toggleChannel(channel.name)}
-                    className={`flex w-full items-center justify-between rounded-md border p-3 text-left transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                      isSelected ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon icon={channel.type === "channel" ? "lucide:hash" : "lucide:user"} className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm font-medium leading-none">{channel.name}</p>
-                    </div>
-                    {isSelected && <Icon icon="lucide:check" className="h-4 w-4 text-primary" />}
-                  </button>
-                )
-              })}
+        {/* State 1: No workspace connected */}
+        {!hasWorkspace && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Connect Slack</DialogTitle>
+              <DialogDescription>
+                Connect your Slack workspace first, then assign a channel to {project.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="rounded-lg border border-border/80 bg-muted/40 p-4 text-sm text-muted-foreground">
+                Monad will monitor the channel you pick and automatically turn client messages into tracked scope requests.
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button render={<Link href="/api/slack/connect" />} nativeButton={false}>
+                  Connect Slack workspace →
+                </Button>
+              </div>
             </div>
-          </div>
-          <div className="mt-2 flex justify-end border-t border-border/40 pt-2">
-            <Button
-              disabled={selectedChannels.length === 0}
-              onClick={() => {
-                alert(`Connected ${selectedChannels.join(", ")} to project!`)
-                onOpenChange(false)
-              }}
-            >
-              Connect {selectedChannels.length > 0 ? `(${selectedChannels.length})` : ""}
-            </Button>
-          </div>
-        </div>
+          </>
+        )}
+
+        {/* State 2: Workspace connected, pick a channel */}
+        {showPicker && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Pick a Slack channel</DialogTitle>
+              <DialogDescription>
+                Messages in this channel will become Monad requests for {project.name}.
+                Invite the Monad bot to the channel first with <code>/invite @Monad</code>.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              {loading ? (
+                <p className="text-sm text-muted-foreground">Loading channels…</p>
+              ) : (
+                <Select value={selectedChannelId} onValueChange={(val) => setSelectedChannelId(val ?? "")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a channel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {channels.map((ch) => (
+                      <SelectItem key={ch.id} value={ch.id}>#{ch.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" onClick={() => { setChangingChannel(false); if (!hasChannel) onOpenChange(false) }}>
+                  Cancel
+                </Button>
+                <Button onClick={handleLinkChannel} disabled={!selectedChannelId || linking}>
+                  {linking ? "Linking…" : "Link channel"}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* State 3: Channel already linked */}
+        {hasChannel && !changingChannel && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Slack connected</DialogTitle>
+              <DialogDescription>
+                Listening on <strong>#{project.slack_channel_name}</strong> in {slackWorkspaceName}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-700">
+                Messages from clients in this channel will automatically become requests in {project.name}.
+              </div>
+              <div className="flex justify-between pt-2">
+                <Button variant="ghost" onClick={() => setChangingChannel(true)}>
+                  Change channel
+                </Button>
+                <Button variant="destructive" onClick={handleDisconnect} disabled={disconnecting}>
+                  {disconnecting ? "Disconnecting…" : "Disconnect"}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -600,10 +678,12 @@ function ProjectIntegrationCard({
   githubAppReady,
   onConnectGitHub,
   project,
+  slackWorkspaceName,
 }: {
   githubAppReady: boolean
   onConnectGitHub: (project: ProjectIntegration) => void
   project: ProjectIntegration
+  slackWorkspaceName: string | null
 }) {
   const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [widgetModalOpen, setWidgetModalOpen] = useState(false)
@@ -626,6 +706,9 @@ function ProjectIntegrationCard({
   }
   if (project.widget_token) {
     connected.push({ id: "widget", icon: "lucide:code-2", title: "Widget", label: "Widget Active", colorClass: "text-foreground" })
+  }
+  if (project.slack_channel_name) {
+    connected.push({ id: "slack", icon: "logos:slack-icon", title: "Slack", label: `#${project.slack_channel_name}`, colorClass: "" })
   }
 
   return (
@@ -669,7 +752,7 @@ function ProjectIntegrationCard({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setSlackModalOpen(true)} className="flex w-full cursor-pointer items-center">
                     <Icon icon="logos:slack-icon" className="mr-2 h-4 w-4" />
-                    Slack
+                    Slack (Coming Soon)
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
@@ -709,7 +792,7 @@ function ProjectIntegrationCard({
 
       <EmailModal open={emailModalOpen} onOpenChange={setEmailModalOpen} project={project} />
       <WidgetModal open={widgetModalOpen} onOpenChange={setWidgetModalOpen} project={project} />
-      <SlackModal open={slackModalOpen} onOpenChange={setSlackModalOpen} project={project} />
+      <SlackModal open={slackModalOpen} onOpenChange={setSlackModalOpen} project={project} slackWorkspaceName={slackWorkspaceName} />
     </>
   )
 }
@@ -718,10 +801,12 @@ function ConnectedCardsContent({
   githubAppReady,
   onConnectGitHub,
   projects,
+  slackWorkspaceName,
 }: {
   githubAppReady: boolean
   onConnectGitHub: (project: ProjectIntegration) => void
   projects: ProjectIntegration[]
+  slackWorkspaceName: string | null
 }) {
   if (projects.length === 0) {
     return (
@@ -740,6 +825,7 @@ function ConnectedCardsContent({
           githubAppReady={githubAppReady}
           onConnectGitHub={onConnectGitHub}
           project={project}
+          slackWorkspaceName={slackWorkspaceName}
         />
       ))}
     </div>
@@ -750,10 +836,12 @@ function BrowseCatalogue({
   githubAppReady,
   githubConnected,
   onBrowseGitHub,
+  slackConnected,
 }: {
   githubAppReady: boolean
   githubConnected: boolean
   onBrowseGitHub: () => void
+  slackConnected: boolean
 }) {
   const projectTrackingCatalogue = [
     {
@@ -766,6 +854,17 @@ function BrowseCatalogue({
     },
     ...projectTrackingItems,
   ]
+
+  const clientChannelCatalogue = clientChannelItems.map((item) => {
+    if (item.title === "Slack") {
+      return {
+        ...item,
+        connected: slackConnected,
+        connectHref: "/api/slack/connect",
+      }
+    }
+    return item
+  })
 
   return (
     <div className="space-y-8">
@@ -781,7 +880,7 @@ function BrowseCatalogue({
       <div className="space-y-4">
         <h2 className="text-lg font-medium tracking-tight">Client Channels</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-          {clientChannelItems.map((item) => (
+          {clientChannelCatalogue.map((item) => (
             <CatalogueCard key={item.title} {...item} />
           ))}
         </div>
@@ -793,9 +892,11 @@ function BrowseCatalogue({
 export function IntegrationsPageClient({
   envChecks,
   projects,
+  slackWorkspaceName,
 }: {
   envChecks: EnvCheck[]
   projects: ProjectIntegration[]
+  slackWorkspaceName: string | null
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -804,6 +905,8 @@ export function IntegrationsPageClient({
 
   const githubAppReady = envChecks.find((check) => check.label === "GitHub App")?.value ?? false
   const githubConnected = projects.some(hasGitHubConnection)
+  const slackConnected = Boolean(slackWorkspaceName)
+  const slackStatus = searchParams.get("slack")
   const rawGitHubStatus = searchParams.get("github")
   const githubStatus = GITHUB_STATUS_VALUES.includes((rawGitHubStatus ?? "") as GitHubStatus)
     ? (rawGitHubStatus as GitHubStatus)
@@ -875,6 +978,22 @@ export function IntegrationsPageClient({
         </div>
       )}
 
+      {slackStatus === "connected" && (
+        <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-700">
+          Slack workspace connected. Now pick a channel for each project.
+        </div>
+      )}
+      {slackStatus === "error" && (
+        <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          Slack connection failed. Check your credentials and try again.
+        </div>
+      )}
+      {slackStatus === "cancelled" && (
+        <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-700">
+          Slack connection cancelled.
+        </div>
+      )}
+
       <Tabs value={activeTab} onValueChange={(value) => replaceSearchParams((params) => params.set("tab", value))}>
         <TabsList
           variant="line"
@@ -897,6 +1016,7 @@ export function IntegrationsPageClient({
             githubAppReady={githubAppReady}
             onConnectGitHub={handleConnectProjectGitHub}
             projects={projects}
+            slackWorkspaceName={slackWorkspaceName}
           />
         </TabsContent>
 
@@ -905,6 +1025,7 @@ export function IntegrationsPageClient({
             githubAppReady={githubAppReady}
             githubConnected={githubConnected}
             onBrowseGitHub={handleBrowseGitHub}
+            slackConnected={slackConnected}
           />
         </TabsContent>
       </Tabs>

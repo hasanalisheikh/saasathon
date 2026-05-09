@@ -15,6 +15,8 @@ const DEFAULT_AI_MODEL = 'google/gemini-3.1-flash-lite'
 const ENV_ALIASES: Partial<Record<string, string[]>> = {
   GITHUB_APP_CLIENT_ID: ['GITHUB_CLIENT_ID'],
   GITHUB_APP_CLIENT_SECRET: ['GITHUB_CLIENT_SECRET'],
+  GITHUB_APP_PRIVATE_KEY: ['GITHUB_PRIVATE_KEY'],
+  GITHUB_APP_SLUG: ['NEXT_PUBLIC_GITHUB_APP_SLUG'],
   GITHUB_APP_WEBHOOK_SECRET: ['GITHUB_WEBHOOK_SECRET'],
 }
 
@@ -80,5 +82,13 @@ export function getInboundEmailDomain(): string {
   return requireConfiguredEnv(
     'INBOUND_EMAIL_DOMAIN',
     'INBOUND_EMAIL_DOMAIN is required to generate inbound project email addresses.'
+  )
+}
+
+export function isSlackConfigured(): boolean {
+  return Boolean(
+    getConfiguredEnv('SLACK_CLIENT_ID') &&
+    getConfiguredEnv('SLACK_CLIENT_SECRET') &&
+    getConfiguredEnv('SLACK_SIGNING_SECRET')
   )
 }

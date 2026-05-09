@@ -42,6 +42,11 @@ export async function POST(req: NextRequest) {
         error: 'Approved requests require a confirmed cost range before Monad can create a GitHub issue.',
       }, { status: 422 })
     }
+    if (!request.approved_at || request.status !== 'approved') {
+      return NextResponse.json({
+        error: 'Monad can only create GitHub issues for approved requests.',
+      }, { status: 422 })
+    }
 
     const appUrl = getAppUrl()
     const costRange = `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`

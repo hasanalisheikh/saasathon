@@ -1,0 +1,24 @@
+# Turbo cache
+.turbo
+
+# Next.js cache
+apps/web/.next/cache
+.next/cache
+
+# Node modules (already handled by git, but being explicit)
+node_modules
+**/node_modules
+
+# Local development
+.env.local
+.env.development.local
+
+# Git/development files
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo

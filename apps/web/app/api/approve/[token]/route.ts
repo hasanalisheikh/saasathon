@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
     const { data: request } = await supabase
       .from('requests')
-      .select('*, project:projects(id, name, client_name, github_repo_name, user_id, profile:profiles(github_installation_id))')
+      .select('*, project:projects(id, name, client_name, github_repo_name, github_installation_id, user_id)')
       .eq('approval_token', token)
       .single()
 
@@ -63,10 +63,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       }
 
       const project = request.project as Record<string, unknown>
-      const profile = (project.profile as Record<string, unknown> | null) ?? null
       const appUrl = getAppUrl()
       let githubIssueUrl: string | null = null
-      const installationId = parseGitHubInstallationId(profile?.github_installation_id as string | null)
+      const installationId = parseGitHubInstallationId(project.github_installation_id as string | null)
       
       const requestTasks = await ensureRequestTasks({
         supabase,

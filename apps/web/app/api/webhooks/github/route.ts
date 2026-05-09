@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { detectUnapprovedWork, translateCommits } from '@/lib/ai'
 import { getConfiguredEnv, isResendConfigured } from '@/lib/env'
-import { parseGitHubInstallationId } from '@/lib/github'
+import { getPullRequestContext, parseGitHubInstallationId } from '@/lib/github'
 import { isGitHubWebhookConfigured } from '@/lib/github-config'
 import {
   parseGithubTaskChecklist,
@@ -16,7 +16,14 @@ function verifySignature(payload: string, signature: string | null, secret: stri
   if (!signature) return false
   const hmac = crypto.createHmac('sha256', secret)
   const digest = 'sha256=' + hmac.update(payload).digest('hex')
-  return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature))
+  const digestBuffer = Buffer.from(digest)
+  const signatureBuffer = Buffer.from(signature)
+
+  if (digestBuffer.length !== signatureBuffer.length) {
+    return false
+  }
+
+  return crypto.timingSafeEqual(digestBuffer, signatureBuffer)
 }
 
 type CompletedTask = {
@@ -213,21 +220,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Handle installation events (GitHub App)
-    if (event === 'installation' && (payload.action === 'created' || payload.action === 'new_permissions_accepted')) {
-      const installationId = payload.installation.id
-      const githubUsername = payload.sender.login
-
-      // Link installation ID to the user profile by matching username
-      // (This assumes the user has already connected their GitHub account once via OAuth to set the username)
-      await supabase
-        .from('profiles')
-        .update({ github_installation_id: String(installationId) })
-        .eq('github_username', githubUsername)
-
-      return NextResponse.json({ ok: true })
-    }
-
     // Find project by repo
     const repoFullName = payload.repository?.full_name
     if (!repoFullName) return NextResponse.json({ ok: true })
@@ -245,17 +237,48 @@ export async function POST(req: NextRequest) {
     let isUnapproved = false
     let requestIdForEvent: string | null = null
     let completedTasksForNotification: CompletedTask[] = []
+    const [owner = '', repo = ''] = repoFullName.split('/')
 
     if (event === 'pull_request' && payload.action === 'closed' && payload.pull_request?.merged) {
       eventType = 'pr_merged'
 
-      // Translate commits to plain English
-      const commits = (payload.commits ?? []).map((c: Record<string, string>) => c.message).filter(Boolean)
-      if (commits.length > 0) {
-        plainSummary = await translateCommits(commits).catch((error) => {
-          console.error('GitHub commit translation failed:', error)
+      const installationIdForPr = parseGitHubInstallationId(String(payload.installation?.id ?? ''))
+      let filesChanged: string[] = []
+
+      if (installationIdForPr) {
+        const pullRequestContext = await getPullRequestContext({
+          installationId: installationIdForPr,
+          owner,
+          repo,
+          pullNumber: payload.pull_request.number,
+        }).catch((error) => {
+          console.error('GitHub pull request context lookup failed:', error)
           return null
         })
+
+        const commits = pullRequestContext?.commits ?? []
+        filesChanged = pullRequestContext?.files ?? []
+
+        if (commits.length > 0) {
+          plainSummary = await translateCommits(commits).catch((error) => {
+            console.error('GitHub commit translation failed:', error)
+            return null
+          })
+        }
+      }
+
+      if (!plainSummary) {
+        const fallbackCommits = (payload.commits ?? []).map((c: Record<string, string>) => c.message).filter(Boolean)
+        if (fallbackCommits.length > 0) {
+          plainSummary = await translateCommits(fallbackCommits).catch((error) => {
+            console.error('GitHub commit translation failed:', error)
+            return null
+          })
+        }
+      }
+
+      if (plainSummary === null && payload.pull_request.title) {
+        plainSummary = payload.pull_request.title
       }
 
       // Scan PR for Monad markers
@@ -301,7 +324,7 @@ export async function POST(req: NextRequest) {
           approvedRequests: approvedRequests as { technical_breakdown: string }[],
           prTitle: payload.pull_request.title,
           prBody: payload.pull_request.body ?? '',
-          filesChanged: [],
+          filesChanged,
         }).catch((error) => {
           console.error('GitHub unapproved-work detection failed:', error)
           return null

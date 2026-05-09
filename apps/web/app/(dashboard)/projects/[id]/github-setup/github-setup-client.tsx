@@ -18,6 +18,17 @@ type GitHubSetupClientProps = {
   githubStatus: GitHubStatus | null
   hasGitHubInstallation: boolean
   linkedRepoName: string | null
+  latestGithubEvent: {
+    created_at: string
+    event_type: string
+    plain_english_summary: string | null
+  } | null
+  latestGithubIssue: {
+    github_issue_number: number | null
+    github_issue_url: string | null
+    id: string
+    raw_email_subject: string | null
+  } | null
   projectId: string
   projectName: string
 }
@@ -27,6 +38,8 @@ export function GitHubSetupClient({
   githubStatus,
   hasGitHubInstallation,
   linkedRepoName,
+  latestGithubEvent,
+  latestGithubIssue,
   projectId,
   projectName,
 }: GitHubSetupClientProps) {
@@ -58,6 +71,34 @@ export function GitHubSetupClient({
           </div>
         </PageHeader>
 
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatusCard
+            label="GitHub App"
+            value={hasGitHubInstallation ? 'Installed' : 'Not installed'}
+            detail={hasGitHubInstallation ? 'This project can now choose a repository.' : 'Install the GitHub App to continue.'}
+          />
+          <StatusCard
+            label="Linked repository"
+            value={linkedRepoName ?? 'Not linked yet'}
+            detail={linkedRepoName ? 'Approved requests can create GitHub issues here.' : 'Choose a repository after install.'}
+          />
+          <StatusCard
+            label="Latest Monad issue"
+            value={latestGithubIssue?.github_issue_number ? `Issue #${latestGithubIssue.github_issue_number}` : 'None yet'}
+            detail={latestGithubIssue?.raw_email_subject ?? 'Approve a request to create the first GitHub issue.'}
+            href={latestGithubIssue?.github_issue_url ?? null}
+          />
+          <StatusCard
+            label="Webhook activity"
+            value={latestGithubEvent ? latestGithubEvent.event_type.replace('_', ' ') : 'No events yet'}
+            detail={
+              latestGithubEvent
+                ? `${new Date(latestGithubEvent.created_at).toLocaleString()}`
+                : 'GitHub events will appear after issue and PR activity starts.'
+            }
+          />
+        </div>
+
         <GitHubRepoLinker
           connectHref={buildGitHubConnectPath({
             projectId,
@@ -72,6 +113,36 @@ export function GitHubSetupClient({
           redirectAfterLink={`/projects/${projectId}?tab=github&github=repo_linked`}
         />
       </div>
+    </div>
+  )
+}
+
+function StatusCard({
+  detail,
+  href,
+  label,
+  value,
+}: {
+  detail: string
+  href?: string | null
+  label: string
+  value: string
+}) {
+  const content = (
+    <>
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-2 line-clamp-2 text-sm font-medium text-foreground">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+    </>
+  )
+
+  return (
+    <div className="rounded-lg border border-border/80 bg-muted/30 p-4">
+      {href ? (
+        <a href={href} target="_blank" rel="noreferrer" className="block hover:underline">
+          {content}
+        </a>
+      ) : content}
     </div>
   )
 }

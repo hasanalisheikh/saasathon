@@ -7,6 +7,7 @@ import {
   isMockAIEnabled,
   isPostmarkConfigured,
   isResendConfigured,
+  isSlackConfigured,
 } from '@/lib/env'
 import { isGitHubAppConfigured, isGitHubWebhookConfigured } from '@/lib/github-config'
 
@@ -38,6 +39,7 @@ export function getEnvChecks(): EnvCheck[] {
     { label: 'GitHub App webhooks', value: isGitHubWebhookConfigured() },
     { label: 'Email delivery (optional)', value: isResendConfigured() },
     { label: 'Legacy inbound email (optional)', value: isPostmarkConfigured() },
+    { label: 'Slack App', value: isSlackConfigured() },
   ]
 }
 
@@ -132,6 +134,12 @@ export function getRuntimeDiagnostics(): RuntimeDiagnostics {
       label: 'GitHub App slug',
       required: false,
       configured: Boolean(getConfiguredEnv('GITHUB_APP_SLUG')),
+    },
+    {
+      key: 'NEXT_PUBLIC_GITHUB_APP_SLUG',
+      label: 'Public GitHub App slug',
+      required: false,
+      configured: Boolean(getConfiguredEnv('NEXT_PUBLIC_GITHUB_APP_SLUG')),
     },
     {
       key: 'GITHUB_APP_WEBHOOK_SECRET',
