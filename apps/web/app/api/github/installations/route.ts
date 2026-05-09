@@ -52,12 +52,30 @@ export async function GET(req: NextRequest) {
   const validation = await validateProject(req, projectId)
   if (validation.error) return validation.error
 
+  // Try to read from cookie first (fresh install/auth flow)
   const selection = readInstallationSelection(req)
-  if (!selection || selection.projectId !== projectId || selection.userId !== validation.user.id) {
-    return NextResponse.json([])
+  if (selection && selection.projectId === projectId && selection.userId === validation.user.id) {
+    return NextResponse.json(selection.installations)
   }
 
-  return NextResponse.json(selection.installations)
+  // Fallback: Fetch all installations for the user using their OAuth token
+  const { data: profile } = await validation.supabase
+    .from('profiles')
+    .select('github_access_token')
+    .eq('id', validation.user.id)
+    .single()
+
+  if (profile?.github_access_token) {
+    try {
+      const { listUserInstallations } = await import('@/lib/github')
+      const installations = await listUserInstallations(profile.github_access_token)
+      return NextResponse.json(installations)
+    } catch (err) {
+      console.error('Failed to list user installations from token:', err)
+    }
+  }
+
+  return NextResponse.json([])
 }
 
 export async function POST(req: NextRequest) {
@@ -78,22 +96,31 @@ export async function POST(req: NextRequest) {
   if (validation.error) return validation.error
 
   const selection = readInstallationSelection(req)
-  const selectedInstallation =
-    selection &&
-    selection.projectId === projectId &&
-    selection.userId === validation.user.id
-      ? selection.installations.find((installation) => installation.id === normalizedInstallationId) ?? null
-      : null
+  let isAvailable = false
 
-  if (
-    !selection ||
-    selection.projectId !== projectId ||
-    selection.userId !== validation.user.id
-  ) {
-    if (!selectedInstallation) {
-      return NextResponse.json({ error: 'Installation is not available for this project' }, { status: 400 })
+  if (selection && selection.projectId === projectId && selection.userId === validation.user.id) {
+    isAvailable = selection.installations.some((i) => i.id === normalizedInstallationId)
+  }
+
+  if (!isAvailable) {
+    const { data: profile } = await validation.supabase
+      .from('profiles')
+      .select('github_access_token')
+      .eq('id', validation.user.id)
+      .single()
+
+    if (profile?.github_access_token) {
+      try {
+        const { listUserInstallations } = await import('@/lib/github')
+        const installations = await listUserInstallations(profile.github_access_token)
+        isAvailable = installations.some((i) => i.id === normalizedInstallationId)
+      } catch (err) {
+        console.error('Failed to verify installation ownership:', err)
+      }
     }
-  } else if (!selectedInstallation) {
+  }
+
+  if (!isAvailable) {
     return NextResponse.json({ error: 'Installation is not available for this project' }, { status: 400 })
   }
 
