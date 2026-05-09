@@ -37,10 +37,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'GitHub not connected' }, { status: 400 })
     }
 
+    if (request.cost_min === null || request.cost_max === null) {
+      return NextResponse.json({
+        error: 'Approved requests require a confirmed cost range before Monad can create a GitHub issue.',
+      }, { status: 422 })
+    }
+
     const appUrl = getAppUrl()
-    const costRange = request.cost_min && request.cost_max
-      ? `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`
-      : 'TBC'
+    const costRange = `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`
 
     const [owner = '', repo = ''] = (project.github_repo_name as string).split('/')
     const requestTasks = await ensureRequestTasks({

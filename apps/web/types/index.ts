@@ -35,7 +35,7 @@ export interface Project {
   client_email: string | null
   scope_raw: string | null
   scope_structured: ScopeStructured | null
-  inbound_email: string
+  inbound_email: string | null
   github_repo_id: string | null
   github_repo_name: string | null
   github_installation_id: string | null
@@ -100,6 +100,7 @@ export type RequestStatus =
   | 'accepted_in_scope'
 
 export type ImplementationStatus = 'not_started' | 'in_progress' | 'completed'
+export type AnalysisStatus = 'queued' | 'running' | 'completed' | 'failed'
 
 export type RequestSource = 'email' | 'widget' | 'manual'
 
@@ -140,6 +141,10 @@ export interface Request {
   raw_email_body: string
   raw_email_from: string | null
   source: RequestSource
+  analysis_status: AnalysisStatus
+  analysis_error: string | null
+  analysis_started_at: string | null
+  analysis_completed_at: string | null
   // AI Analysis
   classification: Classification
   confidence: number | null
@@ -153,6 +158,7 @@ export interface Request {
   risk_level: RiskLevel
   suggested_action: SuggestedAction | null
   tasks: AITask[]
+  reasoning: string | null
   // Response
   draft_reply: string | null
   final_reply: string | null

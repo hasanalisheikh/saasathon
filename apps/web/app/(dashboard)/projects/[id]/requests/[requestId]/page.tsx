@@ -57,7 +57,11 @@ export default function RequestReviewPage() {
 
     setRequest(reqData)
     setProject(projData)
-    setAnalysisError("")
+    setAnalysisError(
+      reqData.analysis_status === "failed"
+        ? (reqData.analysis_error ?? "AI analysis failed. Please review the request and try again.")
+        : ""
+    )
     if (!replyTouched) {
       setReply(reqData.final_reply ?? reqData.draft_reply ?? "")
       setTone(reqData.reply_tone ?? "professional")
@@ -76,9 +80,7 @@ export default function RequestReviewPage() {
 
   const isAwaitingAnalysis = Boolean(
     request &&
-      !request.classification &&
-      !request.draft_reply &&
-      !request.final_reply
+      (request.analysis_status === "queued" || request.analysis_status === "running")
   )
 
   useEffect(() => {
@@ -144,18 +146,18 @@ export default function RequestReviewPage() {
     setAccidentalYes(ACCIDENTAL_YES.some((w) => lower.includes(w)))
   }
 
-  async function sendToClient() {
+  async function markReadyToShare() {
     setSending(true)
     setSendError("")
     try {
-      const res = await fetch("/api/email/send", {
-        method: "POST",
+      const res = await fetch(`/api/requests/${requestId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ request_id: requestId, final_reply: reply, tone }),
+        body: JSON.stringify({ status: "sent_to_client", final_reply: reply, tone }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setSendError((data as { error?: string }).error ?? "Failed to send email. Please try again.")
+        setSendError((data as { error?: string }).error ?? "Failed to save the client-ready reply. Please try again.")
         return
       }
       router.push(`/projects/${id}`)
@@ -197,6 +199,12 @@ export default function RequestReviewPage() {
     ambiguous: "AMBIGUOUS",
     clarification_needed: "CLARIFY",
   }
+  const analysisStatusLabel: Record<string, string> = {
+    queued: "QUEUED",
+    running: "ANALYSING…",
+    completed: "READY FOR REVIEW",
+    failed: "ANALYSIS FAILED",
+  }
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -205,7 +213,7 @@ export default function RequestReviewPage() {
           <div>
             <PageTitle>Request Review</PageTitle>
             <PageDescription>
-              Review the client&apos;s request against the agreed scope and prepare a response.
+              Review the client&apos;s request against the agreed scope and prepare a client-ready response.
             </PageDescription>
           </div>
         </PageHeader>
@@ -214,7 +222,7 @@ export default function RequestReviewPage() {
       {/* Two-panel layout */}
       <div className="flex gap-0 min-h-[calc(100vh-120px)]">
 
-        {/* LEFT — Raw email (60%) */}
+        {/* LEFT — Original request (60%) */}
         <div className="w-[60%] p-6 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -223,7 +231,7 @@ export default function RequestReviewPage() {
             <SourceBadge source={request.source} />
           </div>
 
-          {/* Email metadata */}
+          {/* Request metadata */}
           <Card size="sm">
             <CardContent className="space-y-2">
               {([
@@ -244,7 +252,7 @@ export default function RequestReviewPage() {
             </CardContent>
           </Card>
 
-          {/* Email body */}
+          {/* Request body */}
           <Card>
             <CardContent>
               <pre className="text-sm whitespace-pre-wrap leading-relaxed text-foreground min-h-[200px]">
@@ -294,11 +302,18 @@ export default function RequestReviewPage() {
           >
             <CardContent className="space-y-3">
               <span className="text-lg font-bold">
-                {classLabel[request.classification ?? ""] ?? (isAwaitingAnalysis ? "ANALYSING…" : "READY FOR REVIEW")}
+                {request.classification
+                  ? classLabel[request.classification]
+                  : analysisStatusLabel[request.analysis_status]}
               </span>
               {isAwaitingAnalysis && (
                 <p className="text-xs text-muted-foreground">
                   Monad is still generating the classification and draft reply. You can keep reviewing manually while it runs.
+                </p>
+              )}
+              {request.analysis_status === "failed" && (
+                <p className="text-xs text-muted-foreground">
+                  The latest AI run did not complete successfully. Review the request manually, then retry once the configuration or scope context is fixed.
                 </p>
               )}
               {request.confidence !== null && (
@@ -345,6 +360,17 @@ export default function RequestReviewPage() {
               </p>
               <p className="text-xs leading-relaxed text-muted-foreground">
                 {request.technical_breakdown}
+              </p>
+            </div>
+          )}
+
+          {request.reasoning && (
+            <div>
+              <p className="text-xs uppercase tracking-wider mb-2 text-muted-foreground">
+                AI reasoning
+              </p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {request.reasoning}
               </p>
             </div>
           )}
@@ -448,7 +474,7 @@ export default function RequestReviewPage() {
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Reply to Client
+            Client Response
           </p>
           <TonePicker value={tone} onChange={setTone} />
         </div>
@@ -495,8 +521,8 @@ export default function RequestReviewPage() {
               Decline
             </Button>
           </div>
-          <Button onClick={sendToClient} disabled={sending || !reply.trim()}>
-            {sending ? "Sending..." : "Send to Client →"}
+          <Button onClick={markReadyToShare} disabled={sending || !reply.trim()}>
+            {sending ? "Saving..." : "Mark ready to share →"}
           </Button>
         </div>
       </div>

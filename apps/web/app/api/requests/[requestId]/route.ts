@@ -39,8 +39,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
 
   const body = await req.json()
   const status = body?.status as RequestStatus | undefined
+  const finalReply = typeof body?.final_reply === 'string' ? body.final_reply.trim() : null
+  const replyTone = typeof body?.tone === 'string' ? body.tone : null
 
-  if (!status || !MANUAL_STATUS_TRANSITIONS.includes(status)) {
+  if (!status || (!MANUAL_STATUS_TRANSITIONS.includes(status) && status !== 'sent_to_client')) {
     return NextResponse.json({ error: 'Unsupported status transition' }, { status: 400 })
   }
 
@@ -58,7 +60,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
   const updates =
     status === 'accepted_in_scope'
       ? { status, classification: 'in_scope' as const }
-      : { status }
+      : status === 'sent_to_client'
+        ? {
+            status,
+            final_reply: finalReply,
+            ...(replyTone ? { reply_tone: replyTone } : {}),
+          }
+        : { status }
 
   const { data, error } = await supabase
     .from('requests')

@@ -16,16 +16,19 @@ import type { Project } from '@/types'
 import { EditProjectModal } from './edit-project-modal'
 
 interface ProjectPageActionsProps {
+  appUrl: string | null
   project: Project
 }
 
-export function ProjectPageActions({ project }: ProjectPageActionsProps) {
+export function ProjectPageActions({ appUrl, project }: ProjectPageActionsProps) {
   const [editOpen, setEditOpen] = useState(false)
 
   const widgetSnippet = useMemo(
     () =>
-      `<script src="${process.env.NEXT_PUBLIC_APP_URL ?? 'https://monad.app'}/widget.js" data-project-id="${project.id}"></script>`,
-    [project.id],
+      appUrl
+        ? `<script src="${appUrl}/widget.js" data-project-id="${project.id}" data-client-token="${project.widget_token}"></script>`
+        : null,
+    [appUrl, project.id, project.widget_token],
   )
 
   async function copyText(value: string, label: string) {
@@ -62,7 +65,13 @@ export function ProjectPageActions({ project }: ProjectPageActionsProps) {
             Add request
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => copyText(widgetSnippet, 'Widget embed')}>
+          <DropdownMenuItem
+            disabled={!widgetSnippet}
+            onClick={() => {
+              if (!widgetSnippet) return
+              copyText(widgetSnippet, 'Widget embed')
+            }}
+          >
             <CopyIcon />
             Copy widget embed
           </DropdownMenuItem>
@@ -70,11 +79,11 @@ export function ProjectPageActions({ project }: ProjectPageActionsProps) {
             disabled={!project.inbound_email}
             onClick={() => {
               if (!project.inbound_email) return
-              copyText(project.inbound_email, 'Inbound email')
+              copyText(project.inbound_email, 'Legacy email address')
             }}
           >
             <MailIcon />
-            Copy inbound email
+            Copy legacy email
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

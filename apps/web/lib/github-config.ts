@@ -2,6 +2,7 @@ import { getConfiguredEnv } from '@/lib/env'
 
 export function isGitHubAppConfigured() {
   return [
+    getConfiguredEnv('NEXT_PUBLIC_APP_URL'),
     getConfiguredEnv('GITHUB_APP_ID'),
     getConfiguredEnv('GITHUB_APP_CLIENT_ID'),
     getConfiguredEnv('GITHUB_APP_CLIENT_SECRET'),

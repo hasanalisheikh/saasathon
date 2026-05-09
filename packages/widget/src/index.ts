@@ -1,13 +1,15 @@
 // Monad Website Commenting Widget
-// Embed: <script src="https://monad.app/widget/monad.js" data-project-id="xxx" data-client-token="yyy"></script>
+// Embed from your configured Monad deployment and include both data-project-id and data-client-token.
 
 (function () {
   const script = document.currentScript as HTMLScriptElement | null
   const projectId = script?.getAttribute('data-project-id')
   const clientToken = script?.getAttribute('data-client-token')
-  const API_URL = (script?.getAttribute('data-api-url') ?? 'https://monad.app') + '/api/widget/comment'
+  const apiBaseUrl = script?.getAttribute('data-api-url') ?? inferApiBaseUrl(script)
 
-  if (!projectId) return
+  if (!projectId || !apiBaseUrl) return
+
+  const API_URL = `${apiBaseUrl}/api/widget/comment`
 
   let pinCount = 0
   let commentMode = false
@@ -169,5 +171,16 @@
         client_name: name || null,
       }),
     }).catch(console.error)
+  }
+
+  function inferApiBaseUrl(currentScript: HTMLScriptElement | null) {
+    const scriptSrc = currentScript?.src?.trim()
+    if (!scriptSrc) return null
+
+    try {
+      return new URL(scriptSrc).origin
+    } catch {
+      return null
+    }
   }
 })()

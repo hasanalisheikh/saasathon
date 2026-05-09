@@ -1,0 +1,334 @@
+import type { AIAnalysis, ScopeStructured } from '@/types'
+
+const CLASSIFICATION_VALUES = ['in_scope', 'out_of_scope', 'ambiguous', 'clarification_needed'] as const
+const RISK_LEVEL_VALUES = ['low', 'medium', 'high'] as const
+const SUGGESTED_ACTION_VALUES = ['accept', 'quote_separately', 'clarify', 'decline'] as const
+const PRICING_MODEL_VALUES = ['fixed_fee', 'hourly', 'retainer', 'milestone', 'unknown'] as const
+
+const REQUEST_ANALYSIS_PROMPT_VERSION = 'request-analysis/v1'
+const SCOPE_EXTRACTION_PROMPT_VERSION = 'scope-extraction/v1'
+const COMMIT_TRANSLATION_PROMPT_VERSION = 'commit-translation/v1'
+const UNAPPROVED_WORK_PROMPT_VERSION = 'unapproved-work/v1'
+
+const REQUEST_ANALYSIS_RESPONSE_SHAPE = `{
+  "classification": "in_scope|out_of_scope|ambiguous|clarification_needed",
+  "confidence": 0,
+  "scope_evidence": ["exact quote from scope or document"],
+  "technical_breakdown": "plain English explanation of what this work requires",
+  "tasks": [
+    {
+      "name": "Task name",
+      "description": "What needs to be done",
+      "min_hours": 0,
+      "max_hours": 0
+    }
+  ],
+  "effort_min_hours": 0,
+  "effort_max_hours": 0,
+  "risk_level": "low|medium|high",
+  "timeline_impact_days": 0,
+  "reasoning": "why this is in scope, out of scope, or needs clarification",
+  "draft_reply": "professional developer reply to the client",
+  "suggested_action": "accept|quote_separately|clarify|decline"
+}`
+
+const SCOPE_EXTRACTION_RESPONSE_SHAPE = `{
+  "deliverables": ["specific deliverable"],
+  "exclusions": ["explicit exclusion"],
+  "revision_limit": "2 rounds of revisions",
+  "timeline": "4 weeks",
+  "pricing_model": "fixed_fee|hourly|retainer|milestone|unknown"
+}`
+
+export function buildRequestAnalysisMessages(params: {
+  scopeRaw: string
+  scopeStructured: object
+  documents: string
+  hourlyRate: number
+  taskCategories: object[]
+  emailFrom: string
+  emailSubject: string
+  emailBody: string
+}) {
+  return [
+    {
+      role: 'system' as const,
+      content: [
+        `Prompt version: ${REQUEST_ANALYSIS_PROMPT_VERSION}.`,
+        'You are Monad, a professional project scope analyst for software development work.',
+        'Your job is to protect developers from unpaid or underpriced work.',
+        'Judge the client request only against the agreed project scope and uploaded project documents.',
+        'Do not classify work as in scope just because it sounds small, easy, or adjacent.',
+        'Prefer exact scope evidence over general impressions.',
+        'Treat new systems, new integrations, automations, payments, bookings, loyalty programs, custom workflows, and reporting as likely out of scope unless clearly covered by the provided scope.',
+        'If the evidence is weak or the request could reasonably mean multiple things, return ambiguous or clarification_needed instead of guessing.',
+        'Break the work into concrete implementation tasks, estimate conservatively, and explain the real technical impact in plain English.',
+        'Use the DEVELOPER RATE only as context for effort reasoning. The app computes final prices separately.',
+        'Return valid JSON only. Do not include markdown fences or any prose outside the JSON object.',
+      ].join('\n'),
+    },
+    {
+      role: 'user' as const,
+      content: `PROJECT SCOPE:
+${params.scopeRaw}
+
+EXTRACTED SCOPE PROFILE:
+${JSON.stringify(params.scopeStructured)}
+
+UPLOADED PROJECT DOCUMENT CONTEXT:
+${params.documents}
+
+DEVELOPER RATE:
+$${params.hourlyRate}/hr
+
+TASK CATEGORIES:
+${JSON.stringify(params.taskCategories)}
+
+CLIENT REQUEST:
+From: ${params.emailFrom}
+Subject: ${params.emailSubject}
+Body: ${params.emailBody}
+
+Rules:
+- Quote exact phrases from the scope or documents in scope_evidence when possible.
+- Never invent scope evidence that is not present in the inputs.
+- Keep draft_reply professional, calm, and commercially clear.
+- If the request is out of scope, the reply should explain that clearly without sounding defensive.
+- If clarification is needed, ask only the minimum questions needed to unblock a decision.
+
+Return JSON exactly in this shape:
+${REQUEST_ANALYSIS_RESPONSE_SHAPE}`,
+    },
+  ]
+}
+
+export function buildScopeExtractionMessages(scopeRaw: string) {
+  return [
+    {
+      role: 'system' as const,
+      content: [
+        `Prompt version: ${SCOPE_EXTRACTION_PROMPT_VERSION}.`,
+        'You extract explicit project scope details from proposals, contracts, briefs, or statements of work.',
+        'Only capture what is explicitly stated. Do not infer missing terms.',
+        'Return valid JSON only with no markdown fences and no extra commentary.',
+      ].join('\n'),
+    },
+    {
+      role: 'user' as const,
+      content: `INPUT TEXT:
+${scopeRaw}
+
+Rules:
+- Deliverables and exclusions must be concise.
+- If a field is not explicitly present, return null or an empty array.
+- pricing_model must be one of fixed_fee, hourly, retainer, milestone, or unknown.
+
+Return JSON exactly in this shape:
+${SCOPE_EXTRACTION_RESPONSE_SHAPE}`,
+    },
+  ]
+}
+
+export function buildCommitTranslationMessages(commits: string[]) {
+  return [
+    {
+      role: 'system' as const,
+      content: [
+        `Prompt version: ${COMMIT_TRANSLATION_PROMPT_VERSION}.`,
+        'You translate technical GitHub commit history into a short client-facing update.',
+        'Explain what changed for the client, not how the code was written.',
+        'Keep the response to one or two sentences of plain English.',
+      ].join('\n'),
+    },
+    {
+      role: 'user' as const,
+      content: `Commits:
+${commits.join('\n')}`,
+    },
+  ]
+}
+
+export function buildUnapprovedWorkMessages(params: {
+  approvedRequests: { technical_breakdown: string }[]
+  prTitle: string
+  prBody: string
+  filesChanged: string[]
+}) {
+  return [
+    {
+      role: 'system' as const,
+      content: [
+        `Prompt version: ${UNAPPROVED_WORK_PROMPT_VERSION}.`,
+        'You compare GitHub pull request work to the set of client-approved requests for a project.',
+        'Be strict: work is only approved if it clearly maps to an approved request.',
+        'Return valid JSON only with no markdown fences.',
+      ].join('\n'),
+    },
+    {
+      role: 'user' as const,
+      content: `APPROVED CLIENT REQUESTS:
+${params.approvedRequests.map((request) => `- ${request.technical_breakdown}`).join('\n')}
+
+PULL REQUEST:
+Title: ${params.prTitle}
+Description: ${params.prBody}
+Files changed: ${params.filesChanged.join(', ')}
+
+Return JSON:
+{
+  "is_approved_work": true,
+  "confidence": 0,
+  "matched_request": null,
+  "reasoning": "why this work is or is not covered"
+}`,
+    },
+  ]
+}
+
+export function parseAIAnalysis(input: unknown): AIAnalysis {
+  const raw = expectObject(input, 'analysis response')
+  const effort = normalizeRange(
+    expectNumber(raw.effort_min_hours, 'effort_min_hours'),
+    expectNumber(raw.effort_max_hours, 'effort_max_hours'),
+  )
+
+  return {
+    classification: expectEnum(raw.classification, CLASSIFICATION_VALUES, 'classification'),
+    confidence: clampToWholeNumber(expectNumber(raw.confidence, 'confidence'), 0, 100),
+    scope_evidence: normalizeStringArray(expectStringArray(raw.scope_evidence, 'scope_evidence')),
+    technical_breakdown: expectString(raw.technical_breakdown, 'technical_breakdown'),
+    tasks: expectArray(raw.tasks, 'tasks').map((task, index) => parseTask(task, index)),
+    effort_min_hours: effort.min,
+    effort_max_hours: effort.max,
+    risk_level: expectEnum(raw.risk_level, RISK_LEVEL_VALUES, 'risk_level'),
+    timeline_impact_days: clampToWholeNumber(expectNumber(raw.timeline_impact_days, 'timeline_impact_days'), 0),
+    reasoning: expectString(raw.reasoning, 'reasoning'),
+    draft_reply: expectString(raw.draft_reply, 'draft_reply'),
+    suggested_action: expectEnum(raw.suggested_action, SUGGESTED_ACTION_VALUES, 'suggested_action'),
+  }
+}
+
+export function parseScopeStructured(input: unknown): ScopeStructured {
+  const raw = expectObject(input, 'scope extraction response')
+
+  return {
+    deliverables: normalizeStringArray(expectStringArray(raw.deliverables ?? [], 'deliverables')),
+    exclusions: normalizeStringArray(expectStringArray(raw.exclusions ?? [], 'exclusions')),
+    revision_limit: readNullableString(raw.revision_limit, 'revision_limit'),
+    timeline: readNullableString(raw.timeline, 'timeline'),
+    pricing_model: expectEnum(raw.pricing_model ?? 'unknown', PRICING_MODEL_VALUES, 'pricing_model'),
+  }
+}
+
+export function parseCommitTranslation(input: unknown): string {
+  return expectString(input, 'commit translation')
+}
+
+export function parseUnapprovedWorkResult(input: unknown): {
+  is_approved_work: boolean
+  confidence: number
+  matched_request: string | null
+  reasoning: string
+} {
+  const raw = expectObject(input, 'unapproved work detection response')
+
+  return {
+    is_approved_work: expectBoolean(raw.is_approved_work, 'is_approved_work'),
+    confidence: clampToWholeNumber(expectNumber(raw.confidence, 'confidence'), 0, 100),
+    matched_request: readNullableString(raw.matched_request, 'matched_request'),
+    reasoning: expectString(raw.reasoning, 'reasoning'),
+  }
+}
+
+export function extractJsonObject(text: string): unknown {
+  const normalized = text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '')
+  return JSON.parse(normalized)
+}
+
+function parseTask(task: unknown, index: number) {
+  const raw = expectObject(task, `tasks[${index}]`)
+  const range = normalizeRange(
+    expectNumber(raw.min_hours, `tasks[${index}].min_hours`),
+    expectNumber(raw.max_hours, `tasks[${index}].max_hours`),
+  )
+
+  return {
+    name: expectString(raw.name, `tasks[${index}].name`),
+    description: readNullableString(raw.description, `tasks[${index}].description`) ?? '',
+    min_hours: range.min,
+    max_hours: range.max,
+  }
+}
+
+function expectObject(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`AI ${label} must be an object.`)
+  }
+
+  return value as Record<string, unknown>
+}
+
+function expectArray(value: unknown, label: string): unknown[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`AI field ${label} must be an array.`)
+  }
+
+  return value
+}
+
+function expectStringArray(value: unknown, label: string): string[] {
+  return expectArray(value, label).map((entry, index) => expectString(entry, `${label}[${index}]`))
+}
+
+function expectString(value: unknown, label: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`AI field ${label} must be a non-empty string.`)
+  }
+
+  return value.trim()
+}
+
+function readNullableString(value: unknown, label: string): string | null {
+  if (value === null || value === undefined || value === '') return null
+  return expectString(value, label)
+}
+
+function expectBoolean(value: unknown, label: string) {
+  if (typeof value !== 'boolean') {
+    throw new Error(`AI field ${label} must be a boolean.`)
+  }
+
+  return value
+}
+
+function expectNumber(value: unknown, label: string) {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`AI field ${label} must be a finite number.`)
+  }
+
+  return parsed
+}
+
+function expectEnum<const T extends readonly string[]>(value: unknown, allowed: T, label: string): T[number] {
+  const parsed = expectString(value, label)
+  if (!allowed.includes(parsed as T[number])) {
+    throw new Error(`AI field ${label} must be one of: ${allowed.join(', ')}.`)
+  }
+
+  return parsed as T[number]
+}
+
+function normalizeStringArray(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))]
+}
+
+function clampToWholeNumber(value: number, min: number, max = Number.POSITIVE_INFINITY): number {
+  return Math.min(max, Math.max(min, Math.round(value)))
+}
+
+function normalizeRange(minValue: number, maxValue: number) {
+  const min = clampToWholeNumber(minValue, 0)
+  const max = clampToWholeNumber(maxValue, min)
+  return { min, max }
+}

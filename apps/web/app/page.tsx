@@ -10,7 +10,7 @@ import {
   GitBranch,
   GitPullRequest,
   LockKeyhole,
-  Mail,
+  MessageSquareText,
   ScanLine,
   ShieldCheck,
   Sparkles,
@@ -24,9 +24,9 @@ const workflowSteps: Array<{
   description: string
 }> = [
   {
-    icon: Mail,
-    title: 'Forward the thread',
-    description: 'Send the client email to Monad and keep your normal inbox flow intact.',
+    icon: MessageSquareText,
+    title: 'Capture the ask',
+    description: 'Drop in the Slack message, client note, or manual request and keep the context intact.',
   },
   {
     icon: ScanLine,
@@ -137,7 +137,7 @@ export default function LandingPage() {
               Scope creep control.
             </h1>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-[#d4d4d4] sm:text-xl">
-              Monad turns messy client emails into priced, approved, GitHub-backed change requests before
+              Monad turns messy client requests into priced, approved, GitHub-backed change requests before
               they quietly become free work.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -340,9 +340,9 @@ function HeroScene() {
           <div className="bg-[#0a0a0a] p-5">
             <div className="rounded-md border border-white/10 bg-[#0e0818] p-4">
               <div className="flex items-center gap-3">
-                <Mail className="size-5 text-[#22d3ee]" />
+                <MessageSquareText className="size-5 text-[#22d3ee]" />
                 <div>
-                  <p className="text-sm font-semibold text-white">Client email detected</p>
+                  <p className="text-sm font-semibold text-white">Client request detected</p>
                   <p className="text-xs text-[#737373]">
                     &quot;Can we also add subscriptions this week?&quot;
                   </p>

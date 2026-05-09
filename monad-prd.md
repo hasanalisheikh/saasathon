@@ -15,7 +15,7 @@ Jamie is a freelance developer. Two years in. Charges $90/hour. Has six clients.
 
 In March, a client named Marcus — a restaurant owner — hired Jamie to build a website. Five pages, contact form, basic SEO. $3,600 fixed. Agreed in writing. Project started.
 
-Week three, Marcus emails:
+Week three, Marcus sends Jamie a Slack message:
 
 *"Hey Jamie! The site is looking amazing. Quick thing — could we also add online ordering, table bookings, a loyalty points system, and automated email reminders for reservations? Should be pretty quick since you're already in the codebase!"*
 
@@ -49,10 +49,10 @@ Monad is the infrastructure.
 **Demo flow (live, in front of crowd):**
 
 1. Open Monad dashboard — show one active project: "Marcus — Restaurant Website"
-2. Show the client email arriving in the Monad inbox: *"Can you add bookings, loyalty points, ordering..."*
+2. Show the client request arriving in the Monad inbox: *"Can you add bookings, loyalty points, ordering..."*
 3. Show AI analysis firing: Out of scope. Evidence. Cost estimate: $3,800–$4,600. Timeline +8 days.
 4. Developer reviews. One click: Send to client.
-5. Show Marcus receiving a professional email with the breakdown and a single green Approve button.
+5. Show Marcus receiving a professional Slack-ready response with the breakdown and a single green Approve button link.
 6. Marcus clicks Approve. GitHub issue appears in real repo. Proof pack updates.
 7. Pull up the dashboard: **"Unbilled work protected this session: $4,200."**
 
@@ -70,7 +70,7 @@ Pause. Let that land. Then: *"That is Monad."*
 *From mathematics and philosophy: a monad is a single, indivisible unit — the fundamental building block. In Haskell, a monad is a clean abstraction layer that wraps complexity and surfaces only what matters. Monad is the single layer between the developer and the client where every request, approval, and piece of work becomes legible, scoped, and protected.*
 
 ## 1.2 Tagline
-**"Clients email you like normal. We handle the rest."**
+**"Drop in the request. We handle the rest."**
 
 Secondary: *"The layer between what clients ask for and what developers build."*
 
@@ -90,7 +90,7 @@ Monad is an AI-powered change management layer for freelance developers and agen
 - Any service business billing on fixed-price projects
 
 **Non-users (but important):**
-- Clients — they interact with Monad via email only. They never log in. They never know the platform exists unless the developer white-labels it.
+- Clients — they interact with Monad through their developer's normal channel, starting with Slack for the MVP. They never log in. They never know the platform exists unless the developer white-labels it.
 
 ---
 
@@ -109,8 +109,8 @@ Every choice below was made for maximum build speed without sacrificing quality.
 | Database | Supabase (Postgres) | Auth + DB + Realtime + Storage in one |
 | Auth | Supabase Auth | Built into the stack, fast to implement |
 | AI | OpenRouter API (`google/gemini-3.1-flash-lite`) | Low-latency, high-volume scope analysis with a large context window |
-| Email sending | Resend | Best DX, best deliverability |
-| Email inbound | Postmark Inbound | Reliable inbound webhooks, easy parsing |
+| MVP intake | Manual paste now, Slack next | Fastest path to a reliable demo and real usage |
+| Optional email | Resend + Postmark | Deferred until after the MVP |
 | GitHub | GitHub App + REST API + Webhooks | Real integration, impressive demo |
 | PDF | @react-pdf/renderer | React-native PDF generation |
 | Website widget | Vanilla JS bundle (esbuild) | Zero dependencies, embeds anywhere |
@@ -200,7 +200,7 @@ monad/
 │       │   ├── ai.ts                # OpenRouter-compatible AI wrapper
 │       │   ├── github.ts            # GitHub API wrapper
 │       │   ├── resend.ts            # Email sending
-│       │   ├── postmark.ts          # Inbound email parsing
+│       │   ├── postmark.ts          # Optional legacy inbound email parsing
 │       │   ├── pdf.ts               # Proof pack generation
 │       │   └── utils.ts             # Helpers, formatters
 │       │
@@ -569,8 +569,9 @@ These are non-negotiable. If nothing else works, these must be flawless.
   - Timeline
   - Pricing model
 - Rate card setup: hourly rate + task categories (name, min hours, max hours)
-- Auto-generates unique inbound email address: `{project-slug}-{random6}@inbound.monad.app`
-- Show forwarding instruction: "Forward or BCC client emails to this address"
+- Client email is optional for records and future outbound workflows
+- Manual request capture is available immediately
+- Slack becomes the primary inbound channel for the MVP
 
 ### F3. Dashboard / Inbox
 - List of projects with active request counts
@@ -578,16 +579,16 @@ These are non-negotiable. If nothing else works, these must be flawless.
 - Each inbox card shows: client name, project, request preview, classification badge, time received
 - "Unbilled work protected" metric (sum of cost estimates of out-of-scope approved requests)
 
-### F4. Inbound Email Processing
-- Postmark inbound webhook receives email sent to project address
-- Parse: from, subject, body (strip HTML to plain text)
+### F4. Request Intake (MVP)
+- Manual request capture on the project page is the live intake path
+- Developers paste the client message from Slack, email, call notes, or widget context into Monad
 - Create `request` record in DB
-- Trigger AI analysis automatically
+- Trigger AI analysis immediately
 - Notify developer (in-app — badge on inbox)
-- **Fallback for demo if Postmark not ready:** Manual paste input on project page
+- Slack-native intake replaces manual paste next without changing the analysis pipeline
 
 ### F5. AI Scope Analysis (The Hero Feature)
-- Call Gemini 3.1 Flash Lite via OpenRouter with: raw scope, structured scope profile, rate card, task categories, client email
+- Call Gemini 3.1 Flash Lite via OpenRouter with: raw scope, structured scope profile, rate card, task categories, and the original client request text
 - Return: classification, confidence, evidence quotes, technical breakdown, task list, effort estimate, cost range, risk level, timeline impact, draft reply
 - Store full analysis on request record
 - < 8 second response target
@@ -596,7 +597,7 @@ These are non-negotiable. If nothing else works, these must be flawless.
 This is the most important screen in the product. Make it beautiful.
 
 **Layout:** Two-panel split (60/40)
-- **Left panel:** Original client email, exact formatting, metadata (from, to, subject, timestamp, source badge)
+- **Left panel:** Original client request, exact formatting, metadata (sender, subject if present, timestamp, source badge)
 - **Right panel:**
   - Classification badge (large, prominent — IN SCOPE / OUT OF SCOPE / AMBIGUOUS)
   - Confidence meter (0-100%, amber fill)
@@ -612,18 +613,18 @@ This is the most important screen in the product. Make it beautiful.
   - Pre-written professional reply from AI
   - Editable textarea
   - Tone selector: Friendly / Professional / Firm
-  - **Send to Client button** (primary CTA — amber, prominent)
+  - **Mark ready to share button** (primary CTA — amber, prominent)
   - Secondary: Mark as Accepted (in-scope) / Mark as Declined / Defer
 
-### F7. Client Approval Email + Page
-When developer clicks "Send to Client":
-- Platform sends email via Resend from developer's address (or `noreply@monad.app`)
-- Email contains:
-  - Professional subject: "Re: [original subject] — Scope Review"
-  - Developer's drafted reply
+### F7. Client Approval Link + Page
+When developer clicks "Mark ready to share":
+- Monad saves the drafted reply, marks the request as with client, and prepares the approval link
+- Developer shares the response in Slack for the MVP
+- Shared response contains:
+  - Professional explanation of the request
   - Clear breakdown box: what was requested, what it involves, cost estimate
   - Cost confirmation line: **"This work is estimated at $960–$1,440 and is outside the original project scope"**
-  - One green button: **"Approve this work →"**
+  - One green button link: **"Approve this work →"**
   - One secondary link: "Decline"
 - Button links to: `https://monad.app/approve/{token}`
 
@@ -673,7 +674,7 @@ After client approval:
 - Register webhook on connected repo
 - Listen for: `pull_request.closed` (merged), `issues.closed`, `create` (deployment tag)
 - On PR merge: AI generates plain-English summary from commit messages
-- Platform sends client email: "Update on your project: [plain English summary]"
+- Platform posts or prepares a client update: "Update on your project: [plain English summary]"
 - Log as `github_events` record
 - Show in project GitHub tab: feed of events with AI translation
 
@@ -702,7 +703,7 @@ Widget behaviour:
 - Comment input box appears
 - On submit: POST to Monad API with page URL, element position, comment text
 - Comment immediately appears in platform as a new request
-- AI analyses it same as an email request
+- AI analyses it the same as any other request
 - Developer reviews and quotes in the same flow
 
 Widget design:
@@ -717,9 +718,9 @@ Widget design:
 
 ### F15. Settings Page
 - Profile: name, email, default hourly rate, company name
-- Notification preferences: email on new request, email on approval
-- Connected services: GitHub status, email forwarding status
-- Branding: company name shown in approval emails, optional logo upload
+- Notification preferences: in-app now, Slack notifications next
+- Connected services: GitHub status, Slack intake status, optional legacy email status
+- Branding: company name shown in approval links and future outbound messages, optional logo upload
 
 ### F16. Analytics Dashboard
 Per-project and overall:
@@ -751,7 +752,7 @@ Surface to developer: "Your auth estimates are typically 20% higher than actual 
 Full dispute evidence PDF:
 - Cover page with project + client details
 - Original scope document
-- Per-request pages: original email, AI analysis, approval screenshot/timestamp, GitHub evidence
+- Per-request pages: original request, AI analysis, approval screenshot/timestamp, GitHub evidence
 - Summary table: all billable work, approved amounts, invoice reference
 - Legal disclaimer footer
 
@@ -887,8 +888,8 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 - Supabase setup (schema, RLS policies, client/server helpers)
 - All API routes
 - OpenRouter Gemini integration (`/api/ai/analyse`)
-- Postmark inbound email webhook (`/api/webhooks/email`)
-- Resend email sending (`/api/email/send`)
+- Manual request intake (`/projects/[id]/requests/new`)
+- GitHub webhook receiver (`/api/webhooks/github`)
 - GitHub App install + verification flow (`/api/github/install`, `/api/github/setup`, `/api/github/auth/callback`)
 - GitHub issue creation (`/api/github/create-issue`)
 - GitHub webhook receiver (`/api/webhooks/github`)
@@ -898,9 +899,9 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 **Sprint 1 priority order:**
 1. Supabase schema + helpers (Hour 1–3)
 2. OpenRouter Gemini analysis endpoint (Hour 3–6)
-3. Email inbound webhook (Hour 6–9)
+3. Manual + Slack-ready intake flow (Hour 6–9)
 4. Approval handler + token logic (Hour 9–12)
-5. Resend email sending (Hour 12–14)
+5. Approval handoff + share-ready response state (Hour 12–14)
 6. GitHub issue creation (Hour 14–18)
 7. PDF generation (Hour 30–35)
 
@@ -917,7 +918,7 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 - Widget embed API endpoint
 - GitHub webhook event display (GitHub tab)
 - Analytics dashboard
-- **Fallback paste input** (if email inbound not ready for demo)
+- **Manual request input** (core MVP path and Slack bridge for demo)
 
 **Sprint 1 priority order:**
 1. Project creation wizard (Hour 1–6)
@@ -935,8 +936,8 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 |---|---|---|---|
 | 0–3 | Design system + layout | Supabase setup | Project creation form |
 | 3–6 | Auth pages | OpenRouter API | Project creation form cont. |
-| 6–10 | Dashboard + inbox | Email inbound webhook | Project detail page |
-| 10–16 | **Request Review Screen** | Approval handler + email | Request history list |
+| 6–10 | Dashboard + inbox | Manual + Slack-ready intake | Project detail page |
+| 10–16 | **Request Review Screen** | Approval handler + share-ready state | Request history list |
 | 16–20 | Client Approval Page | GitHub issue creation | Fallback paste input |
 | 20–25 | Polish review screen | GitHub App setup | Widget start |
 | 25–30 | Connect flows end-to-end | GitHub webhooks | Widget cont. |
@@ -952,7 +953,7 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 - Pre-create project: "Marcus — The Rustic Table Restaurant"
 - Pre-paste scope: "5-page website: Home, Menu, About, Gallery, Contact. Contact form with validation. Basic SEO meta tags. Mobile responsive. 2 rounds of revisions included. EXCLUDES: online ordering, payment processing, booking systems, loyalty programs, automated emails, custom integrations."
 - Rate card: $90/hr. Task categories: Booking system (8–14hrs), Payment integration (10–16hrs), Loyalty system (12–20hrs), Email automation (6–10hrs)
-- Pre-receive one email (Postmark inbound triggered, or manually pasted): "Hey Jamie! Site is looking amazing. Could we also add online ordering, table bookings, a loyalty points system, and automated email reminders for reservations? Should be pretty quick since you're already in the codebase!"
+- Pre-receive one request (manually pasted from Slack): "Hey Jamie! Site is looking amazing. Could we also add online ordering, table bookings, a loyalty points system, and automated email reminders for reservations? Should be pretty quick since you're already in the codebase!"
 - Demo approval page ready on a phone to click live
 - GitHub repo connected with label `monad-approved` pre-created
 
@@ -962,10 +963,10 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 "This is Monad. The inbox you're looking at is scope-aware."
 
 **[Point to amber badge]**
-"This email from Marcus arrived 10 minutes ago. Before I've even read it, Monad has already analysed it."
+"This request from Marcus arrived 10 minutes ago. Before I've even replied, Monad has already analysed it."
 
 **[Click into request]**
-"Left side — Marcus's email, exactly as he sent it. Right side — Monad's analysis."
+"Left side — Marcus's request, exactly as he sent it. Right side — Monad's analysis."
 
 **[Highlight OUT OF SCOPE badge]**
 "Out of scope. 94% confidence."
@@ -979,11 +980,11 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 **[Point to draft reply]**
 "Monad has already written my reply. Professional. Relationship-preserving. With the breakdown Marcus needs to understand what he's asking for."
 
-**[Click Send to Client]**
+**[Click Mark ready to share]**
 "I click send."
 
 **[Show phone / second screen]**
-"Marcus gets this email."
+"Marcus gets this reply in Slack, with the approval link."
 
 **[Show approval page]**
 "One button. No login. He can see exactly what he's approving and what it costs. He ticks the checkbox — 'I understand this is outside original scope' — and clicks Approve."
@@ -1052,13 +1053,6 @@ SUPABASE_SERVICE_ROLE_KEY=
 OPENROUTER_API_KEY=
 AI_MODEL=google/gemini-3.1-flash-lite
 
-# Resend (email sending)
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=noreply@monad.app
-
-# Postmark (inbound email)
-POSTMARK_INBOUND_WEBHOOK_TOKEN=
-
 # GitHub App
 GITHUB_APP_ID=
 GITHUB_APP_CLIENT_ID=
@@ -1069,7 +1063,7 @@ GITHUB_APP_WEBHOOK_SECRET=
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-INBOUND_EMAIL_DOMAIN=inbound.monad.app
+INBOUND_EMAIL_DOMAIN=
 ```
 
 ## Branch Strategy
@@ -1097,7 +1091,7 @@ demo: seed data for Marcus project
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Postmark inbound not working | Medium | High | Build paste fallback on Day 1 |
+| Slack intake slips | Medium | Medium | Keep manual request capture as the stable MVP bridge |
 | GitHub App setup takes too long | Medium | Medium | Prepare the GitHub App credentials and install flow before demo day |
 | Claude too slow (>10s) | Low | Medium | Show loading state, cache results |
 | PDF generation buggy | Medium | Low | Just show in-app, skip export if needed |
@@ -1109,11 +1103,11 @@ demo: seed data for Marcus project
 
 # PART 10: POST-HACKATHON ROADMAP
 
-**Month 1:** Stability, real user testing, fix edge cases in email parsing
-**Month 2:** Gmail OAuth, full webhook reliability, mobile-responsive polish
+**Month 1:** Stability, real user testing, native Slack intake, mobile-responsive polish
+**Month 2:** Slack reliability, richer request capture, optional outbound automation
 **Month 3:** Team features (Agency plan), white-label, Stripe billing
 **Month 4:** Rate card learning, analytics depth, revision tracking
-**Month 6:** API for integrations, Zapier connector, Slack notifications
+**Month 6:** API for integrations, Zapier connector, optional email automation
 **Month 12:** Enterprise features, SSO, self-hosted option
 
 ---
@@ -1135,15 +1129,15 @@ Complete wireframe descriptions for every page. Person A builds all of these.
 **Section 1 — Hero**
 - Full-width. Centred.
 - Eyebrow label (small caps, amber): `SCOPE PROTECTION FOR DEVELOPERS`
-- H1 (Fraunces, large, italic): *"Clients email you like normal."* / `We handle the rest.`
-- Subhead (DM Mono, muted): "Monad catches scope creep before you accidentally say yes. AI analysis, client approval, GitHub evidence — all from a single forwarded email."
+- H1 (Fraunces, large, italic): *"Drop in the request."* / `We handle the rest.`
+- Subhead (DM Mono, muted): "Monad catches scope creep before you accidentally say yes. AI analysis, client approval, GitHub evidence — all from a single client request."
 - Two CTAs side by side: `Start free →` (amber button) and `See how it works` (ghost button)
 - Below CTAs: social proof line — "57% of agencies lose $1K–$5K/month to scope creep. Monad stops it."
 - Hero visual: animated mockup of the Request Review Screen (screenshot or live component)
 
 **Section 2 — How it works**
 Three steps, horizontal on desktop, stacked on mobile:
-1. `Forward the email` — "BCC client emails to your Monad project address. Nothing changes for them."
+1. `Capture the request` — "Paste the Slack message, widget note, or client ask into Monad. Nothing about your delivery workflow changes."
 2. `AI analyses the request` — "Monad checks it against your scope, estimates cost, and drafts a professional reply."
 3. `Client approves, GitHub tracks it` — "One-click approval. GitHub issue created. Audit trail built."
 
@@ -1236,7 +1230,7 @@ Each card (`--bg-surface`, border, hover lift):
 - Client name + client email (muted)
 - Status badge: Active / Completed / Archived
 - Stats row: `X requests` · `Y out-of-scope` · `$Z protected`
-- Bottom: inbound email address (monospace, truncated, copy icon)
+- Bottom: active intake channels (manual now, Slack next, optional legacy email)
 - Connected GitHub repo badge (if connected)
 - Click → project detail
 
@@ -1275,9 +1269,8 @@ Each card (`--bg-surface`, border, hover lift):
 - `Create Project` button (amber)
 
 **After creation:**
-- Auto-generate inbound email
 - Redirect to project detail
-- Show onboarding banner: "Your project inbound email is `{email}`. Forward client emails here."
+- Show onboarding banner: "Manual request capture is live. Slack intake is the next channel to connect."
 
 ---
 
@@ -1300,7 +1293,7 @@ Each card (`--bg-surface`, border, hover lift):
 **Request list:** Same `RequestCard` as dashboard inbox but full-width, denser.
 
 **Empty states:**
-- No requests yet: "No requests yet. Forward client emails to `{email}` to get started."
+- No requests yet: "No requests yet. Add a request manually or capture one from Slack to get started."
 - Filter empty: "No requests match this filter."
 
 ---
@@ -1411,7 +1404,7 @@ Editable textarea (pre-filled by AI, full draft reply):
 - Accidental Yes detector listens here (see F21)
 
 **Action row:**
-- Primary: `Send to Client →` (amber button, right-aligned)
+- Primary: `Mark ready to share →` (amber button, right-aligned)
 - Secondary row (left-aligned, smaller): `Mark as In-Scope` · `Defer` · `Decline`
 
 ---
@@ -1467,9 +1460,9 @@ Editable textarea (pre-filled by AI, full draft reply):
 - Full name, email (read-only — change via Supabase Auth), company name, default hourly rate
 - `Save changes` button
 
-**Email Forwarding**
-- Explanation: "Each project gets a unique inbound email. Forward or BCC client emails to receive and analyse them automatically."
-- Status: `✓ Active — inbound.monad.app is receiving emails` (or error state)
+**Request Intake**
+- Explanation: "Manual request capture is live now. Slack is the MVP intake channel. Legacy email routing is optional."
+- Status: `✓ Manual ready` / `Slack coming next` / optional legacy email state
 
 **GitHub**
 - Status: Connected / Not connected
@@ -1477,8 +1470,8 @@ Editable textarea (pre-filled by AI, full draft reply):
 - If not: `Connect GitHub Account` button
 
 **Notifications**
-- Toggle: Email me when a new request is received
-- Toggle: Email me when a client approves or declines
+- Toggle: Notify me in app when a new request is received
+- Toggle: Notify me when a client approves or declines
 - Toggle: Weekly digest of scope creep stats
 
 **Billing** (Sprint 3)
@@ -2441,7 +2434,7 @@ export async function POST(req: NextRequest) {
 
 ---
 
-## 20.3 Send to Client (Approval Email)
+## 20.3 Client Approval Handoff (Optional Email Route)
 **`app/api/email/send/route.ts`**
 
 ```typescript
@@ -3439,7 +3432,7 @@ Pause. Look up from the screen.
 
 ### Minute 1:15–1:30 — The Solution (one sentence)
 
-> "Monad is the layer between what clients ask for and what developers build. Clients email you like normal. We handle the rest."
+> "Monad is the layer between what clients ask for and what developers build. Drop in the request. We handle the rest."
 
 ---
 
@@ -3477,7 +3470,7 @@ Judges will think this. Address it directly.
 
 Short pause.
 
-> "Monad. Clients email you like normal. We handle the rest."
+> "Monad. Drop in the request. We handle the rest."
 
 ---
 
@@ -3485,9 +3478,9 @@ Short pause.
 
 | Question | Answer |
 |---|---|
-| "Isn't this just ChatGPT?" | "ChatGPT can't remember your scope, send emails, host approval pages, create GitHub issues, or build an audit trail. The workflow is the product." |
+| "Isn't this just ChatGPT?" | "ChatGPT can't remember your scope, host approval pages, create GitHub issues, or build an audit trail. The workflow is the product." |
 | "What about Bonsai / HoneyBook?" | "Those manage money after the work is done. We catch the moment before the developer accidentally agrees to unpaid work." |
-| "How do you get clients to use it?" | "They don't use it. They receive a normal-looking email from their developer. One click on a link. That's all they do." |
+| "How do you get clients to use it?" | "They don't use Monad directly. The developer sends the reply in Slack or their normal channel, and the client only opens the approval link." |
 | "What's stopping someone from copying this?" | "The approval history and rate card calibration. The longer you use it, the more accurate your estimates become and the stronger your evidence trail is." |
 | "Is this legal proof?" | "It's a commercial approval trail — timestamped, IP-recorded, checkbox-confirmed. It makes disputes resolvable without legal action, which is what matters in practice." |
 
@@ -3504,7 +3497,7 @@ Run through this in the 2 hours before presenting. In order.
 - [ ] Demo seed SQL has been run — check Marcus project exists in Supabase table editor
 - [ ] Demo request is in `pending_review` status (reset it if you ran a rehearsal)
 - [ ] GitHub repo connected — `monad-approved` label exists
-- [ ] Postmark inbound email tested OR fallback paste input confirmed working
+- [ ] Manual request intake confirmed working and demo-safe
 
 **The demo flow — run it once:**
 - [ ] Log in as demo account — lands on dashboard
@@ -3513,7 +3506,7 @@ Run through this in the 2 hours before presenting. In order.
 - [ ] Cost shows $3,240–$5,400 in amber
 - [ ] Evidence quotes are visible
 - [ ] Draft reply is populated
-- [ ] Click "Send to Client" — no error
+- [ ] Click "Mark ready to share" — no error
 - [ ] Open approval page URL on phone — renders correctly
 - [ ] Checkbox works
 - [ ] Approve button activates after checkbox

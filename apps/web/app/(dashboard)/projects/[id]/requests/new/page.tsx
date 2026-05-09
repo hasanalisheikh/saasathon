@@ -14,7 +14,7 @@ export default function NewRequestPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [subject, setSubject] = useState("Quick additions before launch")
-  const [from, setFrom] = useState("Marcus <marcus@example.com>")
+  const [from, setFrom] = useState("Marcus (Slack)")
   const [body, setBody] = useState(`Hey Jamie,
 
 The site is looking great. Before we launch, could you also add online ordering, table bookings, loyalty points, and automated reminder emails?
@@ -61,14 +61,14 @@ Marcus`)
           <div>
             <PageTitle>Add Client Request</PageTitle>
             <PageDescription>
-              Paste a client email to run the same scope analysis used by inbound email.
+              Paste the client message exactly as it appeared in Slack, email, or notes to run the same scope analysis.
             </PageDescription>
           </div>
         </PageHeader>
 
         <form onSubmit={submit} className="space-y-4">
           <FormField>
-            <FormLabel>From</FormLabel>
+            <FormLabel>Requested by</FormLabel>
             <Input value={from} onChange={(e) => setFrom(e.target.value)} />
           </FormField>
 

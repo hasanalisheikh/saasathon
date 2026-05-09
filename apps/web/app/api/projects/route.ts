@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getConfiguredEnv } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
 import { generateInboundEmail } from '@/lib/utils'
 
@@ -15,7 +16,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'name and client_name required' }, { status: 400 })
     }
 
-    const inbound_email = generateInboundEmail(name)
+    const inbound_email = getConfiguredEnv('INBOUND_EMAIL_DOMAIN')
+      ? generateInboundEmail(name)
+      : null
 
     const { data: project, error } = await supabase
       .from('projects')
@@ -39,10 +42,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ id: project.id, inbound_email })
+    return NextResponse.json({ id: project.id, inbound_email: project.inbound_email ?? null })
   } catch (err) {
     console.error(err)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Internal error'
+    const status = message.includes('configured') ? 503 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }
 

@@ -6,8 +6,9 @@
     const script = document.currentScript;
     const projectId = script == null ? void 0 : script.getAttribute("data-project-id");
     const clientToken = script == null ? void 0 : script.getAttribute("data-client-token");
-    const API_URL = ((_a = script == null ? void 0 : script.getAttribute("data-api-url")) != null ? _a : "https://monad.app") + "/api/widget/comment";
-    if (!projectId) return;
+    const apiBaseUrl = (_a = script == null ? void 0 : script.getAttribute("data-api-url")) != null ? _a : inferApiBaseUrl(script);
+    if (!projectId || !apiBaseUrl) return;
+    const API_URL = `${apiBaseUrl}/api/widget/comment`;
     let pinCount = 0;
     let commentMode = false;
     const style = document.createElement("style");
@@ -142,6 +143,16 @@
           client_name: name || null
         })
       }).catch(console.error);
+    }
+    function inferApiBaseUrl(currentScript) {
+      var _a2;
+      const scriptSrc = (_a2 = currentScript == null ? void 0 : currentScript.src) == null ? void 0 : _a2.trim();
+      if (!scriptSrc) return null;
+      try {
+        return new URL(scriptSrc).origin;
+      } catch (e) {
+        return null;
+      }
     }
   })();
 })();

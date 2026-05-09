@@ -5,6 +5,7 @@ import { GET } from './route'
 import { restoreEnv, snapshotEnv } from '@/test-utils/env'
 
 const managedKeys = [
+  'NEXT_PUBLIC_APP_URL',
   'GITHUB_APP_ID',
   'GITHUB_APP_CLIENT_ID',
   'GITHUB_APP_CLIENT_SECRET',
@@ -38,6 +39,7 @@ describe('/api/github/status', () => {
   })
 
   it('separates GitHub App readiness from webhook readiness', async () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://monad-weld.vercel.app'
     process.env.GITHUB_APP_ID = '123456'
     process.env.GITHUB_APP_CLIENT_ID = 'Iv1.real-client-id'
     process.env.GITHUB_APP_CLIENT_SECRET = 'real-client-secret'

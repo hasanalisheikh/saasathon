@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result)
   } catch (err) {
     console.error('Extract scope error:', err)
-    return NextResponse.json({ error: 'Failed to extract scope' }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Failed to extract scope'
+    const status = message.includes('configured') ? 503 : message.includes('JSON') ? 422 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

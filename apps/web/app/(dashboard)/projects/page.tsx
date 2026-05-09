@@ -70,11 +70,6 @@ function ProjectCard({ project }: { project: any }) {
             {project.client_name as string}
             {project.client_email ? ` · ${project.client_email as string}` : ""}
           </p>
-          {project.inbound_email && (
-            <p className="text-xs text-muted-foreground/50 truncate mt-2">
-              {project.inbound_email as string}
-            </p>
-          )}
         </CardContent>
       </Card>
     </Link>

@@ -6,7 +6,7 @@ import { Toaster } from "@workspace/ui/components/sonner"
 
 export const metadata: Metadata = {
   title: 'Monad - Scope Creep Control',
-  description: 'Turn client emails into priced, approved, GitHub-backed change requests.',
+  description: 'Turn client requests into priced, approved, GitHub-backed change requests.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -43,6 +43,8 @@ export default function NewProjectPage() {
   const [step, setStep] = useState<Step>(1)
   const [extracting, setExtracting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [extractError, setExtractError] = useState("")
+  const [submitError, setSubmitError] = useState("")
   const [form, setForm] = useState<FormData>({
     name: "",
     client_name: "",
@@ -56,6 +58,7 @@ export default function NewProjectPage() {
   async function extractScope() {
     if (!form.scope_raw.trim()) return
     setExtracting(true)
+    setExtractError("")
     try {
       const res = await fetch("/api/ai/extract-scope", {
         method: "POST",
@@ -63,9 +66,12 @@ export default function NewProjectPage() {
         body: JSON.stringify({ scope_raw: form.scope_raw }),
       })
       const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not extract scope")
+      }
       setForm((f) => ({ ...f, scope_structured: data }))
     } catch (e) {
-      console.error(e)
+      setExtractError(e instanceof Error ? e.message : "Could not extract scope")
     } finally {
       setExtracting(false)
     }
@@ -73,16 +79,21 @@ export default function NewProjectPage() {
 
   async function submit() {
     setSubmitting(true)
+    setSubmitError("")
     try {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       })
-      const { id } = await res.json()
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not create project")
+      }
+      const { id } = data
       router.push(`/projects/${id}`)
     } catch (e) {
-      console.error(e)
+      setSubmitError(e instanceof Error ? e.message : "Could not create project")
       setSubmitting(false)
     }
   }
@@ -115,7 +126,7 @@ export default function NewProjectPage() {
             />
           </FormField>
           <FormField>
-            <FormLabel>Client email (recommended)</FormLabel>
+            <FormLabel>Client email (optional)</FormLabel>
             <Input
               type="email"
               value={form.client_email}
@@ -161,6 +172,10 @@ export default function NewProjectPage() {
           >
             {extracting ? "Extracting..." : "Extract Scope with AI"}
           </Button>
+
+          {extractError && (
+            <p className="text-xs text-destructive">{extractError}</p>
+          )}
 
           {form.scope_structured && (
             <Card size="sm">
@@ -292,6 +307,10 @@ export default function NewProjectPage() {
               {submitting ? "Creating..." : "Create Project"}
             </Button>
           </div>
+
+          {submitError && (
+            <p className="text-xs text-destructive">{submitError}</p>
+          )}
         </div>
       )}
     </div>

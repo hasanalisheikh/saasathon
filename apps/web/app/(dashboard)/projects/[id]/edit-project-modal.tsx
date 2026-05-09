@@ -41,6 +41,7 @@ export function EditProjectModal({ project, open: openProp, onOpenChange, hideTr
   const [saving, setSaving] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [error, setError] = useState('')
+  const [extractError, setExtractError] = useState('')
 
   const [name, setName] = useState(project.name)
   const [clientName, setClientName] = useState(project.client_name)
@@ -74,6 +75,7 @@ export function EditProjectModal({ project, open: openProp, onOpenChange, hideTr
     setSaving(false)
     setExtracting(false)
     setError('')
+    setExtractError('')
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -87,6 +89,7 @@ export function EditProjectModal({ project, open: openProp, onOpenChange, hideTr
   async function extractScope() {
     if (!scopeRaw.trim()) return
     setExtracting(true)
+    setExtractError('')
     try {
       const res = await fetch('/api/ai/extract-scope', {
         method: 'POST',
@@ -94,9 +97,12 @@ export function EditProjectModal({ project, open: openProp, onOpenChange, hideTr
         body: JSON.stringify({ scope_raw: scopeRaw }),
       })
       const data = await res.json()
+      if (!res.ok) {
+        throw new Error((data as { error?: string }).error ?? 'Failed to extract scope.')
+      }
       setScopeStructured(data)
-    } catch {
-      // silent — structured scope is optional
+    } catch (err) {
+      setExtractError(err instanceof Error ? err.message : 'Failed to extract scope.')
     } finally {
       setExtracting(false)
     }
@@ -252,6 +258,8 @@ export function EditProjectModal({ project, open: openProp, onOpenChange, hideTr
                     {extracting ? 'Extracting...' : 'Re-extract with AI'}
                   </Button>
                 </div>
+
+                {extractError && <FormError>{extractError}</FormError>}
 
                 {scopeStructured && (
                   <Card size="sm" className="border border-border/80 bg-muted/20">

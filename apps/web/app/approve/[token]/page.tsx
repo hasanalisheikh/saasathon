@@ -93,6 +93,7 @@ export default async function ApprovePage({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ApprovalCard({ request, token }: { request: any; token: string }) {
   const project = request.project as Record<string, string>
+  const hasEstimate = typeof request.cost_min === 'number' && typeof request.cost_max === 'number'
 
   return (
     <div className="overflow-hidden rounded-lg border border-white/10 bg-[#111111]/95 shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur">
@@ -121,7 +122,7 @@ function ApprovalCard({ request, token }: { request: any; token: string }) {
           </>
         )}
 
-        {request.cost_min && request.cost_max && (
+        {hasEstimate && (
           <>
             <div className="h-px bg-white/10" />
             <div className="rounded-lg border border-[#262626]/25 bg-[#0a0a0a] p-4">
@@ -143,9 +144,20 @@ function ApprovalCard({ request, token }: { request: any; token: string }) {
             </div>
           </>
         )}
+
+        {!hasEstimate && (
+          <>
+            <div className="h-px bg-white/10" />
+            <p className="rounded-md border border-[#fb7185]/25 bg-[#3b0b1d]/25 px-3 py-2 text-sm text-[#fecdd3]">
+              This request cannot be approved yet because the developer has not generated a valid estimate.
+            </p>
+          </>
+        )}
       </div>
 
-      <ApprovalForm token={token} costMin={request.cost_min as number} costMax={request.cost_max as number} />
+      {hasEstimate ? (
+        <ApprovalForm token={token} costMin={request.cost_min as number} costMax={request.cost_max as number} />
+      ) : null}
     </div>
   )
 }

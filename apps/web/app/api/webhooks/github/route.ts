@@ -252,7 +252,10 @@ export async function POST(req: NextRequest) {
       // Translate commits to plain English
       const commits = (payload.commits ?? []).map((c: Record<string, string>) => c.message).filter(Boolean)
       if (commits.length > 0) {
-        plainSummary = await translateCommits(commits).catch(() => null)
+        plainSummary = await translateCommits(commits).catch((error) => {
+          console.error('GitHub commit translation failed:', error)
+          return null
+        })
       }
 
       // Scan PR for Monad markers
@@ -299,7 +302,10 @@ export async function POST(req: NextRequest) {
           prTitle: payload.pull_request.title,
           prBody: payload.pull_request.body ?? '',
           filesChanged: [],
-        }).catch(() => null)
+        }).catch((error) => {
+          console.error('GitHub unapproved-work detection failed:', error)
+          return null
+        })
 
         isUnapproved = result?.is_approved_work === false && (result?.confidence ?? 0) > 60
       }

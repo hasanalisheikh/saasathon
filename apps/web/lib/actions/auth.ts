@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { validatePassword } from "@/lib/auth/password-validation"
+import { getAppUrl } from "@/lib/env"
 import { redirect } from "next/navigation"
 
 function redirectWithError(path: string, message: string): never {
@@ -45,7 +46,7 @@ export async function signup(formData: FormData) {
   }
 
   const supabase = await createClient()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  const appUrl = getAppUrl()
   const verifiedNext = encodeURIComponent("/auth/verified?verified=1")
 
   const { data, error } = await supabase.auth.signUp({
@@ -90,7 +91,7 @@ export async function forgotPasswordAction(formData: FormData) {
   }
 
   const supabase = await createClient()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  const appUrl = getAppUrl()
 
   await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${appUrl}/api/auth/callback?next=/reset-password`,
@@ -109,7 +110,7 @@ export async function resendVerificationAction(formData: FormData) {
   }
 
   const supabase = await createClient()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  const appUrl = getAppUrl()
   const verifiedNext = encodeURIComponent("/auth/verified?verified=1")
 
   await supabase.auth.resend({

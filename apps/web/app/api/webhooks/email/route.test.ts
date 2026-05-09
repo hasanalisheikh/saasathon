@@ -112,6 +112,7 @@ describe('/api/webhooks/email', () => {
       raw_email_body: 'Can you add a booking flow?',
       source: 'email',
       status: 'pending_review',
+      analysis_status: 'queued',
     })
     expect(fetchCalls).toHaveLength(1)
     expect(fetchCalls[0][0]).toBe('https://monad.app/api/ai/analyse')

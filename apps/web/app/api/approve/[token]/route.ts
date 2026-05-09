@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getAppUrl } from '@/lib/env'
 import { buildIssueBody, createIssue, parseGitHubInstallationId } from '@/lib/github'
 import { ensureRequestTasks } from '@/lib/request-tasks'
 import { sendDeveloperApprovalEmail } from '@/lib/resend'
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     }
 
     if (action === 'approve' && understood) {
+      const approvedCost = formatApprovedCostRange(request.cost_min, request.cost_max)
+
       const { data: approvedRequest, error: approvalError } = await supabase
         .from('requests')
         .update({
@@ -59,9 +62,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
         return NextResponse.redirect(new URL(`/approve/${token}`, req.url))
       }
 
-      const project = request.project as any
-      const profile = project.profile as any
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+      const project = request.project as Record<string, unknown>
+      const profile = (project.profile as Record<string, unknown> | null) ?? null
+      const appUrl = getAppUrl()
       let githubIssueUrl: string | null = null
       const installationId = parseGitHubInstallationId(profile?.github_installation_id as string | null)
       
@@ -75,14 +78,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       // Create GitHub issue if repo connected
       if (project.github_repo_name && installationId) {
         try {
-          const costRange = request.cost_min && request.cost_max
-            ? `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`
-            : 'TBC'
-
           const issueBody = buildIssueBody({
             clientRequest: request.raw_email_body ?? '',
             technicalBreakdown: request.technical_breakdown ?? '',
-            approvedCost: costRange,
+            approvedCost: approvedCost,
             approvalTimestamp: now,
             monadRequestUrl: `${appUrl}/projects/${project.id as string}/requests/${request.id}`,
             tasks: requestTasks,
@@ -118,15 +117,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
           .single()
 
         if (profile?.email) {
-          const costRange = request.cost_min && request.cost_max
-            ? `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`
-            : 'TBC'
-
           await sendDeveloperApprovalEmail({
             to: profile.email,
             clientName: (project.client_name as string | undefined) ?? 'Your client',
             requestSummary: request.raw_email_subject ?? 'Feature request',
-            costRange,
+            costRange: approvedCost,
             approvedAt: now,
             projectName: project.name as string,
             requestUrl: `${appUrl}/projects/${project.id as string}/requests/${request.id}`,
@@ -144,4 +139,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     console.error('Approve handler error:', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
+}
+
+function formatApprovedCostRange(costMin: number | null, costMax: number | null) {
+  if (costMin === null || costMax === null) {
+    throw new Error('Approved requests require a confirmed cost range before Monad can continue the approval flow.')
+  }
+
+  return `$${costMin.toLocaleString()} – $${costMax.toLocaleString()}`
 }

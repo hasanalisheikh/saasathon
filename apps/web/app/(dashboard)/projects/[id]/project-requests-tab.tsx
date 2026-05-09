@@ -114,13 +114,11 @@ const REQUEST_STATUS_COLUMNS: RequestStatusColumn[] = [
 ]
 
 interface ProjectRequestsTabProps {
-  inboundEmail: string | null
   projectId: string
   requests: Request[]
 }
 
 export function ProjectRequestsTab({
-  inboundEmail,
   projectId,
   requests,
 }: ProjectRequestsTabProps) {
@@ -203,14 +201,10 @@ export function ProjectRequestsTab({
 
   if (!boardRequests.length) {
     return (
-      <EmptyState>
+        <EmptyState>
         <EmptyStateTitle>No requests yet.</EmptyStateTitle>
         <EmptyStateDescription>
-          Forward client emails to{" "}
-          <span className="font-medium text-foreground">
-            {inboundEmail ?? "your project inbox"}
-          </span>{" "}
-          to start building your board.
+          Add a request manually, capture it from Slack, or convert widget feedback to start building your board.
         </EmptyStateDescription>
       </EmptyState>
     )

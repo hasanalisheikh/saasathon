@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { afterEach, describe, expect, it } from 'bun:test'
-import { getEnvChecks } from '@/lib/integrations'
+import { getEnvChecks, getRuntimeDiagnostics } from '@/lib/integrations'
 import { restoreEnv, snapshotEnv } from '@/test-utils/env'
 
 const managedKeys = [
   'OPENROUTER_API_KEY',
   'MOCK_AI',
+  'NEXT_PUBLIC_APP_URL',
+  'INBOUND_EMAIL_DOMAIN',
   'RESEND_API_KEY',
   'RESEND_FROM_EMAIL',
   'POSTMARK_INBOUND_WEBHOOK_TOKEN',
@@ -40,8 +42,9 @@ describe('integration env checks', () => {
     const checks = Object.fromEntries(getEnvChecks().map((check) => [check.label, check.value]))
 
     expect(checks['AI analysis']).toBe(false)
-    expect(checks['Client email (Resend)']).toBe(false)
-    expect(checks['Inbound email (Postmark)']).toBe(false)
+    expect(checks['Manual request intake']).toBe(true)
+    expect(checks['Email delivery (optional)']).toBe(false)
+    expect(checks['Legacy inbound email (optional)']).toBe(false)
     expect(checks['GitHub App']).toBe(false)
     expect(checks['GitHub App webhooks']).toBe(false)
   })
@@ -52,5 +55,18 @@ describe('integration env checks', () => {
 
     const checks = Object.fromEntries(getEnvChecks().map((check) => [check.label, check.value]))
     expect(checks['AI analysis']).toBe(true)
+  })
+
+  it('reports runtime diagnostics for deployment-critical config', () => {
+    process.env.MOCK_AI = 'true'
+    process.env.NEXT_PUBLIC_APP_URL = 'https://monad-weld.vercel.app'
+    process.env.INBOUND_EMAIL_DOMAIN = 'inbound.monad-weld.app'
+
+    const diagnostics = getRuntimeDiagnostics()
+
+    expect(diagnostics.appUrl).toBe('https://monad-weld.vercel.app')
+    expect(diagnostics.inboundEmailDomain).toBe('inbound.monad-weld.app')
+    expect(diagnostics.mockAI).toBe(true)
+    expect(diagnostics.checks.find((check) => check.key === 'NEXT_PUBLIC_APP_URL')?.configured).toBe(true)
   })
 })

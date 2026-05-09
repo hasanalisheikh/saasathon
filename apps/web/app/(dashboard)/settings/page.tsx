@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import type { RuntimeDiagnostics } from '@/lib/integrations'
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
@@ -46,6 +47,7 @@ function SettingsContent() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [diagnostics, setDiagnostics] = useState<RuntimeDiagnostics | null>(null)
 
   const [githubInfo, setGitHubInfo] = useState<GitHubStatusResponse | null>(null)
   const [githubStatus, setGithubStatus] = useState<string | null>(null)
@@ -80,6 +82,12 @@ function SettingsContent() {
       if (githubResponse.ok) {
         const data = await githubResponse.json()
         setGitHubInfo(data)
+      }
+
+      const diagnosticsRes = await fetch('/api/integrations/status')
+      if (diagnosticsRes.ok) {
+        const diagnosticsData = await diagnosticsRes.json()
+        setDiagnostics(diagnosticsData.diagnostics ?? null)
       }
     }
     load()
@@ -162,7 +170,7 @@ function SettingsContent() {
         <div>
           <PageTitle>Settings</PageTitle>
           <PageDescription>
-            Manage your profile, notification preferences, and external integrations.
+            Manage your profile, request intake setup, and external integrations.
           </PageDescription>
         </div>
       </PageHeader>
@@ -220,13 +228,17 @@ function SettingsContent() {
         <ChangePasswordForm />
       </Section>
 
-      <Section title="Email Forwarding">
+      <Section title="Request Intake">
         <Card size="sm">
           <CardContent>
-            <p className="text-sm mb-1 font-mono text-primary">inbound.monad.app</p>
-            <p className="text-xs text-muted-foreground/50">
-              Each project gets a unique inbound address at this domain. Forward or BCC client
-              emails there to receive and analyse them automatically.
+            <p className="text-sm mb-2 text-foreground">
+              Manual request capture is live today. Slack is the MVP intake channel we&apos;re aligning the product around.
+            </p>
+            <p className="text-xs text-muted-foreground/70">
+              Native Slack intake is planned next. Until that ships, add requests manually from the project page and use the saved reply when you send the response back in Slack.
+            </p>
+            <p className="mt-3 text-xs text-muted-foreground/50">
+              Legacy email domain: {diagnostics?.inboundEmailDomain ?? 'Not configured'}
             </p>
           </CardContent>
         </Card>
@@ -255,10 +267,12 @@ function SettingsContent() {
                     Install the Monad GitHub App to allow issue creation and automated task tracking.
                   </p>
                 </div>
-                <Button variant="outline" asChild>
-                  <Link href={installUrl}>
-                    Install Monad GitHub App
-                  </Link>
+                <Button
+                  variant="outline"
+                  render={<Link href={installUrl} />}
+                  nativeButton={false}
+                >
+                  Install Monad GitHub App
                 </Button>
               </div>
             )}
@@ -300,8 +314,39 @@ function SettingsContent() {
         )}
       </Section>
 
+      <Section title="Runtime Readiness">
+        <Card size="sm">
+          <CardContent className="space-y-4">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <p className="text-xs text-muted-foreground">
+                AI mode: <span className="text-foreground">{diagnostics?.mockAI ? 'Mock' : 'Live'}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Model: <span className="text-foreground">{diagnostics?.aiModel ?? 'Not configured'}</span>
+              </p>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                Public app URL: <span className="text-foreground">{diagnostics?.appUrl ?? 'Not configured'}</span>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {diagnostics?.checks.map((check) => (
+                <div key={check.key} className="flex items-center justify-between gap-3 text-xs">
+                  <span className="text-muted-foreground">{check.label}</span>
+                  <span className={check.configured ? 'text-emerald-500' : 'text-destructive'}>
+                    {check.configured ? 'Configured' : check.required ? 'Required' : 'Optional'}
+                  </span>
+                </div>
+              )) ?? (
+                <p className="text-xs text-muted-foreground">Loading runtime diagnostics…</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </Section>
+
       <Section title="Widget">
-        <WidgetSnippet projects={projects} />
+        <WidgetSnippet appUrl={diagnostics?.appUrl ?? null} projects={projects} />
       </Section>
 
       <Section title="Danger Zone">
@@ -479,18 +524,20 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function WidgetSnippet({ projects }: { projects: ProjectSnippet[] }) {
+function WidgetSnippet({ appUrl, projects }: { appUrl: string | null; projects: ProjectSnippet[] }) {
   const [copied, setCopied] = useState(false)
   const [selectedId, setSelectedId] = useState<string>('')
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://monad.app'
 
   const selected = projects.find(p => p.id === selectedId) ?? projects[0]
 
-  const snippet = selected
+  const snippet = !appUrl
+    ? 'NEXT_PUBLIC_APP_URL must be configured before Monad can generate an embed snippet.'
+    : selected
     ? `<script src="${appUrl}/widget.js"\n  data-project-id="${selected.id}"\n  data-client-token="${selected.widget_token}"\n></script>`
     : `<script src="${appUrl}/widget.js"\n  data-project-id="YOUR_PROJECT_ID"\n  data-client-token="YOUR_CLIENT_TOKEN"\n></script>`
 
   const copy = () => {
+    if (!appUrl || !selected) return
     navigator.clipboard.writeText(snippet)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -505,6 +552,7 @@ function WidgetSnippet({ projects }: { projects: ProjectSnippet[] }) {
               className="text-xs bg-transparent border border-border rounded px-2 py-1 text-foreground font-mono"
               value={selectedId || selected?.id || ''}
               onChange={e => setSelectedId(e.target.value)}
+              disabled={!appUrl}
             >
               {projects.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
@@ -513,7 +561,7 @@ function WidgetSnippet({ projects }: { projects: ProjectSnippet[] }) {
           ) : (
             <p className="text-xs text-muted-foreground">Create a project to get your embed snippet</p>
           )}
-          <Button variant="ghost" size="sm" onClick={copy} disabled={!selected}>
+          <Button variant="ghost" size="sm" onClick={copy} disabled={!appUrl || !selected}>
             {copied ? 'Copied ✓' : 'Copy'}
           </Button>
         </div>

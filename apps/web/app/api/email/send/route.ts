@@ -36,13 +36,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No client email on this project' }, { status: 400 })
     }
 
+    if (request.cost_min === null || request.cost_max === null) {
+      return NextResponse.json({
+        error: 'AI analysis must produce a cost range before Monad can send an approval email.',
+      }, { status: 422 })
+    }
+
+    if (!request.technical_breakdown) {
+      return NextResponse.json({
+        error: 'AI analysis must produce a technical breakdown before Monad can send an approval email.',
+      }, { status: 422 })
+    }
+
     const appUrl = getAppUrl()
     const approvalUrl = `${appUrl}/approve/${request.approval_token}`
     const declineUrl = `${appUrl}/approve/${request.approval_token}?action=decline`
 
-    const costRange = request.cost_min && request.cost_max
-      ? `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`
-      : 'To be confirmed'
+    const costRange = `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`
 
     await sendApprovalEmail({
       to: project.client_email as string,
@@ -50,7 +60,7 @@ export async function POST(req: NextRequest) {
       clientName: project.client_name as string,
       developerReply: final_reply,
       requestSummary: request.raw_email_body?.slice(0, 300) ?? '',
-      technicalBreakdown: request.technical_breakdown ?? '',
+      technicalBreakdown: request.technical_breakdown,
       costRange,
       timelineDays: request.timeline_impact_days ?? 0,
       approvalUrl,

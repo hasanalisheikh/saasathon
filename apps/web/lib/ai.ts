@@ -1,6 +1,17 @@
 import OpenAI from 'openai'
 import type { AIAnalysis, ProjectDocumentContext } from '@/types'
-import { getAppUrl, getConfiguredEnv, requireConfiguredEnv } from '@/lib/env'
+import {
+  buildCommitTranslationMessages,
+  buildRequestAnalysisMessages,
+  buildScopeExtractionMessages,
+  buildUnapprovedWorkMessages,
+  extractJsonObject,
+  parseAIAnalysis,
+  parseCommitTranslation,
+  parseScopeStructured,
+  parseUnapprovedWorkResult,
+} from '@/lib/ai-contract'
+import { getAIModel, getAppUrl, requireConfiguredEnv } from '@/lib/env'
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 const DEFAULT_AI_MODEL = 'google/gemini-3.1-flash-lite'
@@ -23,7 +34,7 @@ function getAIClient(): OpenAI {
         'X-Title': 'Monad',
       },
     })
-    _model = getConfiguredEnv('AI_MODEL') || DEFAULT_AI_MODEL
+    _model = getAIModel() || DEFAULT_AI_MODEL
   }
   return _client
 }
@@ -45,25 +56,19 @@ export async function analyseRequest(params: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     response_format: { type: 'json_object' } as any,
     temperature: 0.2,
-    messages: [
-      {
-        role: 'system',
-        content: `You are a professional project scope analyst for software development projects.
-You protect developers from unpaid work by analysing client requests against agreed project scope.
-Use uploaded project documents as contract, proposal, rate-card, and client-context evidence where relevant.
-Calculate cost estimates from the authoritative DEVELOPER RATE provided by the app, not from any conflicting numeric rate in document text.
-Always respond in valid JSON only. Do not include markdown code fences.`,
-      },
-      {
-        role: 'user',
-        content: `PROJECT SCOPE:\n${params.scopeRaw}\n\nEXTRACTED SCOPE:\n${JSON.stringify(params.scopeStructured)}\n\nUPLOADED PROJECT DOCUMENT CONTEXT:\n${documentContext}\n\nDEVELOPER RATE: $${params.hourlyRate}/hr\nTASK CATEGORIES: ${JSON.stringify(params.taskCategories)}\n\nCLIENT REQUEST:\nFrom: ${params.emailFrom}\nSubject: ${params.emailSubject}\nBody: ${params.emailBody}\n\nReturn JSON with: classification, confidence, scope_evidence, technical_breakdown, tasks, effort_min_hours, effort_max_hours, risk_level, timeline_impact_days, reasoning, draft_reply, suggested_action`,
-      },
-    ],
+    messages: buildRequestAnalysisMessages({
+      scopeRaw: params.scopeRaw,
+      scopeStructured: params.scopeStructured,
+      documents: documentContext,
+      hourlyRate: params.hourlyRate,
+      taskCategories: params.taskCategories,
+      emailFrom: params.emailFrom,
+      emailSubject: params.emailSubject,
+      emailBody: params.emailBody,
+    }),
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const content = (response as any).choices?.[0]?.message?.content ?? '{}'
-  return JSON.parse(content) as AIAnalysis
+  return parseAIAnalysis(readJsonMessageContent(response, 'request analysis'))
 }
 
 function buildDocumentContext(documents: ProjectDocumentContext[]): string {
@@ -98,34 +103,10 @@ export async function extractScope(scopeRaw: string): Promise<object> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     response_format: { type: 'json_object' } as any,
     temperature: 0.1,
-    messages: [
-      {
-        role: 'user',
-        content: `You are extracting project scope details from a freelancer's proposal or contract.
-Return only valid JSON with no markdown fences.
-
-INPUT TEXT:
-${scopeRaw}
-
-Return JSON:
-{
-  "deliverables": ["array of specific deliverables mentioned"],
-  "exclusions": ["array of things explicitly excluded"],
-  "revision_limit": "e.g. '2 rounds of revisions' or null if not mentioned",
-  "timeline": "e.g. '4 weeks' or null",
-  "pricing_model": "fixed_fee | hourly | retainer | milestone | unknown"
-}
-
-Rules:
-- Only extract what is explicitly stated. Do not infer.
-- If something is not mentioned, use null or empty array.
-- Keep deliverable descriptions concise (under 10 words each).`,
-      },
-    ],
+    messages: buildScopeExtractionMessages(scopeRaw),
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return JSON.parse((response as any).choices?.[0]?.message?.content ?? '{}')
+  return parseScopeStructured(readJsonMessageContent(response, 'scope extraction'))
 }
 
 export async function translateCommits(commits: string[]): Promise<string> {
@@ -133,15 +114,9 @@ export async function translateCommits(commits: string[]): Promise<string> {
   const response = await client.chat.completions.create({
     model: _model,
     temperature: 0.3,
-    messages: [
-      {
-        role: 'user',
-        content: `Translate these GitHub commits into 1-2 sentences of plain English for a non-technical client. Focus on what changed for them, not how.\n\nCommits:\n${commits.join('\n')}`,
-      },
-    ],
+    messages: buildCommitTranslationMessages(commits),
   })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (response as any).choices?.[0]?.message?.content ?? ''
+  return parseCommitTranslation(readTextMessageContent(response, 'commit translation'))
 }
 
 export async function detectUnapprovedWork(params: {
@@ -156,24 +131,37 @@ export async function detectUnapprovedWork(params: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     response_format: { type: 'json_object' } as any,
     temperature: 0.2,
-    messages: [
-      {
-        role: 'user',
-        content: `You are checking whether a GitHub pull request contains work that was approved by the client.
-
-APPROVED CLIENT REQUESTS for this project:
-${params.approvedRequests.map((r) => `- ${r.technical_breakdown}`).join('\n')}
-
-PULL REQUEST:
-Title: ${params.prTitle}
-Description: ${params.prBody}
-Files changed: ${params.filesChanged.join(', ')}
-
-Return JSON: { "is_approved_work": true, "confidence": 0, "matched_request": null, "reasoning": "" }`,
-      },
-    ],
+    messages: buildUnapprovedWorkMessages(params),
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return JSON.parse((response as any).choices?.[0]?.message?.content ?? '{"is_approved_work":true,"confidence":50,"matched_request":null,"reasoning":""}')
+  return parseUnapprovedWorkResult(readJsonMessageContent(response, 'unapproved work detection'))
+}
+
+function readJsonMessageContent(response: OpenAI.Chat.Completions.ChatCompletion, operation: string): unknown {
+  return extractJsonObject(readTextMessageContent(response, operation))
+}
+
+function readTextMessageContent(response: OpenAI.Chat.Completions.ChatCompletion, operation: string): string {
+  const content = response.choices?.[0]?.message?.content as unknown
+
+  if (typeof content === 'string') {
+    return content
+  }
+
+  if (Array.isArray(content)) {
+    const joined = content
+      .map((part) => {
+        if (part && typeof part === 'object' && 'text' in part && typeof part.text === 'string') {
+          return part.text
+        }
+
+        return ''
+      })
+      .join('')
+      .trim()
+
+    if (joined) return joined
+  }
+
+  throw new Error(`OpenRouter returned an empty ${operation} response.`)
 }

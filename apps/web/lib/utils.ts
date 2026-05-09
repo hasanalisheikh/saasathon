@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import type { Classification, RequestStatus, RiskLevel } from '@/types'
+import { getInboundEmailDomain } from '@/lib/env'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -74,7 +75,7 @@ export function generateInboundEmail(projectSlug: string): string {
     .replace(/[^a-z0-9]/g, '-')
     .replace(/-+/g, '-')
     .slice(0, 20)
-  const domain = process.env.INBOUND_EMAIL_DOMAIN ?? 'inbound.monad.app'
+  const domain = getInboundEmailDomain()
   return `${slug}-${random}@${domain}`
 }
 

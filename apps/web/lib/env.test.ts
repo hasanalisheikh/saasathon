@@ -2,7 +2,10 @@
 // @ts-nocheck
 import { afterEach, describe, expect, it } from 'bun:test'
 import {
+  getAIModel,
+  getAppUrl,
   getConfiguredEnv,
+  getInboundEmailDomain,
   isAIConfigured,
   isConfiguredEnvValue,
   isMockAIEnabled,
@@ -14,6 +17,9 @@ import { restoreEnv, snapshotEnv } from '@/test-utils/env'
 const managedKeys = [
   'OPENROUTER_API_KEY',
   'MOCK_AI',
+  'AI_MODEL',
+  'NEXT_PUBLIC_APP_URL',
+  'INBOUND_EMAIL_DOMAIN',
   'RESEND_API_KEY',
   'RESEND_FROM_EMAIL',
   'POSTMARK_INBOUND_WEBHOOK_TOKEN',
@@ -49,6 +55,16 @@ describe('env helpers', () => {
 
     expect(isMockAIEnabled()).toBe(true)
     expect(isAIConfigured()).toBe(true)
+  })
+
+  it('requires runtime URLs and domains instead of falling back silently', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://monad-weld.vercel.app'
+    process.env.INBOUND_EMAIL_DOMAIN = 'inbound.monad-weld.app'
+    process.env.AI_MODEL = 'google/gemini-3.1-flash-lite'
+
+    expect(getAppUrl()).toBe('https://monad-weld.vercel.app')
+    expect(getInboundEmailDomain()).toBe('inbound.monad-weld.app')
+    expect(getAIModel()).toBe('google/gemini-3.1-flash-lite')
   })
 
   it('requires both resend values and a postmark token', () => {

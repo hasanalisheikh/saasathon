@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { getConfiguredEnv } from "@/lib/env"
 import { notFound } from "next/navigation"
 import { buildGitHubConnectPath, getGitHubStatusMessage } from "@/lib/github-connect"
 import { isGitHubAppConfigured, isGitHubInstallationId } from "@/lib/github-config"
@@ -146,6 +147,7 @@ export default async function ProjectDetailPage({
     ? `https://github.com/${project.github_repo_name}`
     : null
   const projectCreatedLabel = new Date(project.created_at as string).toLocaleDateString()
+  const appUrl = getConfiguredEnv("NEXT_PUBLIC_APP_URL")
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -159,7 +161,7 @@ export default async function ProjectDetailPage({
           </PageDescription>
         </div>
         <PageActions className="self-start pt-0.5">
-          <ProjectPageActions project={project} />
+          <ProjectPageActions appUrl={appUrl} project={project} />
         </PageActions>
       </PageHeader>
 
@@ -270,7 +272,6 @@ export default async function ProjectDetailPage({
         <TabsContent value="requests">
           <ProjectRequestsTab
             projectId={id}
-            inboundEmail={project.inbound_email}
             requests={requests ?? []}
           />
         </TabsContent>

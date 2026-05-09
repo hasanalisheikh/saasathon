@@ -17,6 +17,7 @@ mock.module('@/lib/supabase/server', () => ({
 const { GET } = await import('./route')
 
 const managedKeys = [
+  'NEXT_PUBLIC_APP_URL',
   'GITHUB_APP_ID',
   'GITHUB_APP_CLIENT_ID',
   'GITHUB_APP_CLIENT_SECRET',

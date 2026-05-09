@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
         raw_email_body: body,
         source: 'email',
         status: 'pending_review',
+        analysis_status: 'queued',
       })
       .select()
       .single()
@@ -56,12 +57,32 @@ export async function POST(req: NextRequest) {
     }
 
     // Trigger AI analysis (fire-and-forget — don't await so Postmark gets 200 fast)
-    const appUrl = getAppUrl()
-    fetch(`${appUrl}/api/ai/analyse`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ request_id: request.id }),
-    }).catch(console.error)
+    try {
+      const appUrl = getAppUrl()
+      fetch(`${appUrl}/api/ai/analyse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: request.id }),
+      }).catch(async (error) => {
+        console.error('Async request analysis failed:', error)
+        await supabase
+          .from('requests')
+          .update({
+            analysis_status: 'failed',
+            analysis_error: 'Could not enqueue AI analysis from the inbound email webhook.',
+          })
+          .eq('id', request.id)
+      })
+    } catch (error) {
+      console.error('Inbound email analysis scheduling error:', error)
+      await supabase
+        .from('requests')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: error instanceof Error ? error.message : 'Could not enqueue AI analysis.',
+        })
+        .eq('id', request.id)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
