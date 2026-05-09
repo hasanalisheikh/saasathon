@@ -1,28 +1,8 @@
+import { Octokit } from '@octokit/rest'
 import crypto from 'crypto'
-import { getAppUrl, requireConfiguredEnv } from '@/lib/env'
+import { requireConfiguredEnv } from '@/lib/env'
 
 const GITHUB_API_VERSION = '2022-11-28'
-const GITHUB_STATE_SECRET = () => requireConfiguredEnv('GITHUB_APP_CLIENT_SECRET', 'GitHub App client secret is not configured.')
-
-export const GITHUB_APP_STATE_COOKIE = 'github_app_state'
-
-export type GitHubAppState = {
-  installationId: string | null
-  nonce: string
-  projectId: string
-  returnTo: string
-  userId: string
-}
-
-type GitHubInstallationSummary = {
-  id: number
-}
-
-type GitHubInstallationRepo = {
-  id: number
-  full_name: string
-  private: boolean
-}
 
 function getGitHubAppHeaders(token?: string) {
   return {
@@ -33,27 +13,9 @@ function getGitHubAppHeaders(token?: string) {
   }
 }
 
-function base64UrlEncode(value: string) {
-  return Buffer.from(value, 'utf8').toString('base64url')
-}
-
-function safeEqual(a: string, b: string) {
-  const left = Buffer.from(a)
-  const right = Buffer.from(b)
-
-  if (left.length !== right.length) {
-    return false
-  }
-
-  return crypto.timingSafeEqual(left, right)
-}
-
-function getSignedStateSignature(payload: string) {
-  return crypto.createHmac('sha256', GITHUB_STATE_SECRET()).update(payload).digest('base64url')
-}
-
 function normalizeGitHubPrivateKey() {
-  return requireConfiguredEnv('GITHUB_APP_PRIVATE_KEY', 'GitHub App private key is not configured.').replace(/\\n/g, '\n')
+  const key = process.env.GITHUB_PRIVATE_KEY || ''
+  return key.replace(/\\n/g, '\n')
 }
 
 async function requestGitHubJson<T>(url: string, init: RequestInit, context: string): Promise<T> {
@@ -82,155 +44,28 @@ async function requestGitHub(url: string, init: RequestInit, context: string) {
   throw new Error(`${context}: ${response.status} ${errorBody}`)
 }
 
-export function normalizeGitHubReturnTo(returnTo: string | null, fallback: string) {
-  if (!returnTo) return fallback
-
-  try {
-    const url = new URL(returnTo, 'http://monad.local')
-    if (url.origin !== 'http://monad.local') return fallback
-    if (!url.pathname.startsWith('/') || url.pathname.startsWith('//')) return fallback
-    return `${url.pathname}${url.search}`
-  } catch {
-    return fallback
-  }
-}
-
-export function encodeGitHubAppState(state: GitHubAppState) {
-  const payload = base64UrlEncode(JSON.stringify(state))
-  const signature = getSignedStateSignature(payload)
-  return `${payload}.${signature}`
-}
-
-export function decodeGitHubAppState(value: string | null): GitHubAppState | null {
-  if (!value) return null
-
-  const [payload, signature] = value.split('.')
-  if (!payload || !signature) return null
-  if (!safeEqual(signature, getSignedStateSignature(payload))) return null
-
-  try {
-    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
-
-    if (
-      typeof parsed?.nonce === 'string' &&
-      typeof parsed?.projectId === 'string' &&
-      typeof parsed?.returnTo === 'string' &&
-      typeof parsed?.userId === 'string' &&
-      (typeof parsed?.installationId === 'string' || parsed?.installationId === null)
-    ) {
-      return parsed as GitHubAppState
-    }
-  } catch {
-    return null
-  }
-
-  return null
-}
-
-export function buildGitHubAppInstallUrl(state: string) {
-  const installUrl = new URL(`https://github.com/apps/${requireConfiguredEnv('GITHUB_APP_SLUG', 'GitHub App slug is not configured.')}/installations/new`)
-  installUrl.searchParams.set('state', state)
-  return installUrl
-}
-
-export function buildGitHubAppAuthorizationUrl(state: string) {
-  const callbackUrl = `${getAppUrl()}/api/github/auth/callback`
-  const authUrl = new URL('https://github.com/login/oauth/authorize')
-  authUrl.searchParams.set('client_id', requireConfiguredEnv('GITHUB_APP_CLIENT_ID', 'GitHub App client ID is not configured.'))
-  authUrl.searchParams.set('redirect_uri', callbackUrl)
-  authUrl.searchParams.set('state', state)
-  return authUrl
-}
-
 export function parseGitHubInstallationId(value: string | null | undefined) {
   const normalized = value?.trim() ?? ''
   return /^\d+$/.test(normalized) ? normalized : null
 }
 
-export async function exchangeCodeForGitHubUserToken(code: string) {
-  const callbackUrl = `${getAppUrl()}/api/github/auth/callback`
-
-  const tokenResponse = await requestGitHubJson<{
-    access_token?: string
-    error?: string
-    error_description?: string
-  }>(
-    'https://github.com/login/oauth/access_token',
-    {
-      method: 'POST',
-      headers: { Accept: 'application/json' },
-      body: new URLSearchParams({
-        client_id: requireConfiguredEnv('GITHUB_APP_CLIENT_ID', 'GitHub App client ID is not configured.'),
-        client_secret: requireConfiguredEnv('GITHUB_APP_CLIENT_SECRET', 'GitHub App client secret is not configured.'),
-        code,
-        redirect_uri: callbackUrl,
-      }),
-    },
-    'GitHub user token exchange failed'
-  )
-
-  if (tokenResponse.error || !tokenResponse.access_token) {
-    throw new Error(tokenResponse.error_description ?? tokenResponse.error ?? 'GitHub user token exchange failed')
-  }
-
-  return tokenResponse.access_token
-}
-
-export async function listUserInstallations(userToken: string) {
-  const response = await requestGitHubJson<{ installations: GitHubInstallationSummary[] }>(
-    'https://api.github.com/user/installations?per_page=100',
-    {
-      headers: getGitHubAppHeaders(userToken),
-    },
-    'Failed to load GitHub App installations'
-  )
-
-  return response.installations.map((installation) => String(installation.id))
-}
-
 export async function getGitHubAppJwt() {
-  const now = Math.floor(Date.now() / 1000)
-  const header = base64UrlEncode(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
-  const payload = base64UrlEncode(JSON.stringify({
-    iat: now - 60,
-    exp: now + (9 * 60),
-    iss: requireConfiguredEnv('GITHUB_APP_ID', 'GitHub App ID is not configured.'),
-  }))
-  const unsignedToken = `${header}.${payload}`
-  const signature = crypto.sign('RSA-SHA256', Buffer.from(unsignedToken), normalizeGitHubPrivateKey()).toString('base64url')
-
-  return `${unsignedToken}.${signature}`
+  const { generateAppJwt } = await import('./github-app')
+  return generateAppJwt()
 }
 
 export async function createInstallationAccessToken(installationId: string) {
-  const appJwt = await getGitHubAppJwt()
-  const response = await requestGitHubJson<{ token: string }>(
-    `https://api.github.com/app/installations/${installationId}/access_tokens`,
-    {
-      method: 'POST',
-      headers: getGitHubAppHeaders(appJwt),
-    },
-    'Failed to mint GitHub installation token'
-  )
-
-  return response.token
+  const { getInstallationAccessToken } = await import('./github-app')
+  return getInstallationAccessToken(installationId)
 }
 
 export async function listInstallationRepos(installationId: string) {
-  const installationToken = await createInstallationAccessToken(installationId)
-  const response = await requestGitHubJson<{ repositories: GitHubInstallationRepo[] }>(
-    'https://api.github.com/installation/repositories?per_page=100',
-    {
-      headers: getGitHubAppHeaders(installationToken),
-    },
-    'Failed to load installation repositories'
-  )
+  const { listInstallationRepos: listRepos } = await import('./github-app')
+  return listRepos(installationId)
+}
 
-  return response.repositories.map((repository) => ({
-    id: String(repository.id),
-    name: repository.full_name,
-    private: repository.private,
-  }))
+export function createOctokit(accessToken: string): Octokit {
+  return new Octokit({ auth: accessToken })
 }
 
 export async function createIssue(params: {
@@ -293,6 +128,19 @@ export async function createIssue(params: {
     number: response.number,
     url: response.html_url,
   }
+}
+
+export async function listUserRepos(accessToken: string) {
+  const octokit = createOctokit(accessToken)
+  const response = await octokit.repos.listForAuthenticatedUser({
+    sort: 'updated',
+    per_page: 50,
+  })
+  return response.data.map((r) => ({
+    id: String(r.id),
+    name: r.full_name,
+    private: r.private,
+  }))
 }
 
 export function buildIssueBody(params: {
