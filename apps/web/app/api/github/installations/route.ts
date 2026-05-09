@@ -36,20 +36,6 @@ function readInstallationSelection(req: NextRequest) {
   return decodeGitHubInstallationSelectionState(req.cookies.get(GITHUB_APP_INSTALLATIONS_COOKIE)?.value)
 }
 
-async function getFallbackInstallation(normalizedInstallationId?: string | null) {
-  const installations = await listAppInstallations()
-  if (installations.length !== 1) {
-    return null
-  }
-
-  const [installation] = installations
-  if (!installation) return null
-  if (normalizedInstallationId && installation.id !== normalizedInstallationId) {
-    return null
-  }
-
-  return installation
-}
 
 export async function GET(req: NextRequest) {
   if (!isGitHubAppConfigured()) {
@@ -68,8 +54,7 @@ export async function GET(req: NextRequest) {
 
   const selection = readInstallationSelection(req)
   if (!selection || selection.projectId !== projectId || selection.userId !== validation.user.id) {
-    const fallbackInstallation = await getFallbackInstallation()
-    return NextResponse.json(fallbackInstallation ? [fallbackInstallation] : [])
+    return NextResponse.json([])
   }
 
   return NextResponse.json(selection.installations)
@@ -98,7 +83,7 @@ export async function POST(req: NextRequest) {
     selection.projectId === projectId &&
     selection.userId === validation.user.id
       ? selection.installations.find((installation) => installation.id === normalizedInstallationId) ?? null
-      : await getFallbackInstallation(normalizedInstallationId)
+      : null
 
   if (
     !selection ||

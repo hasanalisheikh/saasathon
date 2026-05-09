@@ -103,13 +103,14 @@ export function GitHubRepoLinker({
   const [attachingInstallation, setAttachingInstallation] = useState<string | null>(null)
   const [linking, setLinking] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [showInstallationSelection, setShowInstallationSelection] = useState(false)
 
   const statusNotice = getStatusMessage(githubStatus)
 
   useEffect(() => {
     let cancelled = false
 
-    if (!canLoadRepos) {
+    if (!canLoadRepos || showInstallationSelection) {
       setLoadingRepos(false)
       return
     }
@@ -146,7 +147,7 @@ export function GitHubRepoLinker({
   useEffect(() => {
     let cancelled = false
 
-    if (!canLoadInstallationOptions) {
+    if (!canLoadInstallationOptions && !showInstallationSelection) {
       setLoadingInstallations(false)
       setInstallationOptions([])
       return
@@ -234,6 +235,7 @@ export function GitHubRepoLinker({
       }
 
       toast.success(`Connected ${installation.accountLogin ?? 'GitHub installation'}`)
+      setShowInstallationSelection(false)
       router.refresh()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to attach GitHub installation'
@@ -274,7 +276,7 @@ export function GitHubRepoLinker({
     )
   }
 
-  if (!hasGitHubInstallation) {
+  if (!hasGitHubInstallation || showInstallationSelection) {
     return (
       <div className="space-y-4">
         {statusNotice && <StatusNotice message={statusNotice.text} tone={statusNotice.tone} />}
@@ -361,12 +363,24 @@ export function GitHubRepoLinker({
 
       {error && <StatusNotice message={error} tone="error" />}
 
-      <Input
-        type="text"
-        placeholder="Filter repositories..."
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-      />
+      <div className="flex items-center justify-between gap-4">
+        <Input
+          type="text"
+          placeholder="Filter repositories..."
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setShowInstallationSelection(true)
+          }}
+          className="shrink-0"
+        >
+          Change account
+        </Button>
+      </div>
 
       <div className="space-y-1.5">
         {canLoadRepos && loadingRepos ? (

@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
         return response
       }
 
-      if (installations.length > 1) {
+      if (installations.length > 0) {
         const response = buildRedirect(req, fallbackReturnTo, 'installation_selection_required')
         response.cookies.set({
           name: GITHUB_APP_INSTALLATIONS_COOKIE,
@@ -104,8 +104,6 @@ export async function GET(req: NextRequest) {
         })
         return response
       }
-
-      currentState.installationId = installations[0]!.id
     }
 
     if (!installations.some((installation) => installation.id === currentState.installationId)) {
