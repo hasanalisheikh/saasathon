@@ -178,6 +178,64 @@ export async function sendDeveloperApprovalEmail(params: {
   })
 }
 
+function buildDeveloperDeclineHtml(params: {
+  clientName: string
+  requestSummary: string
+  declinedAt: string
+  projectName: string
+  requestUrl: string
+}) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+${emailStyles}
+    .badge { display: inline-block; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; }
+    .headline { font-size: 22px; font-weight: 600; margin: 16px 0 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom: 24px;"><div class="logo">monad</div></div>
+    <div class="badge">declined</div>
+    <div class="headline">${params.clientName} declined the request</div>
+    <p style="color:#737373;font-size:14px;">The client chose not to proceed with this modification.</p>
+    <div class="card">
+      <div class="label">Project</div>
+      <div class="value">${params.projectName}</div>
+      <div class="divider">
+        <div class="label">Request</div>
+        <div class="value">${params.requestSummary}</div>
+      </div>
+      <div class="divider">
+        <div class="label">Declined at</div>
+        <div class="value">${new Date(params.declinedAt).toUTCString()}</div>
+      </div>
+    </div>
+    <a href="${params.requestUrl}" class="button">View request →</a>
+    <div class="footer">Sent by Monad · monad.app</div>
+  </div>
+</body>
+</html>`
+}
+
+export async function sendDeveloperDeclineEmail(params: {
+  to: string
+  clientName: string
+  requestSummary: string
+  declinedAt: string
+  projectName: string
+  requestUrl: string
+}) {
+  return getResend().emails.send({
+    from: FROM(),
+    to: params.to,
+    subject: `Declined: ${params.clientName} · ${params.projectName}`,
+    html: buildDeveloperDeclineHtml(params),
+  })
+}
+
 function buildClientTaskCompletionHtml(params: {
   clientName: string
   projectName: string

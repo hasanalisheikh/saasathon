@@ -7,13 +7,19 @@ let currentUser = { id: 'user_123' }
 let requestRecord = {
   id: 'request_123',
   approval_token: 'approval_token_123',
+  classification: 'out_of_scope',
   cost_min: 960,
   cost_max: 1440,
+  effort_min_hours: 12,
+  effort_max_hours: 18,
   final_reply: null,
   reply_tone: 'professional',
   slack_channel_id: 'C_THREAD',
   slack_thread_ts: '1778327089.609469',
   technical_breakdown: 'Online ordering, bookings, loyalty, and reminders all require separate implementation work.',
+  reasoning: 'This adds new product surface area.',
+  timeline_impact_days: 5,
+  tasks: [],
   project: {
     id: 'project_123',
     user_id: 'user_123',
@@ -25,6 +31,8 @@ let lastRequestUpdate = null
 let postSlackMessageCalls = []
 let postSlackMessageResult = { ts: '1778330000.000001' }
 let postSlackMessageError = null
+let requestTaskDeleteId = null
+let insertedTaskRows = null
 
 const fakeSupabase = {
   auth: {
@@ -76,6 +84,31 @@ const fakeSupabase = {
       }
     }
 
+    if (table === 'request_tasks') {
+      return {
+        delete() {
+          return {
+            eq(column, value) {
+              if (column === 'request_id') requestTaskDeleteId = value
+              return Promise.resolve({ error: null })
+            },
+          }
+        },
+        insert(payload) {
+          insertedTaskRows = payload
+          return {
+            select() {
+              return {
+                order() {
+                  return Promise.resolve({ data: payload, error: null })
+                },
+              }
+            },
+          }
+        },
+      }
+    }
+
     throw new Error(`Unexpected table: ${table}`)
   },
 }
@@ -91,6 +124,8 @@ mock.module('@/lib/env', () => ({
 mock.module('@/lib/slack', () => ({
   buildSlackApprovalMessage: (params) =>
     `reply:${params.developerReply}\napprove:${params.approvalUrl}\ndecline:${params.declineUrl}`,
+  buildSlackIncludedMessage: (params) =>
+    `reply:${params.developerReply}\nincluded:${params.classification}`,
   postSlackMessage: async (...args) => {
     postSlackMessageCalls.push(args)
     if (postSlackMessageError) throw postSlackMessageError
@@ -113,13 +148,19 @@ afterEach(() => {
   requestRecord = {
     id: 'request_123',
     approval_token: 'approval_token_123',
+    classification: 'out_of_scope',
     cost_min: 960,
     cost_max: 1440,
+    effort_min_hours: 12,
+    effort_max_hours: 18,
     final_reply: null,
     reply_tone: 'professional',
     slack_channel_id: 'C_THREAD',
     slack_thread_ts: '1778327089.609469',
     technical_breakdown: 'Online ordering, bookings, loyalty, and reminders all require separate implementation work.',
+    reasoning: 'This adds new product surface area.',
+    timeline_impact_days: 5,
+    tasks: [],
     project: {
       id: 'project_123',
       user_id: 'user_123',
@@ -131,6 +172,8 @@ afterEach(() => {
   postSlackMessageCalls = []
   postSlackMessageResult = { ts: '1778330000.000001' }
   postSlackMessageError = null
+  requestTaskDeleteId = null
+  insertedTaskRows = null
 })
 
 describe('/api/requests/[requestId] PATCH', () => {
@@ -154,6 +197,81 @@ describe('/api/requests/[requestId] PATCH', () => {
       cost_min: 1200,
       cost_max: 1800,
     })
+  })
+
+  it('persists edited breakdown, effort, and task split before sharing', async () => {
+    const response = await PATCH(
+      buildPatchRequest({
+        status: 'sent_to_client',
+        final_reply: 'Please review the updated estimate.',
+        tone: 'professional',
+        technical_breakdown: 'Requires a booking flow, confirmation emails, and admin updates.',
+        effort_min_hours: 10,
+        effort_max_hours: 16,
+        tasks: [
+          {
+            name: 'Booking flow',
+            description: 'Build the booking form and confirmation state.',
+            min_hours: 4,
+            max_hours: 6,
+          },
+          {
+            name: 'Admin updates',
+            description: 'Add reservation management to the dashboard.',
+            min_hours: 6,
+            max_hours: 10,
+          },
+        ],
+      }),
+      { params: Promise.resolve({ requestId: 'request_123' }) }
+    )
+
+    expect(response.status).toBe(200)
+    expect(lastRequestUpdate).toEqual({
+      status: 'sent_to_client',
+      final_reply: 'Please review the updated estimate.',
+      reply_tone: 'professional',
+      technical_breakdown: 'Requires a booking flow, confirmation emails, and admin updates.',
+      effort_min_hours: 10,
+      effort_max_hours: 16,
+      tasks: [
+        {
+          name: 'Booking flow',
+          description: 'Build the booking form and confirmation state.',
+          min_hours: 4,
+          max_hours: 6,
+        },
+        {
+          name: 'Admin updates',
+          description: 'Add reservation management to the dashboard.',
+          min_hours: 6,
+          max_hours: 10,
+        },
+      ],
+    })
+    expect(requestTaskDeleteId).toBe('request_123')
+    expect(insertedTaskRows).toEqual([
+      {
+        request_id: 'request_123',
+        project_id: 'project_123',
+        position: 0,
+        name: 'Booking flow',
+        description: 'Build the booking form and confirmation state.',
+        min_hours: 4,
+        max_hours: 6,
+        status: 'pending',
+      },
+      {
+        request_id: 'request_123',
+        project_id: 'project_123',
+        position: 1,
+        name: 'Admin updates',
+        description: 'Add reservation management to the dashboard.',
+        min_hours: 6,
+        max_hours: 10,
+        status: 'pending',
+      },
+    ])
   })
 
   it('rejects an invalid cost range', async () => {
@@ -302,6 +420,7 @@ describe('/api/requests/[requestId] PATCH', () => {
   it('blocks sending when the AI analysis has no cost range', async () => {
     requestRecord = {
       ...requestRecord,
+      classification: 'in_scope',
       cost_min: null,
       cost_max: null,
     }
@@ -315,12 +434,18 @@ describe('/api/requests/[requestId] PATCH', () => {
       { params: Promise.resolve({ requestId: 'request_123' }) }
     )
 
-    expect(response.status).toBe(422)
-    expect(await response.json()).toEqual({
-      error: 'AI analysis must produce a cost range before Monad can send an approval link in Slack.',
+    expect(response.status).toBe(200)
+    expect(postSlackMessageCalls).toEqual([[
+      'xoxb-test-token',
+      'C_THREAD',
+      'reply:Please review this estimate.\nincluded:in_scope',
+      '1778327089.609469',
+    ]])
+    expect(lastRequestUpdate).toEqual({
+      status: 'accepted_in_scope',
+      final_reply: 'Please review this estimate.',
+      reply_tone: 'professional',
     })
-    expect(postSlackMessageCalls).toHaveLength(0)
-    expect(lastRequestUpdate).toBeNull()
   })
 
   it('blocks sending when the AI analysis has no technical breakdown', async () => {
@@ -340,9 +465,37 @@ describe('/api/requests/[requestId] PATCH', () => {
 
     expect(response.status).toBe(422)
     expect(await response.json()).toEqual({
-      error: 'AI analysis must produce a technical breakdown before Monad can send an approval link in Slack.',
+      error: 'Add a technical breakdown before sharing this request with the client.',
     })
     expect(postSlackMessageCalls).toHaveLength(0)
     expect(lastRequestUpdate).toBeNull()
+  })
+
+  it('shares included work without an approval link when no additional cost is being charged', async () => {
+    const response = await PATCH(
+      buildPatchRequest({
+        status: 'sent_to_client',
+        final_reply: 'We can include this in the current scope.',
+        tone: 'professional',
+        cost_min: 0,
+        cost_max: 0,
+      }),
+      { params: Promise.resolve({ requestId: 'request_123' }) }
+    )
+
+    expect(response.status).toBe(200)
+    expect(postSlackMessageCalls).toEqual([[
+      'xoxb-test-token',
+      'C_THREAD',
+      'reply:We can include this in the current scope.\nincluded:out_of_scope',
+      '1778327089.609469',
+    ]])
+    expect(lastRequestUpdate).toEqual({
+      status: 'accepted_in_scope',
+      final_reply: 'We can include this in the current scope.',
+      reply_tone: 'professional',
+      cost_min: 0,
+      cost_max: 0,
+    })
   })
 })

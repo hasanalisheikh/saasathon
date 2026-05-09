@@ -24,6 +24,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ req
     const currentReply = typeof body?.current_reply === 'string' ? body.current_reply.trim() : ''
     const costMin = readCost(body?.cost_min)
     const costMax = readCost(body?.cost_max)
+    const technicalBreakdownOverride =
+      typeof body?.technical_breakdown === 'string' ? body.technical_breakdown.trim() : undefined
+    const classificationOverride =
+      body?.classification === 'in_scope' ||
+      body?.classification === 'out_of_scope' ||
+      body?.classification === 'ambiguous' ||
+      body?.classification === 'clarification_needed'
+        ? body.classification
+        : undefined
+    const timelineOverride = readEstimate(body?.timeline_impact_days)
 
     if (!REPLY_TONES.includes(tone as ReplyTone)) {
       return NextResponse.json({ error: 'Unsupported reply tone' }, { status: 400 })
@@ -31,6 +41,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ req
 
     if (costMin.invalid || costMax.invalid) {
       return NextResponse.json({ error: 'Cost estimate must use whole dollar amounts.' }, { status: 400 })
+    }
+
+    if (timelineOverride.invalid) {
+      return NextResponse.json({ error: 'Timeline impact must use whole days.' }, { status: 400 })
     }
 
     if (costMin.value !== undefined && costMax.value !== undefined && costMin.value > costMax.value) {
@@ -59,12 +73,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ req
       tone: tone as ReplyTone,
       clientName: (project.client_name as string | null) ?? 'there',
       projectName: (project.name as string | null) ?? 'this project',
-      classification: request.classification ?? 'unknown',
+      classification: classificationOverride ?? request.classification ?? 'unknown',
       clientRequest: request.raw_email_body ?? '',
-      technicalBreakdown: request.technical_breakdown ?? '',
+      technicalBreakdown: technicalBreakdownOverride ?? request.technical_breakdown ?? '',
       currentReply: currentReply || request.final_reply || request.draft_reply || '',
       costRange,
-      timelineDays: request.timeline_impact_days ?? null,
+      timelineDays: timelineOverride.value ?? request.timeline_impact_days ?? null,
       riskLevel: request.risk_level ?? null,
     })
 
@@ -77,6 +91,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ req
 }
 
 function readCost(value: unknown): { value?: number; invalid?: boolean } {
+  if (value === undefined || value === null || value === '') return {}
+
+  const parsed = typeof value === 'number' ? value : Number(value)
+  if (!Number.isInteger(parsed) || parsed < 0) return { invalid: true }
+
+  return { value: parsed }
+}
+
+function readEstimate(value: unknown): { value?: number; invalid?: boolean } {
   if (value === undefined || value === null || value === '') return {}
 
   const parsed = typeof value === 'number' ? value : Number(value)

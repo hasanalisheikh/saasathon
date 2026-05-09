@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAppUrl } from '@/lib/env'
-import { buildSlackApprovalMessage, postSlackMessage } from '@/lib/slack'
+import { buildSlackApprovalMessage, buildSlackIncludedMessage, postSlackMessage } from '@/lib/slack'
+import { replaceRequestTasks } from '@/lib/request-tasks'
 import { createClient } from '@/lib/supabase/server'
-import type { ReplyTone, RequestStatus } from '@/types'
+import type { AITask, Classification, ReplyTone, RequestStatus } from '@/types'
 
 const MANUAL_STATUS_TRANSITIONS: RequestStatus[] = ['accepted_in_scope', 'deferred', 'declined']
 const REPLY_TONES: ReplyTone[] = ['friendly', 'professional', 'firm']
@@ -46,6 +47,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
   const replyTone = typeof body?.tone === 'string' ? body.tone : null
   const costMin = readCost(body?.cost_min)
   const costMax = readCost(body?.cost_max)
+  const effortMin = readEstimate(body?.effort_min_hours)
+  const effortMax = readEstimate(body?.effort_max_hours)
+  const timelineDays = readEstimate(body?.timeline_impact_days)
+  const technicalBreakdown = typeof body?.technical_breakdown === 'string' ? body.technical_breakdown.trim() : undefined
+  const reasoning = typeof body?.reasoning === 'string' ? body.reasoning.trim() : undefined
+  const classification = readClassification(body?.classification)
+  const tasks = readTasks(body?.tasks)
 
   if (!status || (!MANUAL_STATUS_TRANSITIONS.includes(status) && status !== 'sent_to_client')) {
     return NextResponse.json({ error: 'Unsupported status transition' }, { status: 400 })
@@ -59,14 +67,26 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
     return NextResponse.json({ error: 'Cost estimate must use whole dollar amounts.' }, { status: 400 })
   }
 
+  if (effortMin.invalid || effortMax.invalid || timelineDays.invalid) {
+    return NextResponse.json({ error: 'Effort and timeline estimates must use whole numbers.' }, { status: 400 })
+  }
+
   if (costMin.value !== undefined && costMax.value !== undefined && costMin.value > costMax.value) {
     return NextResponse.json({ error: 'Minimum cost cannot be higher than maximum cost.' }, { status: 400 })
+  }
+
+  if (effortMin.value !== undefined && effortMax.value !== undefined && effortMin.value > effortMax.value) {
+    return NextResponse.json({ error: 'Minimum effort cannot be higher than maximum effort.' }, { status: 400 })
+  }
+
+  if (tasks.invalid) {
+    return NextResponse.json({ error: 'Each task needs a name and valid whole-hour estimates.' }, { status: 400 })
   }
 
   const { data: existing } = await supabase
     .from('requests')
     .select(
-      'id, approval_token, cost_min, cost_max, final_reply, reply_tone, slack_channel_id, slack_thread_ts, technical_breakdown, project:projects(id, user_id, slack_channel_id)'
+      'id, approval_token, classification, cost_min, cost_max, effort_min_hours, effort_max_hours, final_reply, reply_tone, slack_channel_id, slack_thread_ts, technical_breakdown, reasoning, timeline_impact_days, tasks, project:projects(id, user_id, slack_channel_id)'
     )
     .eq('id', requestId)
     .single()
@@ -82,31 +102,36 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  let updates: Record<string, string | number | null>
+  const analysisUpdates: Record<string, string | number | null | AITask[] | Classification> = {
+    ...(classification !== undefined ? { classification } : {}),
+    ...(technicalBreakdown !== undefined ? { technical_breakdown: technicalBreakdown || null } : {}),
+    ...(reasoning !== undefined ? { reasoning: reasoning || null } : {}),
+    ...(effortMin.value !== undefined ? { effort_min_hours: effortMin.value } : {}),
+    ...(effortMax.value !== undefined ? { effort_max_hours: effortMax.value } : {}),
+    ...(timelineDays.value !== undefined ? { timeline_impact_days: timelineDays.value } : {}),
+    ...(costMin.value !== undefined ? { cost_min: costMin.value } : {}),
+    ...(costMax.value !== undefined ? { cost_max: costMax.value } : {}),
+    ...(tasks.value !== undefined ? { tasks: tasks.value } : {}),
+  }
+
+  let updates: Record<string, string | number | null | AITask[] | Classification>
 
   if (status === 'accepted_in_scope') {
-    updates = { status, classification: 'in_scope' }
+    updates = { status, classification: 'in_scope', ...analysisUpdates }
   } else if (status === 'sent_to_client') {
     if (!finalReply) {
       return NextResponse.json({ error: 'Add a client-ready reply before sending to Slack.' }, { status: 400 })
     }
 
-    if (!existing.approval_token) {
-      return NextResponse.json({ error: 'This request is missing an approval token.' }, { status: 422 })
-    }
+    const resolvedCostMin = costMin.value ?? existing.cost_min ?? 0
+    const resolvedCostMax = costMax.value ?? existing.cost_max ?? 0
+    const resolvedTechnicalBreakdown = technicalBreakdown ?? existing.technical_breakdown ?? ''
+    const resolvedClassification = classification ?? existing.classification
+    const requiresApproval = resolvedClassification !== 'in_scope' && (resolvedCostMin > 0 || resolvedCostMax > 0)
 
-    const resolvedCostMin = costMin.value ?? existing.cost_min
-    const resolvedCostMax = costMax.value ?? existing.cost_max
-
-    if (resolvedCostMin === null || resolvedCostMax === null) {
+    if (!resolvedTechnicalBreakdown.trim()) {
       return NextResponse.json({
-        error: 'AI analysis must produce a cost range before Monad can send an approval link in Slack.',
-      }, { status: 422 })
-    }
-
-    if (!existing.technical_breakdown) {
-      return NextResponse.json({
-        error: 'AI analysis must produce a technical breakdown before Monad can send an approval link in Slack.',
+        error: 'Add a technical breakdown before sharing this request with the client.',
       }, { status: 422 })
     }
 
@@ -133,17 +158,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
       }, { status: 400 })
     }
 
-    const appUrl = getAppUrl()
-    const approvalUrl = `${appUrl}/approve/${existing.approval_token}`
-    const declineUrl = approvalUrl
-    const message = buildSlackApprovalMessage({
-      developerReply: finalReply,
-      technicalBreakdown: existing.technical_breakdown,
-      costMin: resolvedCostMin,
-      costMax: resolvedCostMax,
-      approvalUrl,
-      declineUrl,
-    })
+    const message = requiresApproval
+      ? (() => {
+          if (!existing.approval_token) {
+            throw new Error('This request is missing an approval token.')
+          }
+
+          const appUrl = getAppUrl()
+          const approvalUrl = `${appUrl}/approve/${existing.approval_token}`
+          const declineUrl = approvalUrl
+          return buildSlackApprovalMessage({
+            developerReply: finalReply,
+            technicalBreakdown: resolvedTechnicalBreakdown,
+            costMin: resolvedCostMin,
+            costMax: resolvedCostMax,
+            approvalUrl,
+            declineUrl,
+          })
+        })()
+      : buildSlackIncludedMessage({
+          developerReply: finalReply,
+          technicalBreakdown: resolvedTechnicalBreakdown,
+          classification: resolvedClassification,
+        })
 
     try {
       const result = await postSlackMessage(
@@ -154,11 +191,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
       )
 
       updates = {
-        status,
+        status: requiresApproval ? status : 'accepted_in_scope',
         final_reply: finalReply,
         ...(replyTone ? { reply_tone: replyTone } : {}),
-        ...(costMin.value !== undefined ? { cost_min: costMin.value } : {}),
-        ...(costMax.value !== undefined ? { cost_max: costMax.value } : {}),
+        ...analysisUpdates,
         ...(!existing.slack_thread_ts
           ? {
               slack_thread_ts: result.ts,
@@ -168,10 +204,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown Slack error'
+      if (message === 'This request is missing an approval token.') {
+        return NextResponse.json({ error: message }, { status: 422 })
+      }
       return NextResponse.json({ error: `Slack delivery failed: ${message}` }, { status: 502 })
     }
   } else {
-    updates = { status }
+    updates = { status, ...analysisUpdates }
   }
 
   const { data, error } = await supabase
@@ -182,6 +221,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (tasks.value !== undefined) {
+    await replaceRequestTasks({
+      supabase,
+      requestId,
+      projectId: project.id,
+      tasks: tasks.value,
+    })
+  }
+
   return NextResponse.json(data)
 }
 
@@ -190,6 +239,60 @@ function readCost(value: unknown): { value?: number; invalid?: boolean } {
 
   const parsed = typeof value === 'number' ? value : Number(value)
   if (!Number.isInteger(parsed) || parsed < 0) return { invalid: true }
+
+  return { value: parsed }
+}
+
+function readEstimate(value: unknown): { value?: number; invalid?: boolean } {
+  if (value === undefined || value === null || value === '') return {}
+
+  const parsed = typeof value === 'number' ? value : Number(value)
+  if (!Number.isInteger(parsed) || parsed < 0) return { invalid: true }
+
+  return { value: parsed }
+}
+
+function readClassification(value: unknown): Classification | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+
+  if (
+    value === 'in_scope' ||
+    value === 'out_of_scope' ||
+    value === 'ambiguous' ||
+    value === 'clarification_needed'
+  ) {
+    return value
+  }
+
+  return undefined
+}
+
+function readTasks(value: unknown): { value?: AITask[]; invalid?: boolean } {
+  if (value === undefined) return {}
+  if (!Array.isArray(value)) return { invalid: true }
+
+  const parsed: AITask[] = []
+
+  for (const task of value) {
+    if (!task || typeof task !== 'object') return { invalid: true }
+
+    const raw = task as Record<string, unknown>
+    const name = typeof raw.name === 'string' ? raw.name.trim() : ''
+    const description = typeof raw.description === 'string' ? raw.description.trim() : ''
+    const minHours = typeof raw.min_hours === 'number' ? raw.min_hours : Number(raw.min_hours)
+    const maxHours = typeof raw.max_hours === 'number' ? raw.max_hours : Number(raw.max_hours)
+
+    if (!name || !Number.isInteger(minHours) || !Number.isInteger(maxHours) || minHours < 0 || maxHours < minHours) {
+      return { invalid: true }
+    }
+
+    parsed.push({
+      name,
+      description,
+      min_hours: minHours,
+      max_hours: maxHours,
+    })
+  }
 
   return { value: parsed }
 }

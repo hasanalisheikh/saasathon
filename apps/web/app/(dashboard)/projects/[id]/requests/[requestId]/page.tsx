@@ -23,11 +23,21 @@ const ANALYSIS_TIMEOUT_MS = 20000
 
 type RequestWithTaskRows = Request & {
   task_rows?: RequestTask[]
+  project?: {
+    hourly_rate?: number | null
+  }
 }
 
-type CostDraft = {
+type EstimateDraft = {
   costMin: string
   costMax: string
+}
+
+type TaskDraft = {
+  description: string
+  max_hours: string
+  min_hours: string
+  name: string
 }
 
 export default function RequestReviewPage() {
@@ -42,6 +52,13 @@ export default function RequestReviewPage() {
   const [costMin, setCostMin] = useState("")
   const [costMax, setCostMax] = useState("")
   const [costTouched, setCostTouched] = useState(false)
+  const [technicalBreakdown, setTechnicalBreakdown] = useState("")
+  const [technicalBreakdownTouched, setTechnicalBreakdownTouched] = useState(false)
+  const [effortMin, setEffortMin] = useState("")
+  const [effortMax, setEffortMax] = useState("")
+  const [effortTouched, setEffortTouched] = useState(false)
+  const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([])
+  const [tasksTouched, setTasksTouched] = useState(false)
   const [generatingReply, setGeneratingReply] = useState(false)
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState("")
@@ -72,7 +89,22 @@ export default function RequestReviewPage() {
       setCostMin(formatCostInput(reqData.cost_min))
       setCostMax(formatCostInput(reqData.cost_max))
     }
-  }, [costTouched, replyTouched, requestId])
+    if (!technicalBreakdownTouched) {
+      setTechnicalBreakdown(reqData.technical_breakdown ?? "")
+    }
+    if (!effortTouched) {
+      setEffortMin(formatEstimateInput(reqData.effort_min_hours))
+      setEffortMax(formatEstimateInput(reqData.effort_max_hours))
+    }
+    if (!tasksTouched) {
+      setTaskDrafts((reqData.tasks ?? []).map((task: Request["tasks"][number]) => ({
+        description: task.description ?? "",
+        max_hours: String(task.max_hours ?? 0),
+        min_hours: String(task.min_hours ?? 0),
+        name: task.name ?? "",
+      })))
+    }
+  }, [costTouched, effortTouched, replyTouched, requestId, tasksTouched, technicalBreakdownTouched])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -153,24 +185,71 @@ export default function RequestReviewPage() {
   }
 
   function costValidationError(min = costMin, max = costMax) {
-    if (request?.classification !== "out_of_scope") return ""
-
+    const hasMin = Boolean(min.trim())
+    const hasMax = Boolean(max.trim())
+    if (!hasMin && !hasMax) return ""
+    if (!hasMin || !hasMax) return "Enter both cost amounts or set both to 0 if this work is included."
     const parsedMin = parseCostInput(min)
     const parsedMax = parseCostInput(max)
 
-    if (parsedMin === null || parsedMax === null) return "Enter both cost amounts before sharing this request."
+    if (parsedMin === null || parsedMax === null) return "Cost amounts must use whole dollars."
     if (parsedMin < 0 || parsedMax < 0) return "Cost amounts cannot be negative."
     if (parsedMin > parsedMax) return "Minimum cost cannot be higher than maximum cost."
 
     return ""
   }
 
-  async function refreshAutoReply(nextTone = tone, nextCost: CostDraft = { costMin, costMax }) {
+  function effortValidationError(min = effortMin, max = effortMax) {
+    const hasMin = Boolean(min.trim())
+    const hasMax = Boolean(max.trim())
+    if (!hasMin && !hasMax) return ""
+    if (!hasMin || !hasMax) return "Enter both effort amounts if you want to override the estimate."
+
+    const parsedMin = parseEstimateInput(min)
+    const parsedMax = parseEstimateInput(max)
+
+    if (parsedMin === null || parsedMax === null) return "Effort estimates must use whole hours."
+    if (parsedMin > parsedMax) return "Minimum effort cannot be higher than maximum effort."
+
+    return ""
+  }
+
+  function tasksValidationError(nextTasks = taskDrafts) {
+    for (const task of nextTasks) {
+      const hasContent = Boolean(
+        task.name.trim() ||
+        task.description.trim() ||
+        task.min_hours.trim() ||
+        task.max_hours.trim()
+      )
+      if (!hasContent) continue
+
+      const min = parseEstimateInput(task.min_hours)
+      const max = parseEstimateInput(task.max_hours)
+      if (!task.name.trim() || min === null || max === null || min > max) {
+        return "Each task needs a name plus valid whole-hour min and max estimates."
+      }
+    }
+
+    return ""
+  }
+
+  async function refreshAutoReply(nextTone = tone, nextCost: EstimateDraft = { costMin, costMax }) {
     if (!request) return
 
     const costError = costValidationError(nextCost.costMin, nextCost.costMax)
+    const effortError = effortValidationError()
+    const taskError = tasksValidationError()
     if (costError) {
       setSendError(costError)
+      return
+    }
+    if (effortError) {
+      setSendError(effortError)
+      return
+    }
+    if (taskError) {
+      setSendError(taskError)
       return
     }
 
@@ -185,6 +264,9 @@ export default function RequestReviewPage() {
           current_reply: reply,
           cost_min: parseCostInput(nextCost.costMin),
           cost_max: parseCostInput(nextCost.costMax),
+          technical_breakdown: technicalBreakdown,
+          classification: request.classification,
+          timeline_impact_days: request.timeline_impact_days,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -226,10 +308,73 @@ export default function RequestReviewPage() {
     }
   }
 
+  function updateEffort(which: "min" | "max", value: string) {
+    const sanitized = value.replace(/[^\d]/g, "")
+    setEffortTouched(true)
+    if (which === "min") {
+      setEffortMin(sanitized)
+    } else {
+      setEffortMax(sanitized)
+    }
+  }
+
+  function updateTask(index: number, field: keyof TaskDraft, value: string) {
+    setTasksTouched(true)
+    setTaskDrafts((current) =>
+      current.map((task, taskIndex) =>
+        taskIndex === index
+          ? {
+              ...task,
+              [field]:
+                field === "min_hours" || field === "max_hours"
+                  ? value.replace(/[^\d]/g, "")
+                  : value,
+            }
+          : task
+      )
+    )
+  }
+
+  function addTask() {
+    setTasksTouched(true)
+    setTaskDrafts((current) => [
+      ...current,
+      { description: "", max_hours: "", min_hours: "", name: "" },
+    ])
+  }
+
+  function removeTask(index: number) {
+    setTasksTouched(true)
+    setTaskDrafts((current) => current.filter((_, taskIndex) => taskIndex !== index))
+  }
+
+  function buildTaskPayload() {
+    return taskDrafts
+      .filter((task) => task.name.trim() || task.description.trim() || task.min_hours.trim() || task.max_hours.trim())
+      .map((task) => ({
+        name: task.name.trim(),
+        description: task.description.trim(),
+        min_hours: parseEstimateInput(task.min_hours) ?? 0,
+        max_hours: parseEstimateInput(task.max_hours) ?? 0,
+      }))
+  }
+
   async function markReadyToShare() {
+    if (!request) return
+
     const costError = costValidationError()
+    const effortError = effortValidationError()
+    const taskError = tasksValidationError()
     if (costError) {
       setSendError(costError)
+      return
+    }
+    if (effortError) {
+      setSendError(effortError)
+      return
+    }
+    if (taskError) {
+      setSendError(taskError)
       return
     }
 
@@ -245,6 +390,11 @@ export default function RequestReviewPage() {
           tone,
           cost_min: parseCostInput(costMin),
           cost_max: parseCostInput(costMax),
+          technical_breakdown: technicalBreakdown,
+          effort_min_hours: parseEstimateInput(effortMin),
+          effort_max_hours: parseEstimateInput(effortMax),
+          tasks: buildTaskPayload(),
+          classification: request.classification,
         }),
       })
       if (!res.ok) {
@@ -261,11 +411,31 @@ export default function RequestReviewPage() {
   }
 
   async function updateStatus(status: string) {
+    if (!request) return
+
+    const effortError = effortValidationError()
+    const taskError = tasksValidationError()
+    if (effortError) {
+      setSendError(effortError)
+      return
+    }
+    if (taskError) {
+      setSendError(taskError)
+      return
+    }
+
     setSendError("")
     const res = await fetch(`/api/requests/${requestId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({
+        status,
+        technical_breakdown: technicalBreakdown,
+        effort_min_hours: parseEstimateInput(effortMin),
+        effort_max_hours: parseEstimateInput(effortMax),
+        tasks: buildTaskPayload(),
+        classification: request.classification,
+      }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
@@ -288,6 +458,11 @@ export default function RequestReviewPage() {
   const completedTaskCount = taskRows.filter((task) => task.status === "completed").length
   const progressPercent = taskRows.length ? Math.round((completedTaskCount / taskRows.length) * 100) : 0
   const costError = costValidationError()
+  const effortError = effortValidationError()
+  const taskError = tasksValidationError()
+  const requiresApproval =
+    request.classification !== "in_scope" &&
+    ((parseCostInput(costMin) ?? request.cost_min ?? 0) > 0 || (parseCostInput(costMax) ?? request.cost_max ?? 0) > 0)
   const classLabel: Record<string, string> = {
     out_of_scope: "OUT OF SCOPE",
     in_scope: "IN SCOPE",
@@ -448,16 +623,20 @@ export default function RequestReviewPage() {
           )}
 
           {/* Technical breakdown */}
-          {request.technical_breakdown && (
-            <div>
-              <p className="text-xs uppercase tracking-wider mb-2 text-muted-foreground">
-                What this actually involves
-              </p>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {request.technical_breakdown}
-              </p>
-            </div>
-          )}
+          <div>
+            <p className="text-xs uppercase tracking-wider mb-2 text-muted-foreground">
+              What this actually involves
+            </p>
+            <Textarea
+              value={technicalBreakdown}
+              onChange={(event) => {
+                setTechnicalBreakdownTouched(true)
+                setTechnicalBreakdown(event.target.value)
+              }}
+              rows={5}
+              placeholder="Summarise the implementation impact in plain English."
+            />
+          </div>
 
           {request.reasoning && (
             <div>
@@ -471,28 +650,59 @@ export default function RequestReviewPage() {
           )}
 
           {/* Task breakdown */}
-          {request.tasks?.length > 0 && (
-            <div>
-              <p className="text-xs uppercase tracking-wider mb-2 text-muted-foreground">
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
                 Task Breakdown
               </p>
-              <div className="space-y-1">
-                {request.tasks.map((task, i) => (
-                  <div key={i} className="flex items-start justify-between gap-2 py-1.5 border-b border-border last:border-0">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-foreground">{task.name}</p>
-                      {task.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                      {task.min_hours}–{task.max_hours}h
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <Button variant="outline" size="sm" onClick={addTask}>
+                Add task
+              </Button>
             </div>
-          )}
+            <div className="space-y-3">
+              {taskDrafts.map((task, i) => (
+                <Card key={i} size="sm">
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={task.name}
+                        onChange={(event) => updateTask(i, "name", event.target.value)}
+                        placeholder="Task name"
+                      />
+                      <Button variant="outline" size="sm" onClick={() => removeTask(i)}>
+                        Remove
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={task.description}
+                      onChange={(event) => updateTask(i, "description", event.target.value)}
+                      rows={2}
+                      placeholder="Task description"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        inputMode="numeric"
+                        value={task.min_hours}
+                        onChange={(event) => updateTask(i, "min_hours", event.target.value)}
+                        placeholder="Min hours"
+                      />
+                      <Input
+                        inputMode="numeric"
+                        value={task.max_hours}
+                        onChange={(event) => updateTask(i, "max_hours", event.target.value)}
+                        placeholder="Max hours"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {taskDrafts.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No tasks yet. Add the task split you want to track and share.
+                </p>
+              )}
+            </div>
+          </div>
 
           {taskRows.length > 0 && (
             <div>
@@ -529,44 +739,53 @@ export default function RequestReviewPage() {
           )}
 
           {/* Effort & Cost */}
-          {request.classification === "out_of_scope" && (
-            <Card size="sm">
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-xs mb-1 text-muted-foreground/50">Effort</p>
-                  <p className="text-sm font-ui text-muted-foreground">
-                    {request.effort_min_hours !== null && request.effort_max_hours !== null
-                      ? `${request.effort_min_hours}-${request.effort_max_hours} hrs`
-                      : "Not estimated"}
-                  </p>
+          <Card size="sm">
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-xs mb-2 text-muted-foreground/50">Estimated effort</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    inputMode="numeric"
+                    aria-label="Minimum estimated effort"
+                    value={effortMin}
+                    onChange={(event) => updateEffort("min", event.target.value)}
+                    placeholder="Min hours"
+                  />
+                  <Input
+                    inputMode="numeric"
+                    aria-label="Maximum estimated effort"
+                    value={effortMax}
+                    onChange={(event) => updateEffort("max", event.target.value)}
+                    placeholder="Max hours"
+                  />
                 </div>
-                <div>
-                  <p className="text-xs mb-2 text-muted-foreground/50">Cost sent to client</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      inputMode="numeric"
-                      aria-label="Minimum estimated cost"
-                      value={costMin}
-                      onChange={(event) => updateCost("min", event.target.value)}
-                      onBlur={regenerateAfterCostChange}
-                      placeholder="Min"
-                    />
-                    <Input
-                      inputMode="numeric"
-                      aria-label="Maximum estimated cost"
-                      value={costMax}
-                      onChange={(event) => updateCost("max", event.target.value)}
-                      onBlur={regenerateAfterCostChange}
-                      placeholder="Max"
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    This overrides the estimate shown on the approval page and in client email.
-                  </p>
+              </div>
+              <div>
+                <p className="text-xs mb-2 text-muted-foreground/50">Additional cost to client</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    inputMode="numeric"
+                    aria-label="Minimum estimated cost"
+                    value={costMin}
+                    onChange={(event) => updateCost("min", event.target.value)}
+                    onBlur={regenerateAfterCostChange}
+                    placeholder="Min"
+                  />
+                  <Input
+                    inputMode="numeric"
+                    aria-label="Maximum estimated cost"
+                    value={costMax}
+                    onChange={(event) => updateCost("max", event.target.value)}
+                    onBlur={regenerateAfterCostChange}
+                    placeholder="Max"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Set both amounts to 0 to include this work without sending an approval request.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Timeline + Risk */}
           <div className="flex gap-3">
@@ -620,10 +839,10 @@ export default function RequestReviewPage() {
           rows={8}
         />
 
-        {(sendError || costError) && (
+        {(sendError || costError || effortError || taskError) && (
           <Card className="border-destructive/30 bg-destructive/10">
             <CardContent className="flex gap-3 items-center">
-              <span className="text-destructive text-xs">{sendError || costError}</span>
+              <span className="text-destructive text-xs">{sendError || costError || effortError || taskError}</span>
             </CardContent>
           </Card>
         )}
@@ -640,8 +859,11 @@ export default function RequestReviewPage() {
               Decline
             </Button>
           </div>
-          <Button onClick={markReadyToShare} disabled={sending || generatingReply || !reply.trim() || Boolean(costError)}>
-            {sending ? "Sending to Slack..." : "Mark ready to share →"}
+          <Button
+            onClick={markReadyToShare}
+            disabled={sending || generatingReply || !reply.trim() || Boolean(costError) || Boolean(effortError) || Boolean(taskError)}
+          >
+            {sending ? "Sending to Slack..." : requiresApproval ? "Send for approval →" : "Share with client →"}
           </Button>
         </div>
       </div>
@@ -654,6 +876,17 @@ function formatCostInput(value: number | null) {
 }
 
 function parseCostInput(value: string) {
+  if (!value.trim()) return null
+
+  const parsed = Number(value)
+  return Number.isInteger(parsed) ? parsed : null
+}
+
+function formatEstimateInput(value: number | null) {
+  return typeof value === "number" ? String(value) : ""
+}
+
+function parseEstimateInput(value: string) {
   if (!value.trim()) return null
 
   const parsed = Number(value)

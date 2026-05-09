@@ -140,12 +140,31 @@ export type SlackApprovalMessageParams = {
   declineUrl: string
 }
 
+export type SlackIncludedMessageParams = {
+  developerReply: string
+  technicalBreakdown: string
+  classification: string | null
+}
+
 export function buildSlackApprovalMessage(params: SlackApprovalMessageParams): string {
   return [
     params.developerReply.trim(),
     `What this involves: ${params.technicalBreakdown.trim()}`,
     `This work is estimated at $${params.costMin.toLocaleString()}-$${params.costMax.toLocaleString()} and is outside the original project scope.`,
     `You can accept or decline this modification from here: ${params.approvalUrl}`,
+  ].join('\n\n')
+}
+
+export function buildSlackIncludedMessage(params: SlackIncludedMessageParams): string {
+  const summaryLine =
+    params.classification === 'in_scope'
+      ? 'This work is covered within the current project scope.'
+      : 'This change is included and does not require any additional approval.'
+
+  return [
+    params.developerReply.trim(),
+    `What this involves: ${params.technicalBreakdown.trim()}`,
+    summaryLine,
   ].join('\n\n')
 }
 

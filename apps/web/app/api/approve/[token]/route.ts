@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getAppUrl } from '@/lib/env'
 import { buildIssueBody, createIssue, parseGitHubInstallationId } from '@/lib/github'
 import { ensureRequestTasks } from '@/lib/request-tasks'
-import { sendDeveloperApprovalEmail } from '@/lib/resend'
+import { sendDeveloperApprovalEmail, sendDeveloperDeclineEmail } from '@/lib/resend'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   try {
@@ -36,6 +36,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
         status: 'declined',
         declined_at: now,
       }).eq('approval_token', token)
+
+      try {
+        const project = request.project as Record<string, unknown>
+        const appUrl = getAppUrl()
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', project.user_id as string)
+          .single()
+
+        if (profile?.email) {
+          await sendDeveloperDeclineEmail({
+            to: profile.email,
+            clientName: (project.client_name as string | undefined) ?? 'Your client',
+            requestSummary: request.raw_email_subject ?? 'Feature request',
+            declinedAt: now,
+            projectName: project.name as string,
+            requestUrl: `${appUrl}/projects/${project.id as string}/requests/${request.id}`,
+          })
+        }
+      } catch (err) {
+        console.error('Developer decline notification failed:', err)
+      }
 
       return NextResponse.redirect(new URL(`/approve/${token}`, req.url))
     }

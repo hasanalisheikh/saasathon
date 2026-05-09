@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { afterEach, describe, expect, it } from 'bun:test'
-import { buildSlackApprovalMessage, getSlackUserDisplayName, postSlackMessage } from './slack'
+import { buildSlackApprovalMessage, buildSlackIncludedMessage, getSlackUserDisplayName, postSlackMessage } from './slack'
 
 const originalFetch = globalThis.fetch
 let fetchCalls = []
@@ -57,6 +57,16 @@ describe('buildSlackApprovalMessage', () => {
       approvalUrl: 'https://monad.app/approve/token_123',
       declineUrl: 'https://monad.app/approve/token_123',
     })).toContain('You can accept or decline this modification from here: https://monad.app/approve/token_123')
+  })
+})
+
+describe('buildSlackIncludedMessage', () => {
+  it('does not include pricing or approval links for included work', () => {
+    expect(buildSlackIncludedMessage({
+      developerReply: 'We can include this in the current scope.',
+      technicalBreakdown: 'Small content and layout updates on the pricing page.',
+      classification: 'in_scope',
+    })).toContain('This work is covered within the current project scope.')
   })
 })
 
