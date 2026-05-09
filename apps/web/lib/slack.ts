@@ -201,6 +201,32 @@ export async function listSlackChannels(botToken: string): Promise<SlackChannel[
   return (data.channels ?? []).sort((a, b) => a.name.localeCompare(b.name))
 }
 
+export async function getSlackUserDisplayName(botToken: string, userId: string): Promise<string> {
+  const params = new URLSearchParams({ user: userId })
+  const data = await slackApiRequest<{
+    user?: {
+      name?: string
+      profile?: {
+        display_name?: string
+        real_name?: string
+      }
+      real_name?: string
+    }
+  }>(
+    botToken,
+    `users.info?${params.toString()}`
+  )
+
+  const candidates = [
+    data.user?.profile?.display_name,
+    data.user?.profile?.real_name,
+    data.user?.real_name,
+    data.user?.name,
+  ]
+
+  return candidates.map((value) => value?.trim() ?? '').find(Boolean) ?? userId
+}
+
 type SlackChannelInfo = {
   id: string
   is_member: boolean

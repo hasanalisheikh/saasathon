@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { afterEach, describe, expect, it } from 'bun:test'
-import { postSlackMessage } from './slack'
+import { getSlackUserDisplayName, postSlackMessage } from './slack'
 
 const originalFetch = globalThis.fetch
 let fetchCalls = []
@@ -44,5 +44,46 @@ describe('postSlackMessage', () => {
       text: 'hello',
       thread_ts: '1778327089.609469',
     })
+  })
+})
+
+describe('getSlackUserDisplayName', () => {
+  it('prefers Slack display_name over other user fields', async () => {
+    globalThis.fetch = async (...args) => {
+      fetchCalls.push(args)
+      return new Response(JSON.stringify({
+        ok: true,
+        user: {
+          name: 'jamie-dev',
+          real_name: 'Jamie Remote',
+          profile: {
+            display_name: 'Jamie',
+            real_name: 'Jamie Profile',
+          },
+        },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    await expect(getSlackUserDisplayName('xoxb-test', 'U123')).resolves.toBe('Jamie')
+  })
+
+  it('falls back to the Slack user id when no name fields are populated', async () => {
+    globalThis.fetch = async (...args) => {
+      fetchCalls.push(args)
+      return new Response(JSON.stringify({
+        ok: true,
+        user: {
+          profile: {},
+        },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    await expect(getSlackUserDisplayName('xoxb-test', 'U123')).resolves.toBe('U123')
   })
 })

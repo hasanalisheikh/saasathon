@@ -3,7 +3,12 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { generateSlackIntakeReply } from '@/lib/ai'
 import { getAppUrl } from '@/lib/env'
 import { isMockAIEnabled } from '@/lib/env'
-import { verifySlackSignature, isSlackConfigured, postSlackMessage } from '@/lib/slack'
+import {
+  getSlackUserDisplayName,
+  verifySlackSignature,
+  isSlackConfigured,
+  postSlackMessage,
+} from '@/lib/slack'
 import { buildSlackFallbackReply } from './reply'
 
 export async function POST(req: NextRequest) {
@@ -112,11 +117,18 @@ async function processSlackEvent(params: {
 
     if (!project) return
 
+    const requesterName = profile.slack_access_token
+      ? await getSlackUserDisplayName(profile.slack_access_token, params.user).catch((error) => {
+          console.error('Failed to resolve Slack requester name:', error)
+          return params.user
+        })
+      : params.user
+
     const { data: request, error } = await supabase
       .from('requests')
       .insert({
         project_id: project.id,
-        raw_email_from: params.user,
+        raw_email_from: requesterName,
         raw_email_subject: null,
         raw_email_body: params.text,
         source: 'slack',
