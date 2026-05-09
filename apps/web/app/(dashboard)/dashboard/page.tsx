@@ -56,6 +56,22 @@ type DashboardRequest = {
   } | null
 }
 
+const projectsTableClassName = "min-w-[900px] table-fixed text-sm"
+const projectsTableHeadClassName = "h-9 px-3 text-sm/5 font-normal text-muted-foreground"
+
+function ProjectsTableColumnGroup() {
+  return (
+    <colgroup>
+      <col className="w-64" />
+      <col className="w-52" />
+      <col className="w-32" />
+      <col className="w-24" />
+      <col className="w-32" />
+      <col className="w-[28%]" />
+    </colgroup>
+  )
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -159,7 +175,7 @@ function ProjectsAtGlance({ projects }: { projects: DashboardProject[] }) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold tracking-tight">Projects at a Glance</h2>
+        <h2 className="text-lg font-semibold">Projects at a Glance</h2>
         {projects.length > 0 ? (
           <Badge variant="outline" className="text-muted-foreground">
             {projects.length}
@@ -179,25 +195,26 @@ function ProjectsAtGlance({ projects }: { projects: DashboardProject[] }) {
       ) : (
         <div className="overflow-hidden rounded-md border border-border/60 bg-muted/15">
           <div className="max-h-[336px] overflow-y-auto">
-            <Table className="text-sm">
+            <Table className={projectsTableClassName}>
+              <ProjectsTableColumnGroup />
               <TableHeader>
                 <TableRow className="border-border/60 bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="h-9 min-w-48 px-4 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={`${projectsTableHeadClassName} px-4`}>
                     Project
                   </TableHead>
-                  <TableHead className="h-9 min-w-40 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={projectsTableHeadClassName}>
                     Client
                   </TableHead>
-                  <TableHead className="h-9 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={projectsTableHeadClassName}>
                     Status
                   </TableHead>
-                  <TableHead className="h-9 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={projectsTableHeadClassName}>
                     Active
                   </TableHead>
-                  <TableHead className="h-9 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={projectsTableHeadClassName}>
                     Protected
                   </TableHead>
-                  <TableHead className="h-9 min-w-48 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={projectsTableHeadClassName}>
                     Repository
                   </TableHead>
                 </TableRow>

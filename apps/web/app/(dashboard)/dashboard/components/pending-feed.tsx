@@ -21,6 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
+import {
+  RequestTableColumnGroup,
+  requestTableClassName,
+  requestTableHeadClassName,
+} from "./request-table-layout"
 
 type PendingRequest = {
   id: string
@@ -49,7 +54,7 @@ export function PendingFeed({ requests }: PendingFeedProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-semibold tracking-tight">Pending Client Approval</h2>
+        <h2 className="text-lg font-semibold">Pending Client Approval</h2>
         {requests.length > 0 ? (
           <Badge variant="outline" className="text-muted-foreground">
             {requests.length}
@@ -69,28 +74,29 @@ export function PendingFeed({ requests }: PendingFeedProps) {
       ) : (
         <div className="overflow-hidden rounded-md border border-border/60 bg-muted/15">
           <div className="max-h-[336px] overflow-y-auto">
-            <Table className="text-sm">
+            <Table className={requestTableClassName}>
+              <RequestTableColumnGroup />
               <TableHeader>
                 <TableRow className="border-border/60 bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="h-9 w-12 pl-4 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={`${requestTableHeadClassName} pl-4`}>
                     Type
                   </TableHead>
-                  <TableHead className="h-9 min-w-40 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={requestTableHeadClassName}>
                     Client
                   </TableHead>
-                  <TableHead className="h-9 min-w-72 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={requestTableHeadClassName}>
                     Request
                   </TableHead>
-                  <TableHead className="h-9 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={requestTableHeadClassName}>
                     State
                   </TableHead>
-                  <TableHead className="h-9 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={requestTableHeadClassName}>
                     Scope
                   </TableHead>
-                  <TableHead className="h-9 px-3 text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={requestTableHeadClassName}>
                     Estimate
                   </TableHead>
-                  <TableHead className="h-9 px-3 text-right text-sm/5 font-normal text-muted-foreground">
+                  <TableHead className={`${requestTableHeadClassName} text-right`}>
                     Updated
                   </TableHead>
                 </TableRow>

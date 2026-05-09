@@ -837,7 +837,7 @@ function BrowseCatalogue({
   return (
     <div className="space-y-8">
       <div className="space-y-4">
-        <h2 className="text-lg font-medium tracking-tight">Project Tracking</h2>
+        <h2 className="text-lg font-medium">Project Tracking</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {projectTrackingCatalogue.map((item) => (
             <CatalogueCard key={item.title} {...item} />
@@ -846,7 +846,7 @@ function BrowseCatalogue({
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-lg font-medium tracking-tight">Client Channels</h2>
+        <h2 className="text-lg font-medium">Client Channels</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {clientChannelCatalogue.map((item) => (
             <CatalogueCard key={item.title} {...item} />

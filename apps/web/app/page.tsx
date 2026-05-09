@@ -126,7 +126,7 @@ export default function LandingPage() {
         <div className="relative flex flex-1 items-center px-5 py-6 sm:py-8">
           <HeroSignal />
           <div className="relative z-10 mx-auto max-w-3xl text-center">
-            <h1 className="font-sans text-5xl font-bold tracking-tight leading-none sm:text-[4.4rem] sm:leading-15">
+            <h1 className="text-5xl font-bold leading-none sm:text-[4.4rem] sm:leading-15">
               Scope creep control.
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-[17px] leading-6 text-muted-foreground">
@@ -195,7 +195,7 @@ export default function LandingPage() {
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-4xl font-bold tracking-tight text-foreground">{stat.value}</p>
+                    <p className="text-4xl font-bold text-foreground">{stat.value}</p>
                     <ExternalLink className="mt-1 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-[#097fe8]" />
                   </div>
                   <h3 className="mt-5 text-sm font-bold leading-snug text-foreground">{stat.title}</h3>

@@ -117,7 +117,7 @@ function CalendarOverview({ events }: CalendarOverviewProps) {
         <div className="grid gap-6 lg:grid-cols-[minmax(18rem,21rem)_1fr]">
           <div className="flex flex-col">
             <div className="mb-3 flex h-6 items-center">
-              <h3 className="font-semibold leading-none tracking-tight">Request history</h3>
+              <h3 className="font-semibold leading-none">Request history</h3>
             </div>
             <div className="rounded-md border bg-muted/20 p-3">
               <Calendar

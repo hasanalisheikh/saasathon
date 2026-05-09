@@ -72,7 +72,7 @@ export function DashboardAnalytics({ classificationData, conversionRate, totalRe
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-1">
-            <span className="text-5xl font-semibold tracking-tight text-amber-500">{conversionRate}%</span>
+            <span className="text-5xl font-semibold text-amber-500">{conversionRate}%</span>
             <span className="text-sm text-muted-foreground">
               of out-of-scope work caught by Monad gets approved and paid by your clients.
             </span>
