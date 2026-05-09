@@ -3,8 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import { appendGitHubStatus } from '@/lib/github-connect'
 import { isGitHubAppConfigured } from '@/lib/github-config'
 import {
+  buildGitHubAppInstallUrl,
   decodeGitHubAppState,
+  encodeGitHubAppState,
+  encodeGitHubInstallationSelectionState,
   exchangeCodeForGitHubUserToken,
+  GITHUB_APP_INSTALLATIONS_COOKIE,
   GITHUB_APP_STATE_COOKIE,
   listUserInstallations,
   normalizeGitHubReturnTo,
@@ -13,10 +17,17 @@ import {
 function buildRedirect(
   req: NextRequest,
   returnTo: string,
-  status: 'app_not_configured' | 'auth_failed' | 'installation_created'
+  status:
+    | 'app_not_configured'
+    | 'auth_failed'
+    | 'installation_created'
+    | 'installation_selection_required'
 ) {
   const response = NextResponse.redirect(new URL(appendGitHubStatus(returnTo, status), req.url))
   response.cookies.delete(GITHUB_APP_STATE_COOKIE)
+  if (status !== 'installation_selection_required') {
+    response.cookies.delete(GITHUB_APP_INSTALLATIONS_COOKIE)
+  }
   return response
 }
 
@@ -42,19 +53,62 @@ export async function GET(req: NextRequest) {
     !isGitHubAppConfigured() ||
     !code ||
     !currentState ||
-    !currentState.installationId ||
     currentState.userId !== user.id ||
-    !cookieNonce ||
-    cookieNonce !== currentState.nonce
+    (cookieNonce && cookieNonce !== currentState.nonce)
   ) {
     return buildRedirect(req, fallbackReturnTo, isGitHubAppConfigured() ? 'auth_failed' : 'app_not_configured')
   }
 
   try {
     const userToken = await exchangeCodeForGitHubUserToken(code)
-    const installationIds = await listUserInstallations(userToken)
+    const installations = await listUserInstallations(userToken)
 
-    if (!installationIds.includes(currentState.installationId)) {
+    if (!currentState.installationId) {
+      if (installations.length === 0) {
+        const restartState = encodeGitHubAppState({
+          ...currentState,
+          flow: 'install',
+          installationId: null,
+        })
+
+        const response = NextResponse.redirect(buildGitHubAppInstallUrl(restartState))
+        response.cookies.set({
+          name: GITHUB_APP_STATE_COOKIE,
+          value: currentState.nonce,
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: req.nextUrl.protocol === 'https:',
+          maxAge: 60 * 10,
+          path: '/',
+        })
+        response.cookies.delete(GITHUB_APP_INSTALLATIONS_COOKIE)
+        return response
+      }
+
+      if (installations.length > 1) {
+        const response = buildRedirect(req, fallbackReturnTo, 'installation_selection_required')
+        response.cookies.set({
+          name: GITHUB_APP_INSTALLATIONS_COOKIE,
+          value: encodeGitHubInstallationSelectionState({
+            installations,
+            nonce: currentState.nonce,
+            projectId: currentState.projectId,
+            returnTo: currentState.returnTo,
+            userId: currentState.userId,
+          }),
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: req.nextUrl.protocol === 'https:',
+          maxAge: 60 * 10,
+          path: '/',
+        })
+        return response
+      }
+
+      currentState.installationId = installations[0]!.id
+    }
+
+    if (!installations.some((installation) => installation.id === currentState.installationId)) {
       return buildRedirect(req, fallbackReturnTo, 'auth_failed')
     }
 

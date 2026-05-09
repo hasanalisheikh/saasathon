@@ -17,6 +17,12 @@ type Repo = {
   private: boolean
 }
 
+type InstallationOption = {
+  accountLogin: string | null
+  id: string
+  targetType: string | null
+}
+
 type GitHubRepoLinkerProps = {
   connectHref: string
   githubAppReady: boolean
@@ -88,9 +94,13 @@ export function GitHubRepoLinker({
 }: GitHubRepoLinkerProps) {
   const router = useRouter()
   const canLoadRepos = githubAppReady && hasGitHubInstallation
+  const canLoadInstallationOptions = githubAppReady && !hasGitHubInstallation
   const [repos, setRepos] = useState<Repo[]>([])
-  const [loading, setLoading] = useState(canLoadRepos)
+  const [installationOptions, setInstallationOptions] = useState<InstallationOption[]>([])
+  const [loadingRepos, setLoadingRepos] = useState(canLoadRepos)
+  const [loadingInstallations, setLoadingInstallations] = useState(canLoadInstallationOptions)
   const [error, setError] = useState<string | null>(null)
+  const [attachingInstallation, setAttachingInstallation] = useState<string | null>(null)
   const [linking, setLinking] = useState<string | null>(null)
   const [query, setQuery] = useState('')
 
@@ -100,8 +110,11 @@ export function GitHubRepoLinker({
     let cancelled = false
 
     if (!canLoadRepos) {
+      setLoadingRepos(false)
       return
     }
+
+    setLoadingRepos(true)
 
     fetch(`/api/github/repos?projectId=${projectId}`)
       .then(async (response) => {
@@ -121,7 +134,7 @@ export function GitHubRepoLinker({
       })
       .finally(() => {
         if (!cancelled) {
-          setLoading(false)
+          setLoadingRepos(false)
         }
       })
 
@@ -129,6 +142,44 @@ export function GitHubRepoLinker({
       cancelled = true
     }
   }, [canLoadRepos, projectId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!canLoadInstallationOptions) {
+      setLoadingInstallations(false)
+      setInstallationOptions([])
+      return
+    }
+
+    setLoadingInstallations(true)
+
+    fetch(`/api/github/installations?projectId=${projectId}`)
+      .then(async (response) => {
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error ?? 'Failed to load GitHub installations')
+        }
+
+        if (!cancelled) {
+          setInstallationOptions(Array.isArray(data) ? data : [])
+        }
+      })
+      .catch((err: Error) => {
+        if (cancelled) return
+        setError(err.message)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingInstallations(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [canLoadInstallationOptions, projectId])
 
   const filteredRepos = useMemo(
     () => repos.filter((repo) => repo.name.toLowerCase().includes(query.toLowerCase())),
@@ -163,6 +214,32 @@ export function GitHubRepoLinker({
       setError(message)
       toast.error(message)
       setLinking(null)
+    }
+  }
+
+  async function handleAttachInstallation(installation: InstallationOption) {
+    setAttachingInstallation(installation.id)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/github/installations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ installationId: installation.id, projectId }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Failed to attach GitHub installation')
+      }
+
+      toast.success(`Connected ${installation.accountLogin ?? 'GitHub installation'}`)
+      router.refresh()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to attach GitHub installation'
+      setError(message)
+      toast.error(message)
+      setAttachingInstallation(null)
     }
   }
 
@@ -203,15 +280,56 @@ export function GitHubRepoLinker({
         {statusNotice && <StatusNotice message={statusNotice.text} tone={statusNotice.tone} />}
         <Card size="sm">
           <CardContent className="space-y-3">
-            <div className="flex items-start gap-3">
-              <Icon icon="logos:github-icon" className="mt-0.5 size-5 shrink-0" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Install the GitHub App first</p>
-                <p className="text-sm text-muted-foreground">
-                  Monad needs the GitHub App installed before it can list repositories for {projectName ?? 'this project'}.
-                </p>
+            {loadingInstallations ? (
+              <div className="flex items-center justify-center rounded-lg border border-border/80 px-4 py-8 text-sm text-muted-foreground">
+                <Loader2Icon className="mr-2 size-4 animate-spin" />
+                Checking for existing GitHub installations...
               </div>
-            </div>
+            ) : installationOptions.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <Icon icon="logos:github-icon" className="mt-0.5 size-5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Use an existing GitHub App installation</p>
+                    <p className="text-sm text-muted-foreground">
+                      GitHub already knows about one or more Monad installations you can access. Choose the installation for {projectName ?? 'this project'} and then pick a repository.
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  {installationOptions.map((installation) => (
+                    <button
+                      key={installation.id}
+                      onClick={() => handleAttachInstallation(installation)}
+                      disabled={Boolean(attachingInstallation)}
+                      className="flex w-full items-center justify-between rounded-lg border border-border/80 bg-background px-4 py-3 text-left transition-colors hover:border-primary/30 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <div className="flex min-w-0 flex-col">
+                        <span className="text-sm font-medium">
+                          {installation.accountLogin ?? 'GitHub installation'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {installation.targetType ?? 'GitHub account'} · installation #{installation.id}
+                        </span>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {attachingInstallation === installation.id ? 'Connecting...' : 'Use installation'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <Icon icon="logos:github-icon" className="mt-0.5 size-5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Install the GitHub App first</p>
+                  <p className="text-sm text-muted-foreground">
+                    Monad needs the GitHub App installed before it can list repositories for {projectName ?? 'this project'}.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-end gap-2">
               {onCancel && (
                 <Button variant="ghost" onClick={onCancel}>
@@ -219,7 +337,7 @@ export function GitHubRepoLinker({
                 </Button>
               )}
               <Button render={<Link href={connectHref} />} nativeButton={false}>
-                Install GitHub App
+                {installationOptions.length > 0 ? 'Authorize or install another GitHub App' : 'Install GitHub App'}
               </Button>
             </div>
           </CardContent>
@@ -251,7 +369,7 @@ export function GitHubRepoLinker({
       />
 
       <div className="space-y-1.5">
-        {canLoadRepos && loading ? (
+        {canLoadRepos && loadingRepos ? (
           <div className="flex items-center justify-center rounded-lg border border-border/80 px-4 py-8 text-sm text-muted-foreground">
             <Loader2Icon className="mr-2 size-4 animate-spin" />
             Loading repositories...

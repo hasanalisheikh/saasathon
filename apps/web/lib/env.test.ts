@@ -11,6 +11,7 @@ import {
   isMockAIEnabled,
   isPostmarkConfigured,
   isResendConfigured,
+  readEnv,
 } from '@/lib/env'
 import { restoreEnv, snapshotEnv } from '@/test-utils/env'
 
@@ -23,6 +24,12 @@ const managedKeys = [
   'RESEND_API_KEY',
   'RESEND_FROM_EMAIL',
   'POSTMARK_INBOUND_WEBHOOK_TOKEN',
+  'GITHUB_APP_PRIVATE_KEY',
+  'GITHUB_PRIVATE_KEY',
+  'GITHUB_APP_SLUG',
+  'NEXT_PUBLIC_GITHUB_APP_SLUG',
+  'GITHUB_APP_WEBHOOK_SECRET',
+  'GITHUB_WEBHOOK_SECRET',
 ]
 
 const originalEnv = snapshotEnv(managedKeys)
@@ -47,6 +54,17 @@ describe('env helpers', () => {
   it('normalizes configured env values', () => {
     process.env.OPENROUTER_API_KEY = '  sk-or-v1-real-key  '
     expect(getConfiguredEnv('OPENROUTER_API_KEY')).toBe('sk-or-v1-real-key')
+  })
+
+  it('reads GitHub env aliases during rollout', () => {
+    process.env.GITHUB_PRIVATE_KEY = '  -----BEGIN PRIVATE KEY-----\\nreal\\n-----END PRIVATE KEY-----  '
+    process.env.NEXT_PUBLIC_GITHUB_APP_SLUG = ' monad-saasathon '
+    process.env.GITHUB_WEBHOOK_SECRET = ' webhook-secret '
+
+    expect(readEnv('GITHUB_APP_PRIVATE_KEY')).toBe('-----BEGIN PRIVATE KEY-----\\nreal\\n-----END PRIVATE KEY-----')
+    expect(getConfiguredEnv('GITHUB_APP_PRIVATE_KEY')).toBe('-----BEGIN PRIVATE KEY-----\\nreal\\n-----END PRIVATE KEY-----')
+    expect(getConfiguredEnv('GITHUB_APP_SLUG')).toBe('monad-saasathon')
+    expect(getConfiguredEnv('GITHUB_APP_WEBHOOK_SECRET')).toBe('webhook-secret')
   })
 
   it('treats mock AI as configured AI', () => {

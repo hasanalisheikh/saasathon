@@ -10,8 +10,11 @@ const managedKeys = [
   'GITHUB_APP_CLIENT_ID',
   'GITHUB_APP_CLIENT_SECRET',
   'GITHUB_APP_PRIVATE_KEY',
+  'GITHUB_PRIVATE_KEY',
   'GITHUB_APP_SLUG',
+  'NEXT_PUBLIC_GITHUB_APP_SLUG',
   'GITHUB_APP_WEBHOOK_SECRET',
+  'GITHUB_WEBHOOK_SECRET',
 ]
 
 const originalEnv = snapshotEnv(managedKeys)
@@ -52,6 +55,23 @@ describe('/api/github/status', () => {
     expect(await response.json()).toEqual({
       appReady: true,
       webhookReady: false,
+    })
+  })
+
+  it('accepts rollout aliases for private key, slug, and webhook secret', async () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://monad-weld.vercel.app'
+    process.env.GITHUB_APP_ID = '123456'
+    process.env.GITHUB_APP_CLIENT_ID = 'Iv1.real-client-id'
+    process.env.GITHUB_APP_CLIENT_SECRET = 'real-client-secret'
+    process.env.GITHUB_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\\nreal\\n-----END PRIVATE KEY-----'
+    process.env.NEXT_PUBLIC_GITHUB_APP_SLUG = 'monad-saasathon'
+    process.env.GITHUB_WEBHOOK_SECRET = 'real-webhook-secret'
+
+    const response = await GET()
+
+    expect(await response.json()).toEqual({
+      appReady: true,
+      webhookReady: true,
     })
   })
 })

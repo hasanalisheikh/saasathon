@@ -212,7 +212,7 @@ export default async function ProjectDetailPage({
             >
               <Icon icon="logos:github-icon" className="h-4 w-4" />
               <span className="text-sm">
-                {githubConnected ? "Choose repo" : "Install GitHub App"}
+                {githubConnected ? "Choose repository" : "Install GitHub App"}
               </span>
               <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover/link:opacity-100" />
             </Link>
@@ -358,7 +358,7 @@ export default async function ProjectDetailPage({
                   <p className="mb-1 text-sm">No GitHub repo linked</p>
                   <p className="text-xs text-muted-foreground">
                     {githubAppReady
-                      ? "Install the GitHub App, then choose a repository to auto-create issues on approval and track activity."
+                      ? "Install the GitHub App for this project, then choose a repository to auto-create issues on approval and track implementation activity."
                       : "GitHub App setup is incomplete. Add the GitHub App credentials and webhook secret to continue."}
                   </p>
                 </div>
@@ -420,7 +420,7 @@ export default async function ProjectDetailPage({
             <EmptyState>
               <EmptyStateTitle>No GitHub activity yet.</EmptyStateTitle>
               <EmptyStateDescription>
-                Merged PRs and closed issues will appear here.
+                Merged pull requests and issue updates will appear here after the GitHub App is connected to a repository for this project.
               </EmptyStateDescription>
             </EmptyState>
           ) : (

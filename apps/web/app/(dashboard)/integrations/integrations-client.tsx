@@ -522,73 +522,28 @@ function SlackModal({
   open: boolean
   project: ProjectIntegration
 }) {
-  const [selectedChannels, setSelectedChannels] = useState<string[]>([])
-
-  const mockChannels = [
-    { name: `#${project.client_name.toLowerCase().replace(/\s+/g, "-")}-project`, type: "channel" },
-    { name: `#general-${project.client_name.toLowerCase().replace(/\s+/g, "")}`, type: "channel" },
-    { name: `@${project.client_name} (Client)`, type: "user" },
-    { name: "@support-team", type: "user" },
-  ]
-
-  const toggleChannel = (name: string) => {
-    setSelectedChannels((prev) =>
-      prev.includes(name) ? prev.filter((channel) => channel !== name) : [...prev, name]
-    )
-  }
-
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          setSelectedChannels([])
-        }
-        onOpenChange(nextOpen)
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Connect Slack Channel</DialogTitle>
+          <DialogTitle>Slack Is Coming Next</DialogTitle>
           <DialogDescription>
-            Select Slack channels or DMs to track requests for {project.name}.
+            Native Slack intake is not live yet for {project.name}.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
-          <div className="space-y-3">
-            <Input placeholder="Search channels or people..." />
-            <div className="max-h-[200px] space-y-2 overflow-y-auto pr-2">
-              {mockChannels.map((channel) => {
-                const isSelected = selectedChannels.includes(channel.name)
-                return (
-                  <button
-                    key={channel.name}
-                    onClick={() => toggleChannel(channel.name)}
-                    className={`flex w-full items-center justify-between rounded-md border p-3 text-left transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-                      isSelected ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon icon={channel.type === "channel" ? "lucide:hash" : "lucide:user"} className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm font-medium leading-none">{channel.name}</p>
-                    </div>
-                    {isSelected && <Icon icon="lucide:check" className="h-4 w-4 text-primary" />}
-                  </button>
-                )
-              })}
-            </div>
+          <div className="rounded-lg border border-border/80 bg-muted/40 p-4 text-sm text-muted-foreground">
+            Keep using manual request capture from the project page for now. When Slack ships, this project will be able to connect a shared channel and turn approved requests into the same AI, approval, and GitHub workflow.
+          </div>
+          <div className="rounded-lg border border-dashed border-border/70 p-4 text-sm">
+            <p className="font-medium text-foreground">Current recommendation</p>
+            <p className="mt-1 text-muted-foreground">
+              Paste the Slack message into a new request, send the approval link from Monad, and let GitHub automation take over after approval.
+            </p>
           </div>
           <div className="mt-2 flex justify-end border-t border-border/40 pt-2">
-            <Button
-              disabled={selectedChannels.length === 0}
-              onClick={() => {
-                alert(`Connected ${selectedChannels.join(", ")} to project!`)
-                onOpenChange(false)
-              }}
-            >
-              Connect {selectedChannels.length > 0 ? `(${selectedChannels.length})` : ""}
-            </Button>
+            <Button onClick={() => onOpenChange(false)}>Close</Button>
           </div>
         </div>
       </DialogContent>
@@ -669,7 +624,7 @@ function ProjectIntegrationCard({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setSlackModalOpen(true)} className="flex w-full cursor-pointer items-center">
                     <Icon icon="logos:slack-icon" className="mr-2 h-4 w-4" />
-                    Slack
+                    Slack (Coming Soon)
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>

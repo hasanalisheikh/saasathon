@@ -33,7 +33,8 @@ export default async function DashboardPage() {
 
   const { data: monthRequests } = await supabase
     .from("requests")
-    .select("classification, cost_min, cost_max, status")
+    .select("classification, cost_min, cost_max, status, projects!inner(user_id)")
+    .eq("projects.user_id", user!.id)
     .gte("created_at", startOfMonth)
 
   const requestsThisMonth = monthRequests?.length ?? 0

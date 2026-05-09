@@ -34,12 +34,32 @@ export default async function GitHubSetupPage({
     ? (github as GitHubStatus)
     : null
 
+  const [{ data: latestGithubIssue }, { data: latestGithubEvent }] = await Promise.all([
+    supabase
+      .from('requests')
+      .select('id, raw_email_subject, github_issue_number, github_issue_url')
+      .eq('project_id', id)
+      .not('github_issue_url', 'is', null)
+      .order('approved_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('github_events')
+      .select('id, event_type, created_at, plain_english_summary')
+      .eq('project_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
+
   return (
     <GitHubSetupClient
       githubAppReady={isGitHubAppConfigured()}
       githubStatus={githubStatus}
       hasGitHubInstallation={isGitHubInstallationId(project.github_installation_id)}
       linkedRepoName={project.github_repo_name}
+      latestGithubEvent={latestGithubEvent}
+      latestGithubIssue={latestGithubIssue}
       projectId={project.id}
       projectName={project.name}
     />

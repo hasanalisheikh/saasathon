@@ -4,13 +4,13 @@ import { createClient } from '@/lib/supabase/server'
 import { appendGitHubStatus } from '@/lib/github-connect'
 import { isGitHubAppConfigured } from '@/lib/github-config'
 import {
-  buildGitHubAppInstallUrl,
+  buildGitHubAppAuthorizationUrl,
   encodeGitHubAppState,
   GITHUB_APP_STATE_COOKIE,
   normalizeGitHubReturnTo,
 } from '@/lib/github'
 
-function buildRedirect(req: NextRequest, returnTo: string, status: 'app_not_configured' | 'setup_failed') {
+function buildRedirect(req: NextRequest, returnTo: string, status: 'app_not_configured' | 'auth_failed') {
   return NextResponse.redirect(new URL(appendGitHubStatus(returnTo, status), req.url))
 }
 
@@ -44,12 +44,12 @@ export async function GET(req: NextRequest) {
     .single()
 
   if (!project) {
-    return buildRedirect(req, returnTo, 'setup_failed')
+    return buildRedirect(req, returnTo, 'auth_failed')
   }
 
   const nonce = crypto.randomUUID()
   const signedState = encodeGitHubAppState({
-    flow: 'install',
+    flow: 'connect',
     installationId: null,
     nonce,
     projectId,
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     userId: user.id,
   })
 
-  const response = NextResponse.redirect(buildGitHubAppInstallUrl(signedState))
+  const response = NextResponse.redirect(buildGitHubAppAuthorizationUrl(signedState))
   response.cookies.set({
     name: GITHUB_APP_STATE_COOKIE,
     value: nonce,

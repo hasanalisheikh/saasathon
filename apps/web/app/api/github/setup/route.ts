@@ -48,8 +48,7 @@ export async function GET(req: NextRequest) {
     !currentState ||
     !installationId ||
     currentState.userId !== user.id ||
-    !cookieNonce ||
-    cookieNonce !== currentState.nonce
+    (cookieNonce && cookieNonce !== currentState.nonce)
   ) {
     return buildRedirect(req, fallbackReturnTo, 'setup_failed')
   }

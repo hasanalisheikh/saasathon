@@ -33,7 +33,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const repos = await listInstallationRepos(project.github_installation_id)
-    const selectedRepo = repos.find((repo) => repo.id === String(repoId) && repo.name === repoFullName)
+    const selectedRepo = repos.find(
+      (repo: { id: string; name: string }) => repo.id === String(repoId) && repo.name === repoFullName
+    )
 
     if (!selectedRepo) {
       return NextResponse.json({ error: 'Repository is not available to this installation' }, { status: 400 })

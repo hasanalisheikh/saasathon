@@ -1,6 +1,7 @@
 export const GITHUB_STATUS_VALUES = [
   'app_not_configured',
   'installation_created',
+  'installation_selection_required',
   'setup_failed',
   'auth_failed',
   'repo_linked',
@@ -27,7 +28,7 @@ export function buildGitHubConnectPath(params: ConnectPathParams = {}) {
   }
 
   const query = searchParams.toString()
-  return query ? `/api/github/install?${query}` : '/api/github/install'
+  return query ? `/api/github/connect?${query}` : '/api/github/connect'
 }
 
 export function appendGitHubStatus(
@@ -55,6 +56,11 @@ export function getGitHubStatusMessage(status: string | null) {
       return { tone: 'success' as const, text: 'GitHub App installed. Choose the repository for this project.' }
     case 'repo_linked':
       return { tone: 'success' as const, text: 'GitHub repository linked successfully.' }
+    case 'installation_selection_required':
+      return {
+        tone: 'success' as const,
+        text: 'GitHub authorization succeeded. Choose which existing installation should power this project.',
+      }
     case 'app_not_configured':
       return {
         tone: 'error' as const,

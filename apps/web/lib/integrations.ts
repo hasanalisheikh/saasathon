@@ -134,6 +134,12 @@ export function getRuntimeDiagnostics(): RuntimeDiagnostics {
       configured: Boolean(getConfiguredEnv('GITHUB_APP_SLUG')),
     },
     {
+      key: 'NEXT_PUBLIC_GITHUB_APP_SLUG',
+      label: 'Public GitHub App slug',
+      required: false,
+      configured: Boolean(getConfiguredEnv('NEXT_PUBLIC_GITHUB_APP_SLUG')),
+    },
+    {
       key: 'GITHUB_APP_WEBHOOK_SECRET',
       label: 'GitHub App webhook secret',
       required: false,

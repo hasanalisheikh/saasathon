@@ -49,7 +49,7 @@ export function WidgetCommentsTab({ comments, projectId }: Props) {
       <EmptyState>
         <EmptyStateTitle>No widget comments yet.</EmptyStateTitle>
         <EmptyStateDescription>
-          Embed the widget on your client&apos;s site and comments will appear here.
+          Embed the widget on your client&apos;s site and comments will appear here for manual conversion into a Monad request.
         </EmptyStateDescription>
       </EmptyState>
     )
