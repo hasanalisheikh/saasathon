@@ -622,7 +622,7 @@ function SlackModal({
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading channels…</p>
               ) : (
-                <Select value={selectedChannelId} onValueChange={setSelectedChannelId}>
+                <Select value={selectedChannelId} onValueChange={(val) => setSelectedChannelId(val ?? "")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a channel" />
                   </SelectTrigger>
