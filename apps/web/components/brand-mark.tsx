@@ -22,15 +22,15 @@ export function BrandMark({ className = '', label = true, size = 'md' }: BrandMa
         fill="none"
         aria-hidden="true"
       >
-        <circle cx="16" cy="16" r="4" fill="#a855f7" />
-        <line x1="16" y1="12" x2="16" y2="4" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" />
-        <line x1="20" y1="18.9" x2="27" y2="23" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" />
-        <line x1="12" y1="18.9" x2="5" y2="23" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="16" cy="16" r="4" fill="currentColor" />
+        <line x1="16" y1="12" x2="16" y2="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="20" y1="18.9" x2="27" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="12" y1="18.9" x2="5" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
       {label && (
         <span
           className={selected.text}
-          style={{ fontFamily: 'DM Mono, monospace', fontWeight: 500, letterSpacing: '0.08em', color: '#f0f4ff' }}
+          style={{ fontWeight: 600, color: 'currentColor' }}
         >
           monad
         </span>

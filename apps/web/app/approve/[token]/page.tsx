@@ -29,20 +29,20 @@ export default async function ApprovePage({
       .eq('approval_token', token)
 
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#05030a] px-4 py-10 text-[#faf7ff]">
+      <main className="relative min-h-screen overflow-hidden bg-[#020202] px-4 py-10 text-[#fafafa]">
         <div
           aria-hidden="true"
           className="absolute inset-0 opacity-25"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(139,92,246,0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.13) 1px, transparent 1px)',
+              'linear-gradient(rgba(23,23,23,0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(23,23,23,0.13) 1px, transparent 1px)',
             backgroundSize: '54px 54px',
           }}
         />
         <div className="relative z-10 mx-auto w-full max-w-2xl">
           <div className="mb-8 flex items-center justify-between gap-4">
             <BrandMark size="sm" />
-            <p className="rounded-md border border-[#8b5cf6]/30 bg-[#120a22]/80 px-3 py-1.5 text-xs font-semibold text-[#d8ccff]">
+            <p className="rounded-md border border-[#262626]/30 bg-[#171717]/80 px-3 py-1.5 text-xs font-semibold text-[#e5e5e5]">
               Project scope review
             </p>
           </div>
@@ -62,20 +62,20 @@ export default async function ApprovePage({
   const alreadyActioned = request.approved_at || request.declined_at
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#05030a] px-4 py-10 text-[#faf7ff]">
+    <main className="relative min-h-screen overflow-hidden bg-[#020202] px-4 py-10 text-[#fafafa]">
       <div
         aria-hidden="true"
         className="absolute inset-0 opacity-25"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(139,92,246,0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.13) 1px, transparent 1px)',
+            'linear-gradient(rgba(23,23,23,0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(23,23,23,0.13) 1px, transparent 1px)',
           backgroundSize: '54px 54px',
         }}
       />
       <div className="relative z-10 mx-auto w-full max-w-2xl">
         <div className="mb-8 flex items-center justify-between gap-4">
           <BrandMark size="sm" />
-          <p className="rounded-md border border-[#8b5cf6]/30 bg-[#120a22]/80 px-3 py-1.5 text-xs font-semibold text-[#d8ccff]">
+          <p className="rounded-md border border-[#262626]/30 bg-[#171717]/80 px-3 py-1.5 text-xs font-semibold text-[#e5e5e5]">
             Project scope review
           </p>
         </div>
@@ -95,18 +95,18 @@ function ApprovalCard({ request, token }: { request: any; token: string }) {
   const project = request.project as Record<string, string>
 
   return (
-    <div className="overflow-hidden rounded-lg border border-white/10 bg-[#0b0614]/95 shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur">
+    <div className="overflow-hidden rounded-lg border border-white/10 bg-[#111111]/95 shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur">
       <div className="space-y-6 p-6">
         <div>
-          <p className="text-sm text-[#8f82a8]">Regarding</p>
+          <p className="text-sm text-[#737373]">Regarding</p>
           <p className="mt-1 text-lg font-semibold text-white">{project?.name}</p>
         </div>
 
         <div className="h-px bg-white/10" />
 
         <div>
-          <p className="mb-2 text-sm font-medium text-[#c9bddc]">What you requested</p>
-          <blockquote className="rounded-md border-l-2 border-[#a78bfa] bg-[#120a22] px-4 py-3 text-sm leading-6 text-[#eee8ff]">
+          <p className="mb-2 text-sm font-medium text-[#d4d4d4]">What you requested</p>
+          <blockquote className="rounded-md border-l-2 border-[#d4d4d4] bg-[#171717] px-4 py-3 text-sm leading-6 text-[#f5f5f5]">
             {(request.raw_email_body as string)?.slice(0, 300)}
           </blockquote>
         </div>
@@ -115,8 +115,8 @@ function ApprovalCard({ request, token }: { request: any; token: string }) {
           <>
             <div className="h-px bg-white/10" />
             <div>
-              <p className="mb-2 text-sm font-medium text-[#c9bddc]">What this involves</p>
-              <p className="text-sm leading-7 text-[#afa3c5]">{request.technical_breakdown as string}</p>
+              <p className="mb-2 text-sm font-medium text-[#d4d4d4]">What this involves</p>
+              <p className="text-sm leading-7 text-[#a3a3a3]">{request.technical_breakdown as string}</p>
             </div>
           </>
         )}
@@ -124,16 +124,16 @@ function ApprovalCard({ request, token }: { request: any; token: string }) {
         {request.cost_min && request.cost_max && (
           <>
             <div className="h-px bg-white/10" />
-            <div className="rounded-lg border border-[#8b5cf6]/25 bg-[#08040f] p-4">
+            <div className="rounded-lg border border-[#262626]/25 bg-[#0a0a0a] p-4">
               <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-baseline">
-                <p className="text-sm text-[#8f82a8]">Estimated additional cost</p>
-                <p className="text-2xl font-semibold text-[#c4b5fd]">
+                <p className="text-sm text-[#737373]">Estimated additional cost</p>
+                <p className="text-2xl font-semibold text-[#e5e5e5]">
                   ${(request.cost_min as number).toLocaleString()} - $
                   {(request.cost_max as number).toLocaleString()}
                 </p>
               </div>
               {request.timeline_impact_days && (
-                <p className="mt-2 text-sm text-[#8f82a8]">
+                <p className="mt-2 text-sm text-[#737373]">
                   Estimated additional time: +{request.timeline_impact_days as number} days
                 </p>
               )}
@@ -160,12 +160,12 @@ function ApprovalForm({ token, costMin, costMax }: { token: string; costMin: num
             name="understood"
             required
             className="mt-1 size-4"
-            style={{ accentColor: '#8b5cf6' }}
+            style={{ accentColor: '#262626' }}
           />
-          <span className="text-sm leading-6 text-[#afa3c5]">
+          <span className="text-sm leading-6 text-[#a3a3a3]">
             I understand this work is outside the original project scope and agree to the estimated cost
             range of{' '}
-            <strong className="font-semibold text-[#c4b5fd]">
+            <strong className="font-semibold text-[#e5e5e5]">
               ${costMin?.toLocaleString()} - ${costMax?.toLocaleString()}
             </strong>{' '}
             shown above.
@@ -188,7 +188,7 @@ function ApprovalForm({ token, costMin, costMax }: { token: string; costMin: num
           type="submit"
           name="action"
           value="decline"
-          className="w-full rounded-md py-2 text-sm text-[#8f82a8] transition hover:bg-white/[0.04] hover:text-white"
+          className="w-full rounded-md py-2 text-sm text-[#737373] transition hover:bg-white/[0.04] hover:text-white"
         >
           Decline this request
         </button>
@@ -199,7 +199,7 @@ function ApprovalForm({ token, costMin, costMax }: { token: string; costMin: num
 
 function AlreadyActioned({ approved }: { approved: boolean }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-[#0b0614]/95 p-8 text-center shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur">
+    <div className="rounded-lg border border-white/10 bg-[#111111]/95 p-8 text-center shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur">
       <span
         className={`inline-flex rounded-md px-3 py-1.5 text-sm font-semibold ${
           approved ? 'bg-[#12352b] text-[#86efac]' : 'bg-[#3b0b1d] text-[#fecdd3]'
@@ -210,7 +210,7 @@ function AlreadyActioned({ approved }: { approved: boolean }) {
       <p className="mt-5 text-lg font-semibold text-white">
         {approved ? 'Request approved.' : 'Request declined.'}
       </p>
-      <p className="mt-2 text-sm leading-6 text-[#8f82a8]">
+      <p className="mt-2 text-sm leading-6 text-[#737373]">
         {approved
           ? 'The developer has been notified and will be in touch to schedule this work.'
           : 'The developer has been notified.'}

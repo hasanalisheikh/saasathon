@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-function isGitHubOAuthReady() {
-  return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET)
-}
+import { isGitHubOAuthConfigured } from '@/lib/github-config'
 
 export async function GET() {
   const supabase = await createClient()
@@ -22,9 +19,8 @@ export async function GET() {
     .single()
 
   return NextResponse.json({
-    oauthReady: isGitHubOAuthReady(),
+    oauthReady: isGitHubOAuthConfigured(),
     connected: Boolean(profile?.github_access_token),
     github_username: profile?.github_username ?? null,
   })
 }
-

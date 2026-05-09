@@ -5,81 +5,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Confirm your new Monad email</title>
 </head>
-<body style="margin:0;padding:0;background-color:#080c14;font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#080c14;padding:40px 16px;">
+<body style="margin:0;padding:0;background-color:#020202;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#fafafa;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#020202;">
     <tr>
-      <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
-
-          <!-- Logo -->
+      <td align="center" style="padding:32px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
           <tr>
-            <td align="center" style="padding-bottom:32px;">
-              <table cellpadding="0" cellspacing="0" border="0">
+            <td
+              style="padding:18px 18px 0;background-color:#020202;background-image:linear-gradient(rgba(23,23,23,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(23,23,23,0.18) 1px, transparent 1px);background-size:52px 52px;border-radius:24px;"
+            >
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="background-color:#f59e0b;width:8px;height:28px;border-radius:2px;"></td>
-                  <td style="width:8px;"></td>
-                  <td style="font-size:20px;font-weight:700;color:#f0f4ff;letter-spacing:-0.5px;">monad</td>
+                  <td style="padding:0 0 20px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="line-height:0;">
+                          <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="16" cy="16" r="4" fill="#fafafa" />
+                            <line x1="16" y1="12" x2="16" y2="4" stroke="#fafafa" stroke-width="2" stroke-linecap="round" />
+                            <line x1="20" y1="18.9" x2="27" y2="23" stroke="#fafafa" stroke-width="2" stroke-linecap="round" />
+                            <line x1="12" y1="18.9" x2="5" y2="23" stroke="#fafafa" stroke-width="2" stroke-linecap="round" />
+                          </svg>
+                        </td>
+                        <td style="width:10px;"></td>
+                        <td style="font-size:18px;font-weight:600;color:#fafafa;letter-spacing:-0.02em;">monad</td>
+                      </tr>
+                    </table>
+                  </td>
                 </tr>
-              </table>
-            </td>
-          </tr>
 
-          <!-- Card -->
-          <tr>
-            <td style="background-color:#0f1624;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:40px 36px;">
-
-              <!-- Email icon -->
-              <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
                 <tr>
-                  <td style="background-color:#1c1a0a;border:1px solid rgba(245,158,11,0.25);border-radius:10px;width:48px;height:48px;text-align:center;vertical-align:middle;">
-                    <span style="font-size:22px;">📧</span>
+                  <td style="padding:0 0 18px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="border:1px solid rgba(255,255,255,0.12);background-color:#171717;color:#e5e5e5;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:600;letter-spacing:0.04em;">
+                          EMAIL CHANGE
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="border:1px solid rgba(255,255,255,0.10);background-color:#111111;border-radius:18px;padding:36px 32px;box-shadow:0 30px 90px rgba(0,0,0,0.34);">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
+                      <tr>
+                        <td style="width:52px;height:52px;border-radius:14px;background-color:#f5f5f5;text-align:center;vertical-align:middle;">
+                          <span style="display:inline-block;font-size:24px;line-height:52px;color:#171717;">@</span>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin:0 0 10px;font-size:30px;line-height:1.05;font-weight:600;letter-spacing:-0.04em;color:#ffffff;">
+                      Confirm your new email.
+                    </p>
+                    <p style="margin:0 0 28px;font-size:14px;line-height:1.7;color:#a3a3a3;">
+                      Confirm the new email address for your Monad account to complete the change.
+                    </p>
+
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+                      <tr>
+                        <td style="background-color:#171717;border-radius:8px;box-shadow:0 0 24px rgba(23,23,23,0.22);">
+                          <a
+                            href="{{ .ConfirmationURL }}"
+                            style="display:inline-block;padding:14px 24px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;"
+                          >
+                            Confirm new email →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+                      <tr>
+                        <td style="border-top:1px solid rgba(255,255,255,0.08);font-size:0;line-height:0;">&nbsp;</td>
+                      </tr>
+                    </table>
+
+                    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.06em;color:#737373;">
+                      OPEN IN BROWSER
+                    </p>
+                    <p style="margin:0 0 24px;font-size:12px;line-height:1.7;color:#a3a3a3;word-break:break-all;">
+                      {{ .ConfirmationURL }}
+                    </p>
+
+                    <p style="margin:0;font-size:12px;line-height:1.7;color:#737373;">
+                      This link expires in 24 hours. If you didn&apos;t request this change, contact support immediately because your account may be at risk.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:18px 8px 0;text-align:center;font-size:12px;line-height:1.7;color:#737373;">
+                    Monad · Dashboard-first scope protection
                   </td>
                 </tr>
               </table>
-
-              <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#f0f4ff;line-height:1.2;">Confirm your new email</p>
-              <p style="margin:0 0 28px;font-size:14px;color:#8892a4;line-height:1.6;">
-                We received a request to change the email address on your Monad account. Click below to confirm the new address and complete the change.
-              </p>
-
-              <!-- CTA button -->
-              <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
-                <tr>
-                  <td style="background-color:#f59e0b;border-radius:8px;">
-                    <a href="{{ .ConfirmationURL }}"
-                       style="display:inline-block;padding:14px 32px;font-size:14px;font-weight:600;color:#080c14;text-decoration:none;letter-spacing:0.01em;">
-                      Confirm new email →
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Fallback link -->
-              <p style="margin:0 0 4px;font-size:12px;color:#4a5568;">Or copy this link into your browser:</p>
-              <p style="margin:0;font-size:11px;color:#4a5568;word-break:break-all;">{{ .ConfirmationURL }}</p>
-
-              <!-- Divider -->
-              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:28px 0;">
-                <tr>
-                  <td style="border-top:1px solid rgba(255,255,255,0.06);"></td>
-                </tr>
-              </table>
-
-              <p style="margin:0;font-size:12px;color:#4a5568;line-height:1.6;">
-                This link expires in 24 hours. If you didn't request an email change, contact us immediately — your account may be at risk.
-              </p>
             </td>
           </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td align="center" style="padding-top:28px;">
-              <p style="margin:0;font-size:12px;color:#4a5568;">
-                Monad · AI-powered scope creep protection
-              </p>
-            </td>
-          </tr>
-
         </table>
       </td>
     </tr>

@@ -44,12 +44,12 @@ function ClassificationBadge({
 /* ─── Request Status ──────────────────────────────────────────────────── */
 
 const statusConfig = {
-  pending_review:    { label: "Pending",  variant: "secondary" as const },
-  sent_to_client:    { label: "Sent",     variant: "outline" as const },
-  approved:          { label: "Approved", variant: "default" as const },
+  pending_review:    { label: "Pending", variant: "secondary" as const },
+  sent_to_client:    { label: "Sent", variant: "outline" as const },
+  approved:          { label: "Approved Add-On", variant: "default" as const },
   declined:          { label: "Declined", variant: "destructive" as const },
   deferred:          { label: "Deferred", variant: "outline" as const },
-  accepted_in_scope: { label: "In Scope", variant: "default" as const },
+  accepted_in_scope: { label: "Accepted In Scope", variant: "default" as const },
 } as const
 
 type RequestStatus = keyof typeof statusConfig

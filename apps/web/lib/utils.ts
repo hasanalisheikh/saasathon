@@ -40,7 +40,7 @@ export function classificationColor(c: Classification): string {
   switch (c) {
     case 'in_scope': return 'green'
     case 'out_of_scope': return 'red'
-    case 'ambiguous': return 'amber'
+    case 'ambiguous': return 'gray'
     case 'clarification_needed': return 'blue'
     default: return 'gray'
   }
@@ -50,10 +50,10 @@ export function statusLabel(s: RequestStatus): string {
   switch (s) {
     case 'pending_review': return 'Pending Review'
     case 'sent_to_client': return 'Sent to Client'
-    case 'approved': return 'Approved'
+    case 'approved': return 'Approved Add-On'
     case 'declined': return 'Declined'
     case 'deferred': return 'Deferred'
-    case 'accepted_in_scope': return 'Accepted (In Scope)'
+    case 'accepted_in_scope': return 'Accepted In Scope'
     default: return s
   }
 }

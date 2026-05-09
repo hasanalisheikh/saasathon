@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your email address has been changed</title>
+</head>
+<body style="margin:0;padding:0;background-color:#020202;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#fafafa;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#020202;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+          <tr>
+            <td style="padding:18px 18px 0;background-color:#020202;background-image:linear-gradient(rgba(23,23,23,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(23,23,23,0.18) 1px, transparent 1px);background-size:52px 52px;border-radius:24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:0 0 20px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="line-height:0;">
+                          <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="16" cy="16" r="4" fill="#fafafa" />
+                            <line x1="16" y1="12" x2="16" y2="4" stroke="#fafafa" stroke-width="2" stroke-linecap="round" />
+                            <line x1="20" y1="18.9" x2="27" y2="23" stroke="#fafafa" stroke-width="2" stroke-linecap="round" />
+                            <line x1="12" y1="18.9" x2="5" y2="23" stroke="#fafafa" stroke-width="2" stroke-linecap="round" />
+                          </svg>
+                        </td>
+                        <td style="width:10px;"></td>
+                        <td style="font-size:18px;font-weight:600;color:#fafafa;letter-spacing:-0.02em;">monad</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border:1px solid rgba(255,255,255,0.10);background-color:#111111;border-radius:18px;padding:36px 32px;box-shadow:0 30px 90px rgba(0,0,0,0.34);">
+                    <p style="margin:0 0 10px;font-size:30px;line-height:1.05;font-weight:600;letter-spacing:-0.04em;color:#ffffff;">
+                      Your email address has been changed.
+                    </p>
+                    <p style="margin:0 0 18px;font-size:14px;line-height:1.7;color:#a3a3a3;">
+                      The email address on your Monad account changed from <strong style="color:#ffffff;">{{ .OldEmail }}</strong> to <strong style="color:#ffffff;">{{ .Email }}</strong>.
+                    </p>
+                    <p style="margin:0;font-size:12px;line-height:1.7;color:#737373;">
+                      If you did not make this change, please contact support.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

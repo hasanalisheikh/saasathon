@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "@workspace/ui/lib/utils"
 import { Card, CardContent } from "@workspace/ui/components/card"
 
-type MetricAccent = "default" | "amber" | "red" | "green"
+type MetricAccent = "default" | "neutral" | "red" | "green"
 
 interface MetricCardProps extends React.ComponentProps<typeof Card> {
   label: string
@@ -15,7 +15,7 @@ interface MetricCardProps extends React.ComponentProps<typeof Card> {
 
 const accentClasses: Record<MetricAccent, string> = {
   default: "text-foreground",
-  amber: "text-amber-500",
+  neutral: "text-foreground",
   red: "text-destructive",
   green: "text-emerald-500",
 }

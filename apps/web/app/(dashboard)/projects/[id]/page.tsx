@@ -37,6 +37,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { Icon } from "@iconify/react"
+import { isGitHubOAuthConfigured } from "@/lib/github-config"
 
 const TABS = [
   "requests",
@@ -53,10 +54,6 @@ const TAB_ICONS: Record<Tab, LucideIcon> = {
   widget: MessageSquareCode,
   github: GitBranch,
   "proof-pack": FileCheck2,
-}
-
-function isGitHubOAuthReady() {
-  return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET)
 }
 
 export default async function ProjectDetailPage({
@@ -147,7 +144,7 @@ export default async function ProjectDetailPage({
     returnTo: `/projects/${id}/github-setup`,
   })
   const githubSetupHref = `/projects/${id}/github-setup`
-  const githubOauthReady = isGitHubOAuthReady()
+  const githubOauthReady = isGitHubOAuthConfigured()
 
   return (
     <div className="flex-1 overflow-y-auto p-6">

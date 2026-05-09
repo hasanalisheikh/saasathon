@@ -56,7 +56,7 @@ export function getGitHubStatusMessage(status: string | null) {
     case 'oauth_not_configured':
       return {
         tone: 'error' as const,
-        text: 'GitHub OAuth is not configured yet. Add the GitHub client ID and secret to continue.',
+        text: 'GitHub OAuth is not configured yet. Add the GitHub client ID and secret, or connect with a personal access token in Settings.',
       }
     case 'oauth_failed':
       return {
@@ -72,4 +72,3 @@ export function getGitHubStatusMessage(status: string | null) {
       return null
   }
 }
-

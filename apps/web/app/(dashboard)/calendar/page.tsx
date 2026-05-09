@@ -182,7 +182,7 @@ function buildEvents(request: CalendarRequest): CalendarEvent[] {
     },
   ]
 
-  if (["sent_to_client", "approved", "declined"].includes(request.status)) {
+  if (request.status === "sent_to_client" || Boolean(request.approved_at) || Boolean(request.declined_at)) {
     events.push({
       id: `${request.id}:sent`,
       request,
@@ -239,7 +239,7 @@ function CalendarEventRow({ event }: { event: CalendarEvent }) {
     sent: "border-blue-400",
     approved: "border-primary",
     declined: "border-destructive",
-    delivery: "border-amber-400",
+    delivery: "border-primary",
   }[event.type]
 
   return (

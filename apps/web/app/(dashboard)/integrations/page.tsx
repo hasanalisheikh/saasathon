@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { IntegrationsPageClient } from "./integrations-client"
+import { isGitHubOAuthConfigured } from "@/lib/github-config"
 
 export type ProjectIntegration = {
   id: string
@@ -24,7 +25,7 @@ export type EnvCheck = {
 const envChecks: EnvCheck[] = [
   { label: "OpenRouter Gemini analysis", value: Boolean(process.env.OPENROUTER_API_KEY) || process.env.MOCK_AI === "true" },
   { label: "Client email", value: Boolean(process.env.RESEND_API_KEY) },
-  { label: "GitHub OAuth", value: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) },
+  { label: "GitHub OAuth", value: isGitHubOAuthConfigured() },
   { label: "GitHub webhooks", value: Boolean(process.env.GITHUB_WEBHOOK_SECRET) },
   { label: "Inbound email", value: Boolean(process.env.POSTMARK_INBOUND_WEBHOOK_TOKEN) || Boolean(process.env.POSTMARK_SERVER_TOKEN) },
 ]

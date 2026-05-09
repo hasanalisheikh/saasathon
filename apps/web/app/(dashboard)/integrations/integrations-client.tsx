@@ -625,10 +625,9 @@ function ProjectIntegrationCard({
                   <DropdownMenuItem
                     onClick={() => onConnectGitHub(project)}
                     className="flex w-full cursor-pointer items-center"
-                    disabled={!githubOauthReady}
                   >
                     <Icon icon="logos:github-icon" className="mr-2 h-4 w-4" />
-                    {githubConnected ? "GitHub" : "Connect GitHub"}
+                    {githubConnected ? "GitHub" : githubOauthReady ? "Connect GitHub" : "Use GitHub Token"}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setEmailModalOpen(true)} className="flex w-full cursor-pointer items-center">
                     <Icon icon="lucide:mail" className="mr-2 h-4 w-4 text-foreground" />
@@ -722,11 +721,9 @@ function ConnectedCardsContent({
 
 function BrowseCatalogue({
   githubConnected,
-  githubOauthReady,
   onBrowseGitHub,
 }: {
   githubConnected: boolean
-  githubOauthReady: boolean
   onBrowseGitHub: () => void
 }) {
   const projectTrackingCatalogue = [
@@ -735,7 +732,7 @@ function BrowseCatalogue({
       title: "GitHub",
       description: "Connect repositories to track client PRs and issues automatically.",
       connected: githubConnected,
-      disabled: !githubOauthReady,
+      disabled: false,
       onConnect: onBrowseGitHub,
     },
     ...projectTrackingItems,
@@ -801,7 +798,10 @@ export function IntegrationsPageClient({
   }, [router, searchParams])
 
   const handleBrowseGitHub = () => {
-    if (!githubOauthReady) return
+    if (!githubOauthReady) {
+      router.push('/settings#github-pat')
+      return
+    }
 
     if (githubConnected) {
       setManualProjectPickerOpen(true)
@@ -812,7 +812,10 @@ export function IntegrationsPageClient({
   }
 
   const handleConnectProjectGitHub = (project: ProjectIntegration) => {
-    if (!githubOauthReady) return
+    if (!githubOauthReady) {
+      router.push('/settings#github-pat')
+      return
+    }
 
     if (githubConnected) {
       setManualSelectedProject(project)
@@ -893,7 +896,6 @@ export function IntegrationsPageClient({
         <TabsContent value="browse">
           <BrowseCatalogue
             githubConnected={githubConnected}
-            githubOauthReady={githubOauthReady}
             onBrowseGitHub={handleBrowseGitHub}
           />
         </TabsContent>

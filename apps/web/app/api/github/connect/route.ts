@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { appendGitHubStatus } from '@/lib/github-connect'
+import { isGitHubOAuthConfigured } from '@/lib/github-config'
 
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID!
 const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET!
@@ -11,10 +12,6 @@ type OAuthState = {
   projectId: string | null
   returnTo: string
   userId: string
-}
-
-function isGitHubOAuthReady() {
-  return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET)
 }
 
 function normalizeReturnTo(returnTo: string | null, fallback: string) {
@@ -74,7 +71,7 @@ export async function GET(req: NextRequest) {
 
   // Step 1: Redirect to GitHub
   if (!code) {
-    if (!isGitHubOAuthReady()) {
+    if (!isGitHubOAuthConfigured()) {
       return buildRedirect(req, returnTo, 'oauth_not_configured')
     }
 
@@ -118,7 +115,7 @@ export async function GET(req: NextRequest) {
     return response
   }
 
-  if (!isGitHubOAuthReady()) {
+  if (!isGitHubOAuthConfigured()) {
     const response = buildRedirect(req, safeReturnTo, 'oauth_not_configured')
     response.cookies.delete(STATE_COOKIE)
     return response

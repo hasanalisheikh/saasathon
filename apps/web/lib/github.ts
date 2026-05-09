@@ -64,6 +64,16 @@ export async function listUserRepos(accessToken: string) {
   }))
 }
 
+export async function getAuthenticatedGitHubUser(accessToken: string) {
+  const octokit = createOctokit(accessToken)
+  const response = await octokit.users.getAuthenticated()
+
+  return {
+    id: String(response.data.id),
+    login: response.data.login,
+  }
+}
+
 export function buildIssueBody(params: {
   clientRequest: string
   technicalBreakdown: string

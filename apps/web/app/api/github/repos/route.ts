@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { listUserRepos } from '@/lib/github'
-
-function isGitHubOAuthReady() {
-  return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET)
-}
+import { isGitHubOAuthConfigured } from '@/lib/github-config'
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
@@ -22,9 +19,6 @@ export async function GET(req: NextRequest) {
     .single()
 
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (!isGitHubOAuthReady()) {
-    return NextResponse.json({ error: 'GitHub OAuth is not configured' }, { status: 503 })
-  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -33,7 +27,11 @@ export async function GET(req: NextRequest) {
     .single()
 
   if (!profile?.github_access_token) {
-    return NextResponse.json({ error: 'GitHub account not connected' }, { status: 400 })
+    return NextResponse.json({
+      error: isGitHubOAuthConfigured()
+        ? 'GitHub account not connected'
+        : 'GitHub is not connected yet. Add a personal access token in Settings to continue.',
+    }, { status: 400 })
   }
 
   const repos = await listUserRepos(profile.github_access_token)

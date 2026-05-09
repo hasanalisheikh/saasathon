@@ -60,7 +60,7 @@ export default async function DashboardPage() {
         <MetricCard
           label="Unbilled Work Protected"
           value={`$${Math.round(unbilledProtected).toLocaleString()}`}
-          accent="amber"
+          accent="neutral"
           large
         />
       </div>
@@ -125,7 +125,7 @@ function RequestCard({ request }: { request: any }) {
             {classification && (
               <ClassificationBadge classification={classification} />
             )}
-            {request.cost_min && request.cost_max && (
+            {classification === "out_of_scope" && request.cost_min && request.cost_max && (
               <span className="text-xs text-primary">
                 ${(request.cost_min as number).toLocaleString()}–$
                 {(request.cost_max as number).toLocaleString()}

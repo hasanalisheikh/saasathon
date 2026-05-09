@@ -45,27 +45,62 @@ enable_confirmations = true
 
 [auth.email.template.confirmation]
 subject = "Confirm your Monad account"
-content_path = "./supabase/templates/confirmation.html"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/confirmation.html"
 
 [auth.email.template.recovery]
 subject = "Reset your Monad password"
-content_path = "./supabase/templates/recovery.html"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/recovery.html"
 
 [auth.email.template.invite]
 subject = "You're invited to Monad"
-content_path = "./supabase/templates/invite.html"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/invite.html"
 
 [auth.email.template.magic_link]
 subject = "Sign in to Monad"
-content_path = "./supabase/templates/magic_link.html"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/magic_link.html"
 
 [auth.email.template.email_change]
 subject = "Confirm your new Monad email"
-content_path = "./supabase/templates/email_change.html"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/email_change.html"
 
 [auth.email.template.reauthentication]
 subject = "Your Monad verification code"
-content_path = "./supabase/templates/reauthentication.html"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/reauthentication.html"
+
+[auth.email.notification.password_changed]
+enabled = true
+subject = "Your password has been changed"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/password_changed_notification.html"
+
+[auth.email.notification.email_changed]
+enabled = true
+subject = "Your email address has been changed"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/email_changed_notification.html"
+
+[auth.email.notification.phone_changed]
+enabled = true
+subject = "Your phone number has been changed"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/phone_changed_notification.html"
+
+[auth.email.notification.identity_linked]
+enabled = true
+subject = "A new identity has been linked"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/identity_linked_notification.html"
+
+[auth.email.notification.identity_unlinked]
+enabled = true
+subject = "An identity has been unlinked"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/identity_unlinked_notification.html"
+
+[auth.email.notification.mfa_factor_enrolled]
+enabled = true
+subject = "A multi-factor authentication method has been added"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/mfa_factor_enrolled_notification.html"
+
+[auth.email.notification.mfa_factor_unenrolled]
+enabled = true
+subject = "A multi-factor authentication method has been removed"
+content_path = "/Users/hasansheikh/Documents/GitHub/saasathon/supabase/templates/mfa_factor_unenrolled_notification.html"
 
 [analytics]
 enabled = false

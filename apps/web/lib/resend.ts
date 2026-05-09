@@ -6,6 +6,23 @@ function getResend() {
 
 const FROM = () => process.env.RESEND_FROM_EMAIL ?? 'noreply@monad.app'
 
+const emailStyles = `
+    body { background: #f8fafc; color: #171717; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 40px 20px; }
+    .container { max-width: 560px; margin: 0 auto; }
+    .logo { color: #171717; font-size: 18px; font-weight: 700; letter-spacing: 0; }
+    .card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 24px; margin: 24px 0; }
+    .label { color: #737373; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .value { color: #171717; font-size: 14px; line-height: 1.6; }
+    .cost { color: #171717; font-size: 28px; font-weight: 650; margin: 16px 0 4px; }
+    .cost-label { color: #737373; font-size: 12px; }
+    .out-of-scope { color: #dc2626; font-size: 12px; margin-top: 8px; }
+    .button { display: block; background: #171717; color: #ffffff; text-decoration: none; text-align: center; padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: 700; margin: 32px 0 16px; }
+    .decline { color: #737373; font-size: 12px; text-align: center; }
+    .decline a { color: #525252; }
+    .footer { color: #737373; font-size: 11px; margin-top: 40px; }
+    .divider { border-top: 1px solid #eeeeee; margin: 20px 0; padding-top: 20px; }
+`
+
 function buildApprovalEmailHtml(params: {
   clientName: string
   developerReply: string
@@ -23,20 +40,7 @@ function buildApprovalEmailHtml(params: {
 <head>
   <meta charset="utf-8">
   <style>
-    body { background: #080c14; color: #f0f4ff; font-family: 'Courier New', monospace; margin: 0; padding: 40px 20px; }
-    .container { max-width: 560px; margin: 0 auto; }
-    .logo { color: #f59e0b; font-size: 18px; font-weight: 500; letter-spacing: 0.1em; }
-    .card { background: #0f1624; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 24px; margin: 24px 0; }
-    .label { color: #8892a4; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-    .value { color: #f0f4ff; font-size: 14px; }
-    .cost { color: #f59e0b; font-size: 28px; font-weight: 600; margin: 16px 0 4px; }
-    .cost-label { color: #8892a4; font-size: 12px; }
-    .out-of-scope { color: #ef4444; font-size: 12px; margin-top: 8px; }
-    .button { display: block; background: #10b981; color: #fff; text-decoration: none; text-align: center; padding: 16px 32px; border-radius: 6px; font-size: 16px; font-weight: 600; margin: 32px 0 16px; }
-    .decline { color: #8892a4; font-size: 12px; text-align: center; }
-    .decline a { color: #8892a4; }
-    .footer { color: #4a5568; font-size: 11px; margin-top: 40px; }
-    .divider { border-top: 1px solid rgba(255,255,255,0.06); margin: 20px 0; padding-top: 20px; }
+${emailStyles}
   </style>
 </head>
 <body>
@@ -115,7 +119,7 @@ function buildDeveloperApprovalHtml(params: {
   const githubRow = params.githubIssueUrl
     ? `<div class="divider">
         <div class="label">GitHub Issue</div>
-        <div class="value"><a href="${params.githubIssueUrl}" style="color:#f59e0b;">${params.githubIssueUrl}</a></div>
+        <div class="value"><a href="${params.githubIssueUrl}" style="color:#171717;">${params.githubIssueUrl}</a></div>
        </div>`
     : ''
 
@@ -124,19 +128,9 @@ function buildDeveloperApprovalHtml(params: {
 <head>
   <meta charset="utf-8">
   <style>
-    body { background: #080c14; color: #f0f4ff; font-family: 'Courier New', monospace; margin: 0; padding: 40px 20px; }
-    .container { max-width: 560px; margin: 0 auto; }
-    .logo { color: #f59e0b; font-size: 18px; font-weight: 500; letter-spacing: 0.1em; }
-    .badge { display: inline-block; background: #10b981; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; }
+${emailStyles}
+    .badge { display: inline-block; background: #f5f5f5; color: #171717; border: 1px solid #e5e5e5; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 4px; text-transform: uppercase; }
     .headline { font-size: 22px; font-weight: 600; margin: 16px 0 4px; }
-    .card { background: #0f1624; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 24px; margin: 24px 0; }
-    .label { color: #8892a4; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-    .value { color: #f0f4ff; font-size: 14px; }
-    .cost { color: #f59e0b; font-size: 28px; font-weight: 600; margin: 16px 0 4px; }
-    .cost-label { color: #8892a4; font-size: 12px; }
-    .button { display: block; background: #f59e0b; color: #080c14; text-decoration: none; text-align: center; padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: 700; margin: 32px 0 16px; }
-    .footer { color: #4a5568; font-size: 11px; margin-top: 40px; }
-    .divider { border-top: 1px solid rgba(255,255,255,0.06); margin: 20px 0; padding-top: 20px; }
   </style>
 </head>
 <body>
@@ -144,7 +138,7 @@ function buildDeveloperApprovalHtml(params: {
     <div style="margin-bottom: 24px;"><div class="logo">monad</div></div>
     <div class="badge">approved</div>
     <div class="headline">${params.clientName} approved your estimate</div>
-    <p style="color:#8892a4;font-size:14px;">The client signed off. This work is now billable.</p>
+    <p style="color:#737373;font-size:14px;">The client signed off. This work is now billable.</p>
     <div class="card">
       <div class="label">Project</div>
       <div class="value">${params.projectName}</div>
@@ -198,14 +192,8 @@ function buildClientTaskCompletionHtml(params: {
 <head>
   <meta charset="utf-8">
   <style>
-    body { background: #080c14; color: #f0f4ff; font-family: 'Courier New', monospace; margin: 0; padding: 40px 20px; }
-    .container { max-width: 560px; margin: 0 auto; }
-    .logo { color: #f59e0b; font-size: 18px; font-weight: 500; letter-spacing: 0.1em; }
-    .card { background: #0f1624; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 24px; margin: 24px 0; }
-    .label { color: #8892a4; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-    .value { color: #f0f4ff; font-size: 14px; }
+${emailStyles}
     li { margin: 10px 0; }
-    .footer { color: #4a5568; font-size: 11px; margin-top: 40px; }
   </style>
 </head>
 <body>
@@ -216,12 +204,12 @@ function buildClientTaskCompletionHtml(params: {
     <div class="card">
       <div class="label">Original request</div>
       <div class="value">${params.requestSummary}</div>
-      <div style="border-top:1px solid rgba(255,255,255,0.06); margin:20px 0; padding-top:20px;">
+      <div style="border-top:1px solid #eeeeee; margin:20px 0; padding-top:20px;">
         <div class="label">Completed</div>
         <ul class="value">${taskList}</ul>
       </div>
     </div>
-    <p style="color:#8892a4;font-size:14px;">Your developer will follow up if there are deployment notes or next steps.</p>
+    <p style="color:#737373;font-size:14px;">Your developer will follow up if there are deployment notes or next steps.</p>
     <div class="footer">Sent by Monad · monad.app</div>
   </div>
 </body>

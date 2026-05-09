@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { RequestStatus } from '@/types'
+
+const MANUAL_STATUS_TRANSITIONS: RequestStatus[] = ['accepted_in_scope', 'deferred', 'declined']
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ requestId: string }> }) {
   const { requestId } = await params
@@ -35,6 +38,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
+  const status = body?.status as RequestStatus | undefined
+
+  if (!status || !MANUAL_STATUS_TRANSITIONS.includes(status)) {
+    return NextResponse.json({ error: 'Unsupported status transition' }, { status: 400 })
+  }
 
   // Verify ownership via join
   const { data: existing } = await supabase
@@ -47,9 +55,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
   const proj = (existing?.project as any) ?? null
   if (!proj || proj.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  const updates =
+    status === 'accepted_in_scope'
+      ? { status, classification: 'in_scope' as const }
+      : { status }
+
   const { data, error } = await supabase
     .from('requests')
-    .update(body)
+    .update(updates)
     .eq('id', requestId)
     .select()
     .single()

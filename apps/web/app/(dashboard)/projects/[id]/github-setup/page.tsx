@@ -2,10 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { GITHUB_STATUS_VALUES, type GitHubStatus } from '@/lib/github-connect'
 import { GitHubSetupClient } from './github-setup-client'
-
-function isGitHubOAuthReady() {
-  return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET)
-}
+import { isGitHubOAuthConfigured } from '@/lib/github-config'
 
 export default async function GitHubSetupPage({
   params,
@@ -47,7 +44,7 @@ export default async function GitHubSetupPage({
   return (
     <GitHubSetupClient
       githubConnected={Boolean(profile?.github_access_token)}
-      githubOauthReady={isGitHubOAuthReady()}
+      githubOauthReady={isGitHubOAuthConfigured()}
       githubStatus={githubStatus}
       linkedRepoName={project.github_repo_name}
       projectId={project.id}

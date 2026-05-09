@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
 import type { Request, Project, RequestTask } from "@/types"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
@@ -18,6 +17,8 @@ import { TonePicker } from "@workspace/ui/components/tone-picker"
 import type { Tone } from "@workspace/ui/components/tone-picker"
 
 const ACCIDENTAL_YES = ["sure", "no problem", "happy to", "of course", "will do", "sounds good", "absolutely"]
+const ANALYSIS_POLL_INTERVAL_MS = 2000
+const ANALYSIS_TIMEOUT_MS = 20000
 
 type RequestWithTaskRows = Request & {
   task_rows?: RequestTask[]
@@ -28,12 +29,14 @@ export default function RequestReviewPage() {
   const router = useRouter()
 
   const [request, setRequest] = useState<RequestWithTaskRows | null>(null)
-  const [project, setProject] = useState<Project | null>(null)
+  const [, setProject] = useState<Project | null>(null)
   const [reply, setReply] = useState("")
+  const [replyTouched, setReplyTouched] = useState(false)
   const [tone, setTone] = useState<Tone>("professional")
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState("")
   const [analysing, setAnalysing] = useState(false)
+  const [analysisError, setAnalysisError] = useState("")
   const [accidentalYes, setAccidentalYes] = useState(false)
 
   const loadRequest = useCallback(async function loadRequest() {
@@ -43,28 +46,92 @@ export default function RequestReviewPage() {
     ])
     const reqData = await reqRes.json()
     const projData = await projRes.json()
+
+    if (!reqRes.ok) {
+      throw new Error((reqData as { error?: string }).error ?? "Failed to load request")
+    }
+
+    if (!projRes.ok) {
+      throw new Error((projData as { error?: string }).error ?? "Failed to load project")
+    }
+
     setRequest(reqData)
     setProject(projData)
-    setReply(reqData.draft_reply ?? '')
-  }, [id, requestId])
+    setAnalysisError("")
+    if (!replyTouched) {
+      setReply(reqData.final_reply ?? reqData.draft_reply ?? "")
+      setTone(reqData.reply_tone ?? "professional")
+    }
+  }, [id, replyTouched, requestId])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      void loadRequest()
+      void loadRequest().catch((error) => {
+        setAnalysisError(error instanceof Error ? error.message : "Failed to load request.")
+      })
     }, 0)
 
     return () => window.clearTimeout(timeout)
   }, [loadRequest])
 
+  const isAwaitingAnalysis = Boolean(
+    request &&
+      !request.classification &&
+      !request.draft_reply &&
+      !request.final_reply
+  )
+
+  useEffect(() => {
+    if (!request || !isAwaitingAnalysis) return
+
+    let cancelled = false
+    const deadline = new Date(request.created_at).getTime() + ANALYSIS_TIMEOUT_MS
+
+    async function poll() {
+      while (!cancelled) {
+        await new Promise((resolve) => window.setTimeout(resolve, ANALYSIS_POLL_INTERVAL_MS))
+        if (cancelled) return
+
+        try {
+          await loadRequest()
+        } catch (error) {
+          if (!cancelled) {
+            setAnalysisError(error instanceof Error ? error.message : "Failed to refresh request analysis.")
+          }
+          return
+        }
+
+        if (Date.now() >= deadline && !cancelled) {
+          setAnalysisError("AI analysis is taking longer than expected. You can review manually or try re-analysing.")
+          return
+        }
+      }
+    }
+
+    void poll()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAwaitingAnalysis, loadRequest, request])
+
   async function reanalyse() {
     setAnalysing(true)
+    setAnalysisError("")
     try {
-      await fetch('/api/ai/analyse', {
+      const res = await fetch('/api/ai/analyse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request_id: requestId }),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setAnalysisError((data as { error?: string }).error ?? "Analysis failed. Please try again.")
+        return
+      }
       await loadRequest()
+    } catch (error) {
+      setAnalysisError(error instanceof Error ? error.message : "Analysis failed. Please try again.")
     } finally {
       setAnalysing(false)
     }
@@ -98,11 +165,17 @@ export default function RequestReviewPage() {
   }
 
   async function updateStatus(status: string) {
-    await fetch(`/api/requests/${requestId}`, {
+    setSendError("")
+    const res = await fetch(`/api/requests/${requestId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setSendError((data as { error?: string }).error ?? "Failed to update request status.")
+      return
+    }
     router.push(`/projects/${id}`)
   }
 
@@ -132,7 +205,7 @@ export default function RequestReviewPage() {
           <div>
             <PageTitle>Request Review</PageTitle>
             <PageDescription>
-              Review the client's request against the agreed scope and prepare a response.
+              Review the client&apos;s request against the agreed scope and prepare a response.
             </PageDescription>
           </div>
         </PageHeader>
@@ -207,14 +280,27 @@ export default function RequestReviewPage() {
             </Button>
           </div>
 
+          {analysisError && (
+            <Card className="border-destructive/30 bg-destructive/10">
+              <CardContent className="text-xs text-destructive">
+                {analysisError}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Classification panel */}
           <Card
             className={`border-l-4 ${colorClass}`}
           >
             <CardContent className="space-y-3">
               <span className="text-lg font-bold">
-                {classLabel[request.classification ?? ""] ?? "ANALYSING"}
+                {classLabel[request.classification ?? ""] ?? (isAwaitingAnalysis ? "ANALYSING…" : "READY FOR REVIEW")}
               </span>
+              {isAwaitingAnalysis && (
+                <p className="text-xs text-muted-foreground">
+                  Monad is still generating the classification and draft reply. You can keep reviewing manually while it runs.
+                </p>
+              )}
               {request.confidence !== null && (
                 <div>
                   <div className="flex justify-between text-xs mb-1 text-muted-foreground">
@@ -322,7 +408,7 @@ export default function RequestReviewPage() {
           )}
 
           {/* Effort & Cost */}
-          {request.effort_min_hours && (
+          {request.classification === "out_of_scope" && request.effort_min_hours && (
             <Card size="sm">
               <CardContent className="grid grid-cols-2 gap-4">
                 <div>
@@ -371,7 +457,7 @@ export default function RequestReviewPage() {
           <Card className="border-primary/30 bg-primary/10">
             <CardContent className="flex gap-3 items-start">
               <span>⚠️</span>
-              <p className="text-xs text-[var(--amber-100)]">
+              <p className="text-xs text-foreground">
                 Your reply appears to accept out-of-scope work without mentioning cost or getting
                 approval. Are you sure?
               </p>
@@ -382,6 +468,7 @@ export default function RequestReviewPage() {
         <Textarea
           value={reply}
           onChange={(e) => {
+            setReplyTouched(true)
             setReply(e.target.value)
             checkAccidentalYes(e.target.value)
           }}

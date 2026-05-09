@@ -17,45 +17,45 @@
   style.textContent = `
     #monad-btn {
       position: fixed; bottom: 24px; right: 24px; z-index: 99999;
-      background: #f59e0b; color: #080c14; border: none; border-radius: 6px;
-      padding: 10px 16px; font-family: monospace; font-size: 13px; font-weight: 500;
-      cursor: pointer; box-shadow: 0 4px 12px rgba(245,158,11,0.4);
+      background: #171717; color: #ffffff; border: none; border-radius: 6px;
+      padding: 10px 16px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(23,23,23,0.4);
       transition: transform 0.15s, box-shadow 0.15s;
     }
-    #monad-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(245,158,11,0.5); }
+    #monad-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(23,23,23,0.5); }
     #monad-btn.active { background: #ef4444; color: #fff; }
     .monad-pin {
       position: absolute; width: 28px; height: 28px; z-index: 99998;
-      background: #f59e0b; border-radius: 50%; border: 2px solid #fff;
+      background: #171717; border-radius: 50%; border: 2px solid #fff;
       cursor: pointer; transform: translate(-50%, -50%);
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: bold; color: #080c14;
+      font-size: 11px; font-weight: bold; color: #ffffff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     }
     #monad-box {
       position: fixed; z-index: 99999;
-      background: #0f1624; border: 1px solid rgba(255,255,255,0.15);
+      background: #ffffff; border: 1px solid #e5e5e5;
       border-radius: 8px; padding: 16px; width: 280px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
     #monad-box textarea {
-      width: 100%; height: 80px; background: #080c14;
-      border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
-      color: #f0f4ff; font-family: monospace; font-size: 13px;
+      width: 100%; height: 80px; background: #ffffff;
+      border: 1px solid #d4d4d4; border-radius: 4px;
+      color: #171717; font-family: Inter, sans-serif; font-size: 13px;
       padding: 8px; resize: none; outline: none; box-sizing: border-box;
     }
     #monad-box input {
-      width: 100%; background: #080c14;
-      border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
-      color: #f0f4ff; font-family: monospace; font-size: 12px;
+      width: 100%; background: #ffffff;
+      border: 1px solid #d4d4d4; border-radius: 4px;
+      color: #171717; font-family: Inter, sans-serif; font-size: 12px;
       padding: 6px 8px; outline: none; box-sizing: border-box; margin-bottom: 8px;
     }
     #monad-box-submit {
-      background: #f59e0b; color: #080c14; border: none; border-radius: 4px;
+      background: #171717; color: #ffffff; border: none; border-radius: 4px;
       padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%;
     }
     #monad-box-cancel {
-      background: none; color: #8892a4; border: none;
+      background: none; color: #737373; border: none;
       font-size: 12px; cursor: pointer; margin-top: 6px; width: 100%;
     }
     body.monad-comment-mode { cursor: crosshair !important; }
@@ -115,7 +115,7 @@
     box.style.top = `${top}px`
 
     box.innerHTML = `
-      <p style="color:#8892a4;font-size:11px;margin:0 0 8px;font-family:monospace">Leave a comment</p>
+      <p style="color:#737373;font-size:11px;margin:0 0 8px;font-family:Inter, sans-serif">Leave a comment</p>
       <input type="text" placeholder="Your name (optional)" id="monad-name-input" />
       <textarea placeholder="Describe your feedback..." id="monad-text-input"></textarea>
       <button id="monad-box-submit">Submit comment</button>

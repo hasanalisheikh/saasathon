@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { registerWebhook } from '@/lib/github'
-
-function isGitHubOAuthReady() {
-  return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET)
-}
+import { isGitHubOAuthConfigured } from '@/lib/github-config'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -24,9 +21,6 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (!isGitHubOAuthReady()) {
-    return NextResponse.json({ error: 'GitHub OAuth is not configured' }, { status: 503 })
-  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -35,7 +29,11 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (!profile?.github_access_token) {
-    return NextResponse.json({ error: 'GitHub account not connected' }, { status: 400 })
+    return NextResponse.json({
+      error: isGitHubOAuthConfigured()
+        ? 'GitHub account not connected'
+        : 'GitHub is not connected yet. Add a personal access token in Settings to continue.',
+    }, { status: 400 })
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'

@@ -9,7 +9,7 @@ import {
 } from '@react-pdf/renderer'
 import type { Request, Project, Profile, AITask } from '@/types'
 
-const AMBER = '#f59e0b'
+const ACCENT = '#171717'
 const GREEN = '#10b981'
 const RED = '#ef4444'
 const BLUE = '#3b82f6'
@@ -30,7 +30,7 @@ const s = StyleSheet.create({
   },
   // Header
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 },
-  brand: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: AMBER, letterSpacing: 2 },
+  brand: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: ACCENT, letterSpacing: 0 },
   headerRight: { alignItems: 'flex-end' },
   docTitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: TEXT_PRIMARY },
   docSubtitle: { fontSize: 8, color: TEXT_SECONDARY, marginTop: 2 },
@@ -49,7 +49,7 @@ const s = StyleSheet.create({
   badgeText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#ffffff' },
   // Evidence
   evidenceItem: { flexDirection: 'row', marginBottom: 4 },
-  bullet: { width: 12, color: AMBER, fontSize: 9 },
+  bullet: { width: 12, color: ACCENT, fontSize: 9 },
   evidenceText: { flex: 1, fontSize: 9, color: TEXT_SECONDARY, lineHeight: 1.5 },
   // Tasks table
   table: { marginTop: 8 },
@@ -63,7 +63,7 @@ const s = StyleSheet.create({
   // Cost box
   costBox: { backgroundColor: SURFACE, borderRadius: 4, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   costLabel: { fontSize: 8, color: TEXT_SECONDARY, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' },
-  costValue: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: AMBER },
+  costValue: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: ACCENT },
   costSub: { fontSize: 8, color: TEXT_SECONDARY, marginTop: 2 },
   // Approval record
   approvalBox: { backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 4, padding: 16 },
@@ -75,14 +75,14 @@ const s = StyleSheet.create({
   // Footer
   footer: { position: 'absolute', bottom: 24, left: 48, right: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerText: { fontSize: 7, color: TEXT_SECONDARY },
-  footerBrand: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: AMBER },
+  footerBrand: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: ACCENT },
 })
 
 function classificationBadgeColor(c: string | null): string {
   switch (c) {
     case 'in_scope': return GREEN
     case 'out_of_scope': return RED
-    case 'ambiguous': return AMBER
+    case 'ambiguous': return ACCENT
     case 'clarification_needed': return BLUE
     default: return TEXT_SECONDARY
   }
@@ -321,7 +321,7 @@ export function ProofPackDocument({ request, project, developerName, developerEm
                 <Text style={s.body}>Issue #{request.github_issue_number}</Text>
                 <Text style={[s.body, { color: TEXT_SECONDARY, marginTop: 2 }]}>Created automatically on approval</Text>
               </View>
-              <Link src={request.github_issue_url} style={{ fontSize: 8, color: AMBER }}>
+              <Link src={request.github_issue_url} style={{ fontSize: 8, color: ACCENT }}>
                 {request.github_issue_url}
               </Link>
             </View>

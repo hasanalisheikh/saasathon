@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { analyseAndPersistRequest } from "@/lib/request-analysis"
 import { createClient } from "@/lib/supabase/server"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -57,9 +56,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .eq("project_id", id)
     }
 
-    await analyseAndPersistRequest(request.id)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+    fetch(`${appUrl}/api/ai/analyse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request_id: request.id }),
+    }).catch((error) => {
+      console.error('Async request analysis failed:', error)
+    })
 
-    return NextResponse.json({ id: request.id }, { status: 201 })
+    return NextResponse.json({ id: request.id, analysisQueued: true }, { status: 201 })
   } catch (err) {
     console.error("Create manual request error:", err)
     return NextResponse.json({ error: "Internal error" }, { status: 500 })

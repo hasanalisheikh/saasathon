@@ -25,6 +25,7 @@ type GitHubRepoLinkerProps = {
   linkedRepoName?: string | null
   onCancel?: () => void
   onLinked?: (repo: Repo) => void
+  patConnectHref?: string
   projectId: string
   projectName?: string
   redirectAfterLink?: string | null
@@ -78,6 +79,7 @@ export function GitHubRepoLinker({
   linkedRepoName,
   onCancel,
   onLinked,
+  patConnectHref = '/settings#github-pat',
   projectId,
   projectName,
   redirectAfterLink,
@@ -173,17 +175,20 @@ export function GitHubRepoLinker({
               <div className="space-y-1">
                 <p className="text-sm font-medium">GitHub OAuth is unavailable</p>
                 <p className="text-sm text-muted-foreground">
-                  Add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, then reload this page.
+                  Add a personal access token in Settings to continue browsing and linking repositories.
                 </p>
               </div>
             </div>
-            {onCancel && (
-              <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              {onCancel && (
                 <Button variant="ghost" onClick={onCancel}>
                   Close
                 </Button>
-              </div>
-            )}
+              )}
+              <Button render={<Link href={patConnectHref} />} nativeButton={false}>
+                Open Settings
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
