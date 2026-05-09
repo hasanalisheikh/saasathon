@@ -10,6 +10,7 @@ const SCOPE_EXTRACTION_PROMPT_VERSION = 'scope-extraction/v1'
 const COMMIT_TRANSLATION_PROMPT_VERSION = 'commit-translation/v1'
 const UNAPPROVED_WORK_PROMPT_VERSION = 'unapproved-work/v1'
 const CLIENT_REPLY_PROMPT_VERSION = 'client-reply/v1'
+const SLACK_INTAKE_REPLY_PROMPT_VERSION = 'slack-intake-reply/v1'
 
 const REQUEST_ANALYSIS_RESPONSE_SHAPE = `{
   "classification": "in_scope|out_of_scope|ambiguous|clarification_needed",
@@ -43,6 +44,10 @@ const SCOPE_EXTRACTION_RESPONSE_SHAPE = `{
 
 const CLIENT_REPLY_RESPONSE_SHAPE = `{
   "reply": "client-ready message"
+}`
+
+const SLACK_INTAKE_REPLY_RESPONSE_SHAPE = `{
+  "reply": "short friendly Slack acknowledgement"
 }`
 
 export function buildRequestAnalysisMessages(params: {
@@ -304,6 +309,48 @@ Return JSON:
   "matched_request": null,
   "reasoning": "why this work is or is not covered"
 }`,
+    },
+  ]
+}
+
+export function buildSlackIntakeReplyMessages(params: {
+  classification: string
+  confidence: number
+  developerName: string
+  requestText: string
+}) {
+  return [
+    {
+      role: 'system' as const,
+      content: [
+        `Prompt version: ${SLACK_INTAKE_REPLY_PROMPT_VERSION}.`,
+        'You write a short friendly Slack acknowledgement for a client who just submitted a project request.',
+        'This message is posted automatically by Monad in the same Slack thread.',
+        '',
+        'Writing rules:',
+        '- Keep it under 60 words.',
+        '- Sound warm, calm, and clear.',
+        '- Mention that this is only a quick AI analysis, not a final decision.',
+        '- If classification is out_of_scope, say it may be out of scope or does not appear to be part of the original scope.',
+        '- If classification is in_scope, say it looks like it may be in scope.',
+        '- If classification is ambiguous or clarification_needed, say it may need clarification.',
+        '- End by saying the named developer will respond as soon as possible.',
+        '- Do not mention pricing, approvals, or internal tooling.',
+        '- Return valid JSON only.',
+      ].join('\n'),
+    },
+    {
+      role: 'user' as const,
+      content: `REQUEST:
+${params.requestText}
+
+QUICK ANALYSIS:
+- classification: ${params.classification}
+- confidence: ${params.confidence}
+- developer name: ${params.developerName}
+
+Return JSON exactly in this shape:
+${SLACK_INTAKE_REPLY_RESPONSE_SHAPE}`,
     },
   ]
 }

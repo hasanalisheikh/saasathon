@@ -4,6 +4,7 @@ import {
   buildClientReplyMessages,
   buildCommitTranslationMessages,
   buildRequestAnalysisMessages,
+  buildSlackIntakeReplyMessages,
   buildScopeExtractionMessages,
   buildUnapprovedWorkMessages,
   extractJsonObject,
@@ -143,6 +144,24 @@ export async function generateClientReply(params: {
   })
 
   return parseClientReply(readJsonMessageContent(response, 'client reply generation'))
+}
+
+export async function generateSlackIntakeReply(params: {
+  classification: string
+  confidence: number
+  developerName: string
+  requestText: string
+}): Promise<string> {
+  const client = getAIClient()
+  const response = await client.chat.completions.create({
+    model: _model,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    response_format: { type: 'json_object' } as any,
+    temperature: 0.4,
+    messages: buildSlackIntakeReplyMessages(params),
+  })
+
+  return parseClientReply(readJsonMessageContent(response, 'slack intake reply generation'))
 }
 
 export async function detectUnapprovedWork(params: {
