@@ -178,6 +178,54 @@
   animation: jitter 0.15s infinite steps(1);
 }
 
+@keyframes monad-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes monad-spin-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes monad-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.65;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes monad-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  33% {
+    transform: translate3d(12px, -14px, 0);
+  }
+
+  66% {
+    transform: translate3d(-10px, 12px, 0);
+  }
+}
+
 @layer utilities {
   .recommended-sticker {
     border-radius: 9999px;

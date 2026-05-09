@@ -8,6 +8,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { BrandMark } from '@/components/brand-mark'
+import { HeroSignal } from '@/components/hero-signal'
 import { WorkflowSection } from '@/components/workflow-section'
 import { PricingSection } from '@/components/pricing-section'
 
@@ -93,13 +94,13 @@ export default function LandingPage() {
   return (
     <main className="relative min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-40 px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto grid max-w-7xl grid-cols-3 items-center gap-4">
+        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr] items-center gap-4 sm:grid-cols-3">
           <div className="flex items-center justify-start">
             <Link href="/" aria-label="Monad home">
               <BrandMark size="md" />
             </Link>
           </div>
-          <div className="flex items-center justify-center gap-6">
+          <div className="hidden items-center justify-center gap-6 sm:flex">
             <a className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:inline transition-colors" href="#how">
               Workflow
             </a>
@@ -107,9 +108,9 @@ export default function LandingPage() {
               Pricing
             </a>
           </div>
-          <div className="flex items-center justify-end gap-5">
+          <div className="flex items-center justify-end gap-3 sm:gap-5">
             <Link
-              className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-xs font-medium whitespace-nowrap text-primary-foreground transition-colors hover:bg-primary/90 sm:px-4 sm:text-sm"
               href="/signup"
             >
               Get Monad Free
@@ -121,47 +122,49 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      <section className="relative px-5 py-10 overflow-hidden">
-        <div className="relative z-10 mx-auto max-w-3xl text-center">
-          <h1 className="font-sans text-[4.4rem] font-bold tracking-tight leading-15">
-            Scope creep control.
-          </h1>
-          <p className="mx-auto mt-8 max-w-2xl text-[17px] leading-6 text-muted-foreground">
-            Monad elevates informal client requests into structured, approved, and GitHub-verified change orders before
-            they quietly evolve into unbilled deliverables.
-          </p>
-          <div className="mt-6 flex justify-center gap-4">
-            <Link
-              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              href="/signup"
-            >
-              Get Monad Free
-            </Link>
-            <a
-              className="inline-flex h-10 items-center justify-center rounded-md bg-secondary px-6 text-[15px] font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
-              href="#how"
-            >
-              See the workflow
-            </a>
+      <section className="relative flex min-h-[calc(100svh-74px)] flex-col overflow-hidden">
+        <div className="relative flex flex-1 items-center px-5 py-8 sm:py-10">
+          <HeroSignal />
+          <div className="relative z-10 mx-auto max-w-3xl text-center">
+            <h1 className="font-sans text-5xl font-bold tracking-tight leading-none sm:text-[4.4rem] sm:leading-15">
+              Scope creep control.
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-[17px] leading-6 text-muted-foreground">
+              Monad elevates informal client requests into structured, approved, and GitHub-verified change orders before
+              they quietly evolve into unbilled deliverables.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-4">
+              <Link
+                className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                href="/signup"
+              >
+                Get Monad Free
+              </Link>
+              <a
+                className="inline-flex h-10 items-center justify-center rounded-md bg-secondary px-6 text-[15px] font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                href="#how"
+              >
+                See the workflow
+              </a>
+            </div>
           </div>
-
         </div>
-      </section>
 
-      <section className="bg-muted/50 border-y border-border px-5 py-6">
-        <div className="mx-auto flex max-w-4xl justify-between flex-wrap gap-4 text-sm text-muted-foreground font-medium">
-          <p className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-[#097fe8]" />
-            Itemised receipts halt invoice shock
-          </p>
-          <p className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-[#097fe8]" />
-            Absolute clarity on deliverables
-          </p>
-          <p className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-[#097fe8]" />
-            Zero uncompensated scope extensions
-          </p>
+        <div className="mt-auto border-y border-border bg-muted/50 px-5 py-5">
+          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3 text-center text-sm font-medium text-muted-foreground lg:flex-nowrap">
+            <p className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-[#097fe8]" />
+              Itemised receipts halt invoice shock
+            </p>
+            <p className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-[#097fe8]" />
+              Absolute clarity on deliverables
+            </p>
+            <p className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-[#097fe8]" />
+              Zero uncompensated scope extensions
+            </p>
+          </div>
         </div>
       </section>
 
