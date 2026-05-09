@@ -1,18 +1,4 @@
-"use strict";
-(() => {
-  // src/index.ts
-  (function() {
-    var _a;
-    const script = document.currentScript;
-    const projectId = script == null ? void 0 : script.getAttribute("data-project-id");
-    const clientToken = script == null ? void 0 : script.getAttribute("data-client-token");
-    const apiBaseUrl = (_a = script == null ? void 0 : script.getAttribute("data-api-url")) != null ? _a : inferApiBaseUrl(script);
-    if (!projectId || !apiBaseUrl) return;
-    const API_URL = `${apiBaseUrl}/api/widget/comment`;
-    let pinCount = 0;
-    let commentMode = false;
-    const style = document.createElement("style");
-    style.textContent = `
+"use strict";(()=>{(function(){var b;let n=document.currentScript,p=n==null?void 0:n.getAttribute("data-project-id"),w=n==null?void 0:n.getAttribute("data-client-token"),u=(b=n==null?void 0:n.getAttribute("data-api-url"))!=null?b:C(n);if(!p||!u)return;let L=`${u}/api/widget/comment`,f=0,a=!1,x=document.createElement("style");x.textContent=`
     #monad-btn {
       position: fixed; bottom: 24px; right: 24px; z-index: 99999;
       background: #171717; color: #ffffff; border: none; border-radius: 6px;
@@ -58,101 +44,10 @@
     }
     body.monad-comment-mode { cursor: crosshair !important; }
     body.monad-comment-mode * { cursor: crosshair !important; }
-  `;
-    document.head.appendChild(style);
-    const btn = document.createElement("button");
-    btn.id = "monad-btn";
-    btn.textContent = "\u{1F4AC} Leave a comment";
-    document.body.appendChild(btn);
-    btn.addEventListener("click", () => {
-      commentMode = !commentMode;
-      btn.textContent = commentMode ? "\u2715 Cancel" : "\u{1F4AC} Leave a comment";
-      btn.classList.toggle("active", commentMode);
-      document.body.classList.toggle("monad-comment-mode", commentMode);
-      if (!commentMode) removeCommentBox();
-    });
-    document.addEventListener("click", (e) => {
-      if (!commentMode) return;
-      if (e.target.closest("#monad-btn, #monad-box")) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const x = e.pageX;
-      const y = e.pageY;
-      showCommentBox(x, y, (text, name) => {
-        placePinAndSubmit(x, y, text, name);
-        removeCommentBox();
-        commentMode = false;
-        btn.textContent = "\u{1F4AC} Leave a comment";
-        btn.classList.remove("active");
-        document.body.classList.remove("monad-comment-mode");
-      });
-    }, true);
-    let commentBox = null;
-    function showCommentBox(x, y, onSubmit) {
-      var _a2, _b, _c;
-      removeCommentBox();
-      const box = document.createElement("div");
-      box.id = "monad-box";
-      const vw = window.innerWidth;
-      const left = x + 20 + 300 > vw ? x - 300 - 10 : x + 20;
-      const top = y - 20;
-      box.style.left = `${left}px`;
-      box.style.top = `${top}px`;
-      box.innerHTML = `
+  `,document.head.appendChild(x);let d=document.createElement("button");d.id="monad-btn",d.textContent="\u{1F4AC} Leave a comment",document.body.appendChild(d),d.addEventListener("click",()=>{a=!a,d.textContent=a?"\u2715 Cancel":"\u{1F4AC} Leave a comment",d.classList.toggle("active",a),document.body.classList.toggle("monad-comment-mode",a),a||c()}),document.addEventListener("click",e=>{if(!a||e.target.closest("#monad-btn, #monad-box"))return;e.preventDefault(),e.stopPropagation();let o=e.pageX,r=e.pageY;E(o,r,(t,i)=>{k(o,r,t,i),c(),a=!1,d.textContent="\u{1F4AC} Leave a comment",d.classList.remove("active"),document.body.classList.remove("monad-comment-mode")})},!0);let s=null;function E(e,o,r){var g,h,y;c();let t=document.createElement("div");t.id="monad-box";let i=window.innerWidth,m=e+20+300>i?e-300-10:e+20,l=o-20;t.style.left=`${m}px`,t.style.top=`${l}px`,t.innerHTML=`
       <p style="color:#737373;font-size:11px;margin:0 0 8px;font-family:Inter, sans-serif">Leave a comment</p>
       <input type="text" placeholder="Your name (optional)" id="monad-name-input" />
       <textarea placeholder="Describe your feedback..." id="monad-text-input"></textarea>
       <button id="monad-box-submit">Submit comment</button>
       <button id="monad-box-cancel">Cancel</button>
-    `;
-      document.body.appendChild(box);
-      commentBox = box;
-      (_a2 = box.querySelector("#monad-text-input")) == null ? void 0 : _a2.focus();
-      (_b = box.querySelector("#monad-box-submit")) == null ? void 0 : _b.addEventListener("click", () => {
-        const text = box.querySelector("#monad-text-input").value.trim();
-        const name = box.querySelector("#monad-name-input").value.trim();
-        if (!text) return;
-        onSubmit(text, name);
-      });
-      (_c = box.querySelector("#monad-box-cancel")) == null ? void 0 : _c.addEventListener("click", removeCommentBox);
-    }
-    function removeCommentBox() {
-      commentBox == null ? void 0 : commentBox.remove();
-      commentBox = null;
-    }
-    function placePinAndSubmit(x, y, text, name) {
-      pinCount++;
-      const pin = document.createElement("div");
-      pin.className = "monad-pin";
-      pin.textContent = String(pinCount);
-      pin.style.left = `${x}px`;
-      pin.style.top = `${y}px`;
-      document.body.appendChild(pin);
-      const xPct = x / document.documentElement.scrollWidth;
-      const yPct = y / document.documentElement.scrollHeight;
-      fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project_id: projectId,
-          client_token: clientToken,
-          page_url: window.location.href,
-          x_position: xPct,
-          y_position: yPct,
-          comment_text: text,
-          client_name: name || null
-        })
-      }).catch(console.error);
-    }
-    function inferApiBaseUrl(currentScript) {
-      var _a2;
-      const scriptSrc = (_a2 = currentScript == null ? void 0 : currentScript.src) == null ? void 0 : _a2.trim();
-      if (!scriptSrc) return null;
-      try {
-        return new URL(scriptSrc).origin;
-      } catch (e) {
-        return null;
-      }
-    }
-  })();
-})();
+    `,document.body.appendChild(t),s=t,(g=t.querySelector("#monad-text-input"))==null||g.focus(),(h=t.querySelector("#monad-box-submit"))==null||h.addEventListener("click",()=>{let v=t.querySelector("#monad-text-input").value.trim(),z=t.querySelector("#monad-name-input").value.trim();v&&r(v,z)}),(y=t.querySelector("#monad-box-cancel"))==null||y.addEventListener("click",c)}function c(){s==null||s.remove(),s=null}function k(e,o,r,t){f++;let i=document.createElement("div");i.className="monad-pin",i.textContent=String(f),i.style.left=`${e}px`,i.style.top=`${o}px`,document.body.appendChild(i);let m=e/document.documentElement.scrollWidth,l=o/document.documentElement.scrollHeight;fetch(L,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project_id:p,client_token:w,page_url:window.location.href,x_position:m,y_position:l,comment_text:r,client_name:t||null})}).catch(console.error)}function C(e){var r;let o=(r=e==null?void 0:e.src)==null?void 0:r.trim();if(!o)return null;try{return new URL(o).origin}catch(t){return null}}})();})();

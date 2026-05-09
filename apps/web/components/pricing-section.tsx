@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 const pricing = [
   {
@@ -44,6 +44,9 @@ const pricing = [
 ]
 
 export function PricingSection() {
+  const studioPlan = pricing[2]
+  if (!studioPlan) return null
+
   return (
     <section id="pricing" className="px-5 py-20 sm:px-8 lg:px-12 bg-neutral-50">
       <div className="mx-auto max-w-7xl">
@@ -109,20 +112,20 @@ export function PricingSection() {
           <div className="p-8 sm:p-10 bg-blue-50 rounded-3xl flex flex-col">
             <div>
               <div className="flex items-start justify-between gap-4">
-                <h3 className="text-2xl font-bold text-foreground">{pricing[2].name}</h3>
+                <h3 className="text-2xl font-bold text-foreground">{studioPlan.name}</h3>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-foreground">{pricing[2].price}</span>
-                <span className="text-[15px] font-medium text-muted-foreground">{pricing[2].sub}</span>
+                <span className="text-4xl font-bold text-foreground">{studioPlan.price}</span>
+                <span className="text-[15px] font-medium text-muted-foreground">{studioPlan.sub}</span>
               </div>
-              <p className="mt-4 min-h-12 text-[15px] leading-relaxed text-muted-foreground">{pricing[2].description}</p>
+              <p className="mt-4 min-h-12 text-[15px] leading-relaxed text-muted-foreground">{studioPlan.description}</p>
             </div>
 
             <Link
               className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md text-[15px] font-semibold transition bg-blue-100 text-blue-700 hover:bg-blue-200"
               href="/signup"
             >
-              {pricing[2].cta}
+              {studioPlan.cta}
             </Link>
 
             <div className="mt-8 flex-1">
@@ -130,7 +133,7 @@ export function PricingSection() {
                 Everything in Pro, and:
               </p>
               <ul className="space-y-3">
-                {pricing[2].features.filter(f => f !== 'Everything in Pro').map((feature) => (
+                {studioPlan.features.filter((f) => f !== 'Everything in Pro').map((feature) => (
                   <li className="flex items-start gap-3 text-[15px] text-muted-foreground" key={feature}>
                     <Check className="mt-0.5 size-4 shrink-0 text-foreground" />
                     <span className="leading-tight">{feature}</span>
