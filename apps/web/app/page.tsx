@@ -1,18 +1,68 @@
 import Link from 'next/link'
+import type { ComponentType } from 'react'
 import {
-  Check,
   CheckCircle2,
   ExternalLink,
   Fingerprint,
   MessageSquareText,
   ShieldCheck,
-  Workflow,
 } from 'lucide-react'
 import { BrandMark } from '@/components/brand-mark'
 import { WorkflowSection } from '@/components/workflow-section'
 import { PricingSection } from '@/components/pricing-section'
 
-const platformFeatures = [
+type PlatformFeature = {
+  icon: ComponentType<{ className?: string }>
+  title: string
+  color: string
+  description?: string
+  summary?: string
+}
+
+const problemStats = [
+  {
+    value: '52%',
+    title: 'of projects hit uncontrolled scope changes',
+    description:
+      'PMI found that more than half of projects completed in the prior year experienced scope creep.',
+    source: 'PMI Pulse of the Profession',
+    href: 'https://www.pmi.org/learning/library/scope-creep-rising-11308',
+  },
+  {
+    value: '57%',
+    title: 'of agencies lose $1K-$5K every month',
+    description:
+      'Ignition found another 30% lose more than $5K monthly on unbilled projects and tasks.',
+    source: 'Ignition Agency Pricing Report',
+    href: 'https://www.ignitionapp.com/news/2025-agency-pricing-cashflow-report',
+  },
+  {
+    value: '1%',
+    title: 'of agencies bill every out-of-scope request',
+    description:
+      'The Drum reported that almost every agency absorbs at least some out-of-scope work.',
+    source: 'The Drum / Ignition',
+    href: 'https://www.thedrum.com/news/cash-flow-crunch-us-agencies-struggle-grow-late-payments-and-scope-creep-bite',
+  },
+  {
+    value: '58.7%',
+    title: 'of MSPs cite scope creep as their top challenge',
+    description:
+      'Moovila and The Channel Company found scope creep ranked above timeline and scheduling issues.',
+    source: 'Moovila MSP Trends',
+    href: 'https://www.prnewswire.com/news-releases/project-management-scope-creep-tops-list-of-challenges-for-59-of-msps-moovila-report-finds-302590885.html',
+  },
+  {
+    value: '45%',
+    title: 'average budget overrun on large IT projects',
+    description:
+      'McKinsey and Oxford also found those projects delivered 56% less value than predicted.',
+    source: 'McKinsey + Oxford',
+    href: 'https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/delivering-large-scale-it-projects-on-time-on-budget-and-on-value',
+  },
+]
+
+const platformFeatures: PlatformFeature[] = [
   {
     icon: Fingerprint,
     title: 'Contextual AI extraction',
@@ -32,60 +82,12 @@ const platformFeatures = [
     color: 'bg-[#097fe8]',
   },
   {
-    icon: Workflow,
-    title: 'Real-time stakeholder parity',
-    description: 'Keeps the entire feedback loop transparent. Clients receive automated, jargon-free progress updates synced directly from your commit history.',
+    icon: CheckCircle2,
+    title: 'The proof layer',
+    summary: 'Before you reply, Monad assembles the original ask, timeline impact, execution risks, contract-backed response, deliverable receipts, feature updates, and a verifiable audit trail into one review surface. Every change stays linked to the source conversation, so invoice shock never shows up at the end.',
     color: 'bg-[#097fe8]',
   },
 ]
-
-const evidenceItems = [
-  'Contract-backed AI responses',
-  'Itemised deliverable receipts',
-  'Verifiable conversation links',
-  'Automated feature updates',
-  'Mutual accountability audit log',
-]
-
-const scopeCreepStats = [
-  {
-    value: '52%',
-    title: 'of projects hit uncontrolled scope changes',
-    description: 'PMI found that more than half of projects completed in the prior year experienced scope creep.',
-    source: 'PMI Pulse of the Profession',
-    href: 'https://www.pmi.org/learning/library/scope-creep-rising-11308',
-  },
-  {
-    value: '57%',
-    title: 'of agencies lose $1K-$5K every month',
-    description: 'Ignition found another 30% lose more than $5K monthly on unbilled projects and tasks.',
-    source: 'Ignition Agency Pricing Report',
-    href: 'https://www.ignitionapp.com/news/2025-agency-pricing-cashflow-report',
-  },
-  {
-    value: '1%',
-    title: 'of agencies bill every out-of-scope request',
-    description: 'The Drum reported that almost every agency absorbs at least some out-of-scope work.',
-    source: 'The Drum / Ignition',
-    href: 'https://www.thedrum.com/news/cash-flow-crunch-us-agencies-struggle-grow-late-payments-and-scope-creep-bite',
-  },
-  {
-    value: '58.7%',
-    title: 'of MSPs cite scope creep as their top challenge',
-    description: 'Moovila and The Channel Company found scope creep ranked above timeline and scheduling issues.',
-    source: 'Moovila MSP Trends',
-    href: 'https://www.prnewswire.com/news-releases/project-management-scope-creep-tops-list-of-challenges-for-59-of-msps-moovila-report-finds-302590885.html',
-  },
-  {
-    value: '45%',
-    title: 'average budget overrun on large IT projects',
-    description: 'McKinsey and Oxford also found those projects delivered 56% less value than predicted.',
-    source: 'McKinsey + Oxford',
-    href: 'https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/delivering-large-scale-it-projects-on-time-on-budget-and-on-value',
-  },
-]
-
-
 
 export default function LandingPage() {
   return (
@@ -178,16 +180,15 @@ export default function LandingPage() {
               the work is already done.
             </p>
           </div>
-
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {scopeCreepStats.map((stat) => (
+            {problemStats.map((stat) => (
               <a
-                key={stat.title}
+                aria-label={`${stat.title} source: ${stat.source}`}
                 className="group flex min-h-[250px] flex-col justify-between rounded-lg border border-border bg-card p-5 text-card-foreground transition-all hover:border-[#097fe8]/60 hover:bg-muted/40"
                 href={stat.href}
-                target="_blank"
+                key={stat.title}
                 rel="noopener noreferrer"
-                aria-label={`${stat.title} source: ${stat.source}`}
+                target="_blank"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
@@ -223,40 +224,14 @@ export default function LandingPage() {
                   <feature.icon className="size-4 text-white" />
                 </div>
                 <h3 className="font-bold mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
+                {feature.description ? (
+                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+                ) : null}
+                {feature.summary ? (
+                  <p className="text-sm text-muted-foreground">{feature.summary}</p>
+                ) : null}
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="px-5 py-20 sm:px-8 lg:px-12">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch border border-border rounded-3xl overflow-hidden bg-background">
-          <div className="px-8 py-10 flex flex-col justify-center">
-            <p className="mb-4 text-sm font-semibold text-primary">The proof layer</p>
-            <h2 className="text-3xl font-bold sm:text-4xl">
-              Comprehensive audit trails for every decision.
-            </h2>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
-              Before engaging the client, Monad equips you with the essential context: the initial request, automatically calculated timeline impacts, execution risks, and a professionally drafted response anchored in your agreement. Every change is documented via an itemized receipt linked directly back to their original ask-eliminating end-of-project invoice shock and providing a definitive audit trail for mutual legal and financial accountability.
-            </p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              {evidenceItems.map((item) => (
-                <p className="flex items-center gap-3 text-sm text-foreground" key={item}>
-                  <span className="flex size-4 shrink-0 items-center justify-center rounded bg-[#097fe8] text-white">
-                    <Check className="size-2.5" strokeWidth={3} />
-                  </span>
-                  {item}
-                </p>
-              ))}
-            </div>
-          </div>
-          <div className="relative h-full min-h-[300px] w-full overflow-hidden border-t lg:border-t-0 lg:border-l border-border bg-muted">
-            <img
-              src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2015&auto=format&fit=crop"
-              alt="Audit trail dashboard"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
           </div>
         </div>
       </section>
