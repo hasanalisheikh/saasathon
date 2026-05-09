@@ -11,6 +11,7 @@ const COMMIT_TRANSLATION_PROMPT_VERSION = 'commit-translation/v1'
 const UNAPPROVED_WORK_PROMPT_VERSION = 'unapproved-work/v1'
 const CLIENT_REPLY_PROMPT_VERSION = 'client-reply/v1'
 const SLACK_INTAKE_REPLY_PROMPT_VERSION = 'slack-intake-reply/v1'
+const SLACK_REQUEST_CLASSIFIER_PROMPT_VERSION = 'slack-request-classifier/v1'
 
 const REQUEST_ANALYSIS_RESPONSE_SHAPE = `{
   "classification": "in_scope|out_of_scope|ambiguous|clarification_needed",
@@ -48,6 +49,11 @@ const CLIENT_REPLY_RESPONSE_SHAPE = `{
 
 const SLACK_INTAKE_REPLY_RESPONSE_SHAPE = `{
   "reply": "short friendly Slack acknowledgement"
+}`
+
+const SLACK_REQUEST_CLASSIFIER_RESPONSE_SHAPE = `{
+  "is_request": true,
+  "title": "Short feature request title"
 }`
 
 export function buildRequestAnalysisMessages(params: {
@@ -355,6 +361,42 @@ ${SLACK_INTAKE_REPLY_RESPONSE_SHAPE}`,
   ]
 }
 
+export function buildSlackRequestClassifierMessages(messageText: string) {
+  return [
+    {
+      role: 'system' as const,
+      content: [
+        `Prompt version: ${SLACK_REQUEST_CLASSIFIER_PROMPT_VERSION}.`,
+        'You classify inbound Slack messages for Monad before they become client request records.',
+        'Your job is to decide whether the message is asking for new work, a feature, a modification, a bug fix, or some other project change that should enter the scope-review workflow.',
+        '',
+        'Classification rules:',
+        '- Set is_request to true when the message asks for a feature, change, modification, fix, revision, addition, removal, redesign, integration, workflow change, or other implementation work.',
+        '- Set is_request to false for greetings, thanks, scheduling, status checks, approvals, social chatter, vague reactions, or messages that do not ask for work to be done.',
+        '- If a message contains both small talk and a real request for work, set is_request to true.',
+        '- When unsure, prefer true only if there is a concrete ask to change the product or deliverable.',
+        '',
+        'Title rules:',
+        '- If is_request is true, generate a concise title between 4 and 10 words.',
+        '- The title should describe the requested change in plain English.',
+        '- Do not copy the entire message or include Slack filler like "hey", "quick thing", or "can you".',
+        '- Do not use quotes, trailing punctuation, or markdown.',
+        '- If is_request is false, return title as null.',
+        '',
+        'Return valid JSON only with no markdown fences.',
+      ].join('\n'),
+    },
+    {
+      role: 'user' as const,
+      content: `SLACK MESSAGE:
+${messageText}
+
+Return JSON exactly in this shape:
+${SLACK_REQUEST_CLASSIFIER_RESPONSE_SHAPE}`,
+    },
+  ]
+}
+
 export function parseAIAnalysis(input: unknown): AIAnalysis {
   const raw = expectObject(input, 'analysis response')
   const effort = normalizeRange(
@@ -412,6 +454,19 @@ export function parseUnapprovedWorkResult(input: unknown): {
     confidence: clampToWholeNumber(expectNumber(raw.confidence, 'confidence'), 0, 100),
     matched_request: readNullableString(raw.matched_request, 'matched_request'),
     reasoning: expectString(raw.reasoning, 'reasoning'),
+  }
+}
+
+export function parseSlackRequestClassifierResult(input: unknown): {
+  is_request: boolean
+  title: string | null
+} {
+  const raw = expectObject(input, 'slack request classifier response')
+  const isRequest = expectBoolean(raw.is_request, 'is_request')
+
+  return {
+    is_request: isRequest,
+    title: isRequest ? readNullableString(raw.title, 'title') : null,
   }
 }
 

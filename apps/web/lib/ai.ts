@@ -5,12 +5,14 @@ import {
   buildCommitTranslationMessages,
   buildRequestAnalysisMessages,
   buildSlackIntakeReplyMessages,
+  buildSlackRequestClassifierMessages,
   buildScopeExtractionMessages,
   buildUnapprovedWorkMessages,
   extractJsonObject,
   parseAIAnalysis,
   parseClientReply,
   parseCommitTranslation,
+  parseSlackRequestClassifierResult,
   parseScopeStructured,
   parseUnapprovedWorkResult,
 } from '@/lib/ai-contract'
@@ -162,6 +164,24 @@ export async function generateSlackIntakeReply(params: {
   })
 
   return parseClientReply(readJsonMessageContent(response, 'slack intake reply generation'))
+}
+
+export async function classifySlackRequest(messageText: string): Promise<{
+  is_request: boolean
+  title: string | null
+}> {
+  const client = getAIClient()
+  const response = await client.chat.completions.create({
+    model: _model,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    response_format: { type: 'json_object' } as any,
+    temperature: 0.1,
+    messages: buildSlackRequestClassifierMessages(messageText),
+  })
+
+  return parseSlackRequestClassifierResult(
+    readJsonMessageContent(response, 'slack request classifier')
+  )
 }
 
 export async function detectUnapprovedWork(params: {
