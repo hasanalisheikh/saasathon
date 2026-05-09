@@ -16,6 +16,14 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@workspace/ui/components/sidebar"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
+
+const DICEBEAR_AVATAR_URL =
+  "https://api.dicebear.com/9.x/identicon/svg?seed=Alexander"
 
 interface NavUserProps {
   user: {
@@ -25,17 +33,40 @@ interface NavUserProps {
   logoutAction: () => Promise<void>
 }
 
+function getUserInitials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "D"
+  )
+}
+
 export function NavUser({ user, logoutAction }: NavUserProps) {
   const { isMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
+  const avatarLabel = user.name || user.email || "User"
+  const initials = getUserInitials(avatarLabel)
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold">
+            <Avatar className="size-8 rounded-md after:rounded-md">
+              <AvatarImage
+                src={DICEBEAR_AVATAR_URL}
+                alt={`${avatarLabel} profile picture`}
+                className="rounded-md"
+              />
+              <AvatarFallback className="rounded-md text-xs">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left leading-tight">
+              <span className="truncate text-sm font-medium">
                 {user.name}
               </span>
               <span className="truncate text-xs text-muted-foreground">
@@ -50,9 +81,21 @@ export function NavUser({ user, logoutAction }: NavUserProps) {
             align="end"
             sideOffset={4}
           >
-            <div className="px-2 py-1.5">
-              <p className="text-sm font-medium truncate">{user.name}</p>
-              <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+            <div className="flex items-center gap-2 px-2 py-1.5">
+              <Avatar className="size-8 rounded-md after:rounded-md">
+                <AvatarImage
+                  src={DICEBEAR_AVATAR_URL}
+                  alt={`${avatarLabel} profile picture`}
+                  className="rounded-md"
+                />
+                <AvatarFallback className="rounded-md text-xs">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 leading-tight">
+                <p className="text-sm font-medium truncate">{user.name}</p>
+                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+              </div>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href="/settings" />}>
