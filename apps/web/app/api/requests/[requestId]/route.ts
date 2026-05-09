@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAppUrl } from '@/lib/env'
+import { buildSlackApprovalMessage, postSlackMessage } from '@/lib/slack'
 import { createClient } from '@/lib/supabase/server'
 import type { ReplyTone, RequestStatus } from '@/types'
 
@@ -61,29 +63,112 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
     return NextResponse.json({ error: 'Minimum cost cannot be higher than maximum cost.' }, { status: 400 })
   }
 
-  // Verify ownership via join
   const { data: existing } = await supabase
     .from('requests')
-    .select('project:projects(user_id)')
+    .select(
+      'id, approval_token, cost_min, cost_max, final_reply, reply_tone, slack_channel_id, slack_thread_ts, technical_breakdown, project:projects(id, user_id, slack_channel_id)'
+    )
     .eq('id', requestId)
     .single()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const proj = (existing?.project as any) ?? null
-  if (!proj || proj.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const updates =
-    status === 'accepted_in_scope'
-      ? { status, classification: 'in_scope' as const }
-      : status === 'sent_to_client'
-        ? {
-            status,
-            final_reply: finalReply,
-            ...(replyTone ? { reply_tone: replyTone as ReplyTone } : {}),
-            ...(costMin.value !== undefined ? { cost_min: costMin.value } : {}),
-            ...(costMax.value !== undefined ? { cost_max: costMax.value } : {}),
-          }
-        : { status }
+  const project = existing.project as { id: string; user_id: string; slack_channel_id: string | null } | null
+  if (!project || project.user_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  let updates: Record<string, string | number | null>
+
+  if (status === 'accepted_in_scope') {
+    updates = { status, classification: 'in_scope' }
+  } else if (status === 'sent_to_client') {
+    if (!finalReply) {
+      return NextResponse.json({ error: 'Add a client-ready reply before sending to Slack.' }, { status: 400 })
+    }
+
+    if (!existing.approval_token) {
+      return NextResponse.json({ error: 'This request is missing an approval token.' }, { status: 422 })
+    }
+
+    const resolvedCostMin = costMin.value ?? existing.cost_min
+    const resolvedCostMax = costMax.value ?? existing.cost_max
+
+    if (resolvedCostMin === null || resolvedCostMax === null) {
+      return NextResponse.json({
+        error: 'AI analysis must produce a cost range before Monad can send an approval link in Slack.',
+      }, { status: 422 })
+    }
+
+    if (!existing.technical_breakdown) {
+      return NextResponse.json({
+        error: 'AI analysis must produce a technical breakdown before Monad can send an approval link in Slack.',
+      }, { status: 422 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('slack_access_token')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.slack_access_token) {
+      return NextResponse.json({
+        error: 'Connect your Slack workspace before sharing approval links in Slack.',
+      }, { status: 400 })
+    }
+
+    const hasOriginalThread = Boolean(existing.slack_channel_id && existing.slack_thread_ts)
+    const targetChannelId = hasOriginalThread
+      ? existing.slack_channel_id
+      : project.slack_channel_id
+
+    if (!targetChannelId) {
+      return NextResponse.json({
+        error: 'Link a Slack channel to this project before sharing approval links in Slack.',
+      }, { status: 400 })
+    }
+
+    const appUrl = getAppUrl()
+    const approvalUrl = `${appUrl}/approve/${existing.approval_token}`
+    const declineUrl = `${approvalUrl}?action=decline`
+    const message = buildSlackApprovalMessage({
+      developerReply: finalReply,
+      technicalBreakdown: existing.technical_breakdown,
+      costMin: resolvedCostMin,
+      costMax: resolvedCostMax,
+      approvalUrl,
+      declineUrl,
+    })
+
+    try {
+      const result = await postSlackMessage(
+        profile.slack_access_token,
+        targetChannelId,
+        message,
+        hasOriginalThread ? (existing.slack_thread_ts ?? undefined) : undefined,
+      )
+
+      updates = {
+        status,
+        final_reply: finalReply,
+        ...(replyTone ? { reply_tone: replyTone } : {}),
+        ...(costMin.value !== undefined ? { cost_min: costMin.value } : {}),
+        ...(costMax.value !== undefined ? { cost_max: costMax.value } : {}),
+        ...(!existing.slack_thread_ts
+          ? {
+              slack_thread_ts: result.ts,
+              slack_channel_id: targetChannelId,
+            }
+          : {}),
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown Slack error'
+      return NextResponse.json({ error: `Slack delivery failed: ${message}` }, { status: 502 })
+    }
+  } else {
+    updates = { status }
+  }
 
   const { data, error } = await supabase
     .from('requests')

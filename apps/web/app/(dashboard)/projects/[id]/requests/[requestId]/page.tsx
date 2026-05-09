@@ -249,10 +249,12 @@ export default function RequestReviewPage() {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setSendError((data as { error?: string }).error ?? "Failed to save the client-ready reply. Please try again.")
+        setSendError((data as { error?: string }).error ?? "Failed to send the Slack approval message. Please try again.")
         return
       }
       router.push(`/projects/${id}`)
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : "Failed to send the Slack approval message. Please try again.")
     } finally {
       setSending(false)
     }
@@ -639,7 +641,7 @@ export default function RequestReviewPage() {
             </Button>
           </div>
           <Button onClick={markReadyToShare} disabled={sending || generatingReply || !reply.trim() || Boolean(costError)}>
-            {sending ? "Saving..." : "Mark ready to share →"}
+            {sending ? "Sending to Slack..." : "Mark ready to share →"}
           </Button>
         </div>
       </div>

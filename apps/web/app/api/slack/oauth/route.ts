@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
         slack_team_id: tokens.team.id,
         slack_team_name: tokens.team.name,
         slack_bot_user_id: tokens.bot_user_id,
+        slack_user_id: tokens.authed_user?.id ?? null,
       })
       .eq('id', decoded.userId)
 

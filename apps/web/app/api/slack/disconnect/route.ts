@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
         slack_team_id: null,
         slack_team_name: null,
         slack_bot_user_id: null,
+        slack_user_id: null,
       })
       .eq('id', user.id)
   }
