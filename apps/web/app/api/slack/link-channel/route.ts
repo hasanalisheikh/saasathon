@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { ensureSlackChannelAccess } from '@/lib/slack'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -13,6 +14,23 @@ export async function POST(req: NextRequest) {
 
   if (!body.project_id || !body.channel_id || !body.channel_name) {
     return NextResponse.json({ error: 'project_id, channel_id, and channel_name are required' }, { status: 400 })
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('slack_access_token')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.slack_access_token) {
+    return NextResponse.json({ error: 'Slack workspace is not connected' }, { status: 400 })
+  }
+
+  try {
+    await ensureSlackChannelAccess(profile.slack_access_token, body.channel_id)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to verify Slack channel access'
+    return NextResponse.json({ error: message }, { status: 400 })
   }
 
   // RLS on the user client enforces ownership — only the project owner can update

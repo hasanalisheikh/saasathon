@@ -26,6 +26,7 @@ const SLACK_SCOPES = [
   'channels:join',
   'groups:history',
   'chat:write',
+  'chat:write.public',
   'channels:read',
   'groups:read',
   'im:write',
@@ -112,6 +113,7 @@ export async function exchangeSlackCode(code: string, appUrl: string): Promise<S
 
 export type SlackChannel = {
   id: string
+  is_member?: boolean
   name: string
   is_private: boolean
 }
@@ -120,15 +122,14 @@ export type PostSlackMessageResult = {
   ts: string
 }
 
-type SlackApiErrorResponse = {
-  ok: false
+type SlackApiResponse = {
+  ok?: boolean
   error?: string
 }
 
-type SlackPostMessageResponse = {
-  ok: true
+type SlackPostMessageResponse = SlackApiResponse & {
   ts?: string
-} | SlackApiErrorResponse
+}
 
 export type SlackApprovalMessageParams = {
   developerReply: string
@@ -149,6 +150,42 @@ export function buildSlackApprovalMessage(params: SlackApprovalMessageParams): s
   ].join('\n\n')
 }
 
+class SlackApiError extends Error {
+  code: string
+
+  constructor(context: string, code: string) {
+    super(`${context}: ${code}`)
+    this.name = 'SlackApiError'
+    this.code = code
+  }
+}
+
+async function slackApiRequest<T>(
+  botToken: string,
+  path: string,
+  init?: RequestInit
+): Promise<T> {
+  const response = await fetch(`https://slack.com/api/${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${botToken}`,
+      ...(init?.headers ?? {}),
+    },
+  })
+
+  const data = await response.json() as T & { error?: string; ok?: boolean }
+
+  if (!response.ok) {
+    throw new Error(`Slack API request failed: ${response.status}`)
+  }
+
+  if (!data.ok) {
+    throw new SlackApiError(`Slack ${path} error`, data.error ?? 'unknown')
+  }
+
+  return data
+}
+
 export async function listSlackChannels(botToken: string): Promise<SlackChannel[]> {
   const params = new URLSearchParams({
     types: 'public_channel,private_channel',
@@ -156,21 +193,64 @@ export async function listSlackChannels(botToken: string): Promise<SlackChannel[
     limit: '200',
   })
 
-  const response = await fetch(`https://slack.com/api/conversations.list?${params}`, {
-    headers: { Authorization: `Bearer ${botToken}` },
-  })
-
-  const data = await response.json() as {
-    ok: boolean
-    channels?: SlackChannel[]
-    error?: string
-  }
-
-  if (!data.ok) {
-    throw new Error(`Slack channels error: ${data.error ?? 'unknown'}`)
-  }
+  const data = await slackApiRequest<{ channels?: SlackChannel[] }>(
+    botToken,
+    `conversations.list?${params.toString()}`
+  )
 
   return (data.channels ?? []).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+type SlackChannelInfo = {
+  id: string
+  is_member: boolean
+  is_private: boolean
+  name: string
+}
+
+async function getSlackChannelInfo(botToken: string, channelId: string): Promise<SlackChannelInfo> {
+  const params = new URLSearchParams({ channel: channelId })
+  const data = await slackApiRequest<{ channel: SlackChannelInfo }>(
+    botToken,
+    `conversations.info?${params.toString()}`
+  )
+
+  return data.channel
+}
+
+async function joinSlackChannel(botToken: string, channelId: string): Promise<void> {
+  const body = new URLSearchParams({ channel: channelId })
+  await slackApiRequest(
+    botToken,
+    'conversations.join',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    }
+  )
+}
+
+export async function ensureSlackChannelAccess(botToken: string, channelId: string): Promise<void> {
+  const channel = await getSlackChannelInfo(botToken, channelId)
+  if (channel.is_member) return
+
+  if (channel.is_private) {
+    throw new Error(
+      `Monad is not in #${channel.name}. Invite the Slack app to that private channel before linking or sending messages.`
+    )
+  }
+
+  try {
+    await joinSlackChannel(botToken, channelId)
+  } catch (error) {
+    if (error instanceof SlackApiError) {
+      throw new Error(
+        `Monad could not join #${channel.name}. Reconnect Slack with updated permissions or invite the app before sending messages.`
+      )
+    }
+    throw error
+  }
 }
 
 export async function verifySlackSignature(rawBody: string, headers: Headers): Promise<boolean> {
@@ -204,30 +284,46 @@ export async function postSlackMessage(
   const body: Record<string, string> = { channel: channelId, text }
   if (threadTs) body.thread_ts = threadTs
 
-  const response = await fetch('https://slack.com/api/chat.postMessage', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${botToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-
-  const data = await response.json() as SlackPostMessageResponse
-
-  if (!response.ok) {
-    throw new Error(
-      `Slack post message error: ${'error' in data ? (data.error ?? 'unknown') : response.statusText || 'unknown'}`
+  try {
+    const result = await slackApiRequest<SlackPostMessageResponse>(
+      botToken,
+      'chat.postMessage',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      }
     )
-  }
+    if (!result.ts) {
+      throw new Error('Slack post message error: missing message timestamp')
+    }
+    return { ts: result.ts }
+  } catch (error) {
+    if (error instanceof SlackApiError && error.code === 'not_in_channel') {
+      await ensureSlackChannelAccess(botToken, channelId)
+      const retryResult = await slackApiRequest<SlackPostMessageResponse>(
+        botToken,
+        'chat.postMessage',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        }
+      )
+      if (!retryResult.ts) {
+        throw new Error('Slack post message error: missing message timestamp')
+      }
+      return { ts: retryResult.ts }
+    }
 
-  if (!data.ok) {
-    throw new Error(`Slack post message error: ${data.error ?? 'unknown'}`)
-  }
+    if (error instanceof SlackApiError) {
+      throw new Error(`Slack post message error: ${error.code}`)
+    }
 
-  if (!data.ts) {
-    throw new Error('Slack post message error: missing message timestamp')
+    throw error
   }
-
-  return { ts: data.ts }
 }
