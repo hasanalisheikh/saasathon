@@ -88,7 +88,7 @@ function buildDocumentContext(documents: ProjectDocumentContext[]): string {
       return [
         `Title: ${document.title}`,
         `Type: ${document.document_type}`,
-        `Tags: ${document.tags.join(', ') || 'none'}`,
+        `Tags: ${Array.isArray(document.tags) ? document.tags.join(', ') : 'none'}`,
         `Text:\n${text || '(no extracted text)'}`,
       ].join('\n')
     })
