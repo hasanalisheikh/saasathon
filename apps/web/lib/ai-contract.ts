@@ -73,6 +73,7 @@ export function buildRequestAnalysisMessages(params: {
         '  - out_of_scope: work that clearly adds a new system, new integration, new automation, payment processing, booking systems, loyalty programs, custom reporting, or other substantial new feature not agreed upon.',
         '  - ambiguous: the request could mean a small or a large change — ask for clarification.',
         '  - clarification_needed: the request is too vague to classify without more detail.',
+        '  - you should also give a rating out of 100, wether this request is in scope or out of scope. and return that as confidence.',
         '',
         'Prefer exact scope evidence over general impressions. Never invent evidence not present in the inputs.',
         'Break work into concrete tasks and estimate conservatively. Use the DEVELOPER RATE only as context — the app computes final prices separately.',
