@@ -112,11 +112,13 @@ export function GitHubRepoLinker({
     let cancelled = false
 
     if (!canLoadRepos || showInstallationSelection) {
+      setRepos([])
       setLoadingRepos(false)
       return
     }
 
     setLoadingRepos(true)
+    setError(null)
 
     fetch(`/api/github/repos?projectId=${projectId}`)
       .then(async (response) => {
@@ -143,7 +145,7 @@ export function GitHubRepoLinker({
     return () => {
       cancelled = true
     }
-  }, [canLoadRepos, projectId])
+  }, [canLoadRepos, projectId, showInstallationSelection])
 
   useEffect(() => {
     let cancelled = false
@@ -155,6 +157,7 @@ export function GitHubRepoLinker({
     }
 
     setLoadingInstallations(true)
+    setError(null)
 
     fetch(`/api/github/installations?projectId=${projectId}`)
       .then(async (response) => {
@@ -181,7 +184,7 @@ export function GitHubRepoLinker({
     return () => {
       cancelled = true
     }
-  }, [canLoadInstallationOptions, projectId])
+  }, [canLoadInstallationOptions, projectId, showInstallationSelection])
 
   const filteredRepos = useMemo(
     () => repos.filter((repo) => repo.name.toLowerCase().includes(query.toLowerCase())),
@@ -242,6 +245,7 @@ export function GitHubRepoLinker({
       const message = err instanceof Error ? err.message : 'Failed to attach GitHub installation'
       setError(message)
       toast.error(message)
+    } finally {
       setAttachingInstallation(null)
     }
   }
@@ -281,8 +285,9 @@ export function GitHubRepoLinker({
     return (
       <div className="space-y-4">
         {statusNotice && <StatusNotice message={statusNotice.text} tone={statusNotice.tone} />}
+        {error && <StatusNotice message={error} tone="error" />}
         <Card size="sm">
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {loadingInstallations ? (
               <div className="flex items-center justify-center rounded-lg border border-border/80 px-4 py-8 text-sm text-muted-foreground">
                 <Loader2Icon className="mr-2 size-4 animate-spin" />
@@ -293,54 +298,78 @@ export function GitHubRepoLinker({
                 <div className="flex items-start gap-3">
                   <Icon icon="logos:github-icon" className="mt-0.5 size-5 shrink-0" />
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Use an existing GitHub App installation</p>
+                    <p className="text-sm font-medium">Choose a GitHub Account</p>
                     <p className="text-sm text-muted-foreground">
-                      GitHub already knows about one or more Monad installations you can access. Choose the installation for {projectName ?? 'this project'} and then pick a repository.
+                      Select the account or organization where the Monad App is installed to link a repository to {projectName ?? 'this project'}.
                     </p>
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="grid gap-2">
                   {installationOptions.map((installation) => (
                     <button
                       key={installation.id}
                       onClick={() => handleAttachInstallation(installation)}
                       disabled={Boolean(attachingInstallation)}
-                      className="flex w-full items-center justify-between rounded-lg border border-border/80 bg-background px-4 py-3 text-left transition-colors hover:border-primary/30 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="flex items-center justify-between rounded-lg border border-border/80 bg-background px-4 py-3 text-left transition-all hover:border-primary/50 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <div className="flex min-w-0 flex-col">
                         <span className="text-sm font-medium">
                           {installation.accountLogin ?? 'GitHub installation'}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {installation.targetType ?? 'GitHub account'} · installation #{installation.id}
+                          {installation.targetType ?? 'GitHub account'} · ID: {installation.id}
                         </span>
                       </div>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {attachingInstallation === installation.id ? 'Connecting...' : 'Use installation'}
-                      </span>
+                      <div className="shrink-0 text-xs text-primary font-medium">
+                        {attachingInstallation === installation.id ? (
+                          <Loader2Icon className="size-3 animate-spin" />
+                        ) : (
+                          'Select Account'
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="flex items-start gap-3">
-                <Icon icon="logos:github-icon" className="mt-0.5 size-5 shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Install the GitHub App first</p>
-                  <p className="text-sm text-muted-foreground">
-                    Monad needs the GitHub App installed before it can list repositories for {projectName ?? 'this project'}.
-                  </p>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 text-amber-500">
+                  <AlertCircleIcon className="mt-0.5 size-5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">No GitHub installations found</p>
+                    <p className="text-sm text-muted-foreground">
+                      You need to install the GitHub App on your personal account or an organization before you can link a repository.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
-            <div className="flex items-center justify-end gap-2">
-              {onCancel && (
+
+            <div className="flex items-center justify-between gap-4 pt-2">
+              {showInstallationSelection && hasGitHubInstallation ? (
+                <Button variant="ghost" onClick={() => setShowInstallationSelection(false)}>
+                  Back to repositories
+                </Button>
+              ) : onCancel ? (
                 <Button variant="ghost" onClick={onCancel}>
                   Cancel
                 </Button>
-              )}
-              <Button render={<Link href={connectHref} />} nativeButton={false}>
-                {installationOptions.length > 0 ? 'Authorize or install another GitHub App' : 'Install GitHub App'}
+              ) : <div />}
+              
+              <Button 
+                variant="outline"
+                render={
+                  <Link 
+                    href={buildGitHubConnectPath({ 
+                      projectId, 
+                      setupAction: 'install',
+                      returnTo: `/projects/${projectId}/github-setup`
+                    })} 
+                  />
+                } 
+                nativeButton={false}
+              >
+                {installationOptions.length > 0 ? 'Add another account' : 'Connect GitHub account'}
               </Button>
             </div>
           </CardContent>
@@ -352,104 +381,96 @@ export function GitHubRepoLinker({
   return (
     <div className="space-y-4">
       {statusNotice && <StatusNotice message={statusNotice.text} tone={statusNotice.tone} />}
+      {error && <StatusNotice message={error} tone="error" />}
 
       {linkedRepoName && (
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-600">
           <div className="flex items-center gap-2">
             <CheckCircle2Icon className="size-4" />
-            <span>Currently linked to {linkedRepoName}</span>
+            <span>Successfully linked to {linkedRepoName}</span>
           </div>
         </div>
       )}
 
-      {error && <StatusNotice message={error} tone="error" />}
-
       <div className="flex items-center justify-between gap-4">
-        <Input
-          type="text"
-          placeholder="Filter repositories..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+        <div className="flex items-center gap-3">
+          <div className="rounded-full bg-primary/10 p-2">
+            <Icon icon="logos:github-icon" className="size-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium">Select a Repository</h3>
+            <p className="text-xs text-muted-foreground">Choose a repo from your selected account</p>
+          </div>
+        </div>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          onClick={() => {
-            setShowInstallationSelection(true)
-          }}
-          className="shrink-0"
+          onClick={() => setShowInstallationSelection(true)}
+          className="text-xs"
         >
           Change account
         </Button>
       </div>
 
-      <div className="space-y-1.5">
-        {canLoadRepos && loadingRepos ? (
-          <div className="flex items-center justify-center rounded-lg border border-border/80 px-4 py-8 text-sm text-muted-foreground">
+      <div className="relative">
+        <Input
+          type="text"
+          placeholder="Search repositories..."
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className="pr-10"
+        />
+        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+          <Icon icon="lucide:search" className="size-4 text-muted-foreground" />
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        {loadingRepos ? (
+          <div className="flex items-center justify-center rounded-lg border border-border/80 bg-background px-4 py-12 text-sm text-muted-foreground">
             <Loader2Icon className="mr-2 size-4 animate-spin" />
             Loading repositories...
           </div>
         ) : filteredRepos.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            No repositories are available to this installation.
+          <div className="rounded-lg border border-dashed border-border px-4 py-12 text-center">
+            <Icon icon="lucide:folder-off" className="mx-auto mb-2 size-8 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">No repositories found in this account.</p>
           </div>
         ) : (
-          filteredRepos.map((repo) => {
-            const installation = installationOptions.find(
-              (i) => i.accountLogin?.toLowerCase() === repo.ownerLogin.toLowerCase()
-            )
-            const isInstalled = Boolean(installation)
-
-            return (
-              <div
-                key={repo.id}
-                className="flex w-full items-center justify-between rounded-lg border border-border/80 bg-background px-4 py-3 text-left transition-colors hover:border-primary/30 hover:bg-muted/40"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                    {repo.private ? 'private' : 'public'}
-                  </span>
-                  <span className="truncate text-sm">{repo.name}</span>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {isInstalled ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleSelect(repo)}
-                      disabled={Boolean(linking)}
-                    >
-                      {linking === repo.id ? 'Linking...' : 'Select'}
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-primary/30 text-primary hover:bg-primary/5"
-                      render={
-                        <Link
-                          href={buildGitHubConnectPath({
-                            projectId,
-                            setupAction: 'install',
-                            returnTo: `/projects/${projectId}/github-setup`,
-                          })}
-                        />
-                      }
-                      nativeButton={false}
-                    >
-                      Authorize
-                    </Button>
-                  )}
-                </div>
+          filteredRepos.map((repo) => (
+            <div
+              key={repo.id}
+              className="group flex w-full items-center justify-between rounded-lg border border-border/80 bg-background px-4 py-3 transition-all hover:border-primary/50 hover:bg-muted/40"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {repo.private ? 'private' : 'public'}
+                </span>
+                <span className="truncate text-sm font-medium">{repo.name}</span>
               </div>
-            )
-          })
+              <Button
+                size="sm"
+                variant={linkedRepoName === repo.name ? 'outline' : 'ghost'}
+                onClick={() => handleSelect(repo)}
+                disabled={Boolean(linking)}
+                className={linkedRepoName === repo.name ? 'border-emerald-500/50 text-emerald-600' : ''}
+              >
+                {linking === repo.id ? (
+                  <Loader2Icon className="size-3 animate-spin" />
+                ) : linkedRepoName === repo.name ? (
+                  'Relink'
+                ) : (
+                  'Select'
+                )}
+              </Button>
+            </div>
+          ))
         )}
       </div>
 
       {onCancel && (
-        <div className="flex justify-end">
-          <Button variant="ghost" onClick={onCancel}>
+        <div className="flex justify-end pt-2">
+          <Button variant="ghost" onClick={onCancel} size="sm">
             Close
           </Button>
         </div>
