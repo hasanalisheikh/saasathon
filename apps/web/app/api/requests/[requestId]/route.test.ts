@@ -417,6 +417,48 @@ describe('/api/requests/[requestId] PATCH', () => {
     expect(lastRequestUpdate).toBeNull()
   })
 
+  it('notifies the client in Slack when the developer declines the request', async () => {
+    const response = await PATCH(
+      buildPatchRequest({
+        status: 'declined',
+        final_reply: 'We are not able to take this change on within the current engagement.',
+        tone: 'firm',
+      }),
+      { params: Promise.resolve({ requestId: 'request_123' }) }
+    )
+
+    expect(response.status).toBe(200)
+    expect(postSlackMessageCalls).toEqual([[
+      'xoxb-test-token',
+      'C_THREAD',
+      'We are not able to take this change on within the current engagement.',
+      '1778327089.609469',
+    ]])
+    expect(lastRequestUpdate).toEqual({
+      status: 'declined',
+      final_reply: 'We are not able to take this change on within the current engagement.',
+      reply_tone: 'firm',
+    })
+  })
+
+  it('requires a reply before declining to the client in Slack', async () => {
+    const response = await PATCH(
+      buildPatchRequest({
+        status: 'declined',
+        final_reply: '',
+        tone: 'firm',
+      }),
+      { params: Promise.resolve({ requestId: 'request_123' }) }
+    )
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({
+      error: 'Add a client-facing decline reply before notifying the client in Slack.',
+    })
+    expect(postSlackMessageCalls).toHaveLength(0)
+    expect(lastRequestUpdate).toBeNull()
+  })
+
   it('blocks sending when the AI analysis has no cost range', async () => {
     requestRecord = {
       ...requestRecord,

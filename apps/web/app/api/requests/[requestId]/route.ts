@@ -209,8 +209,66 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
       }
       return NextResponse.json({ error: `Slack delivery failed: ${message}` }, { status: 502 })
     }
+  } else if (status === 'declined') {
+    const declineMessage = finalReply || existing.final_reply
+
+    if (!declineMessage) {
+      return NextResponse.json({
+        error: 'Add a client-facing decline reply before notifying the client in Slack.',
+      }, { status: 400 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('slack_access_token')
+      .eq('id', user.id)
+      .single()
+
+    const hasOriginalThread = Boolean(existing.slack_channel_id && existing.slack_thread_ts)
+    const targetChannelId = hasOriginalThread
+      ? existing.slack_channel_id
+      : project.slack_channel_id
+
+    if (profile?.slack_access_token && targetChannelId) {
+      try {
+        const result = await postSlackMessage(
+          profile.slack_access_token,
+          targetChannelId,
+          declineMessage,
+          hasOriginalThread ? (existing.slack_thread_ts ?? undefined) : undefined,
+        )
+
+        updates = {
+          status,
+          final_reply: declineMessage,
+          ...(replyTone ? { reply_tone: replyTone } : {}),
+          ...analysisUpdates,
+          ...(!existing.slack_thread_ts
+            ? {
+                slack_thread_ts: result.ts,
+                slack_channel_id: targetChannelId,
+              }
+            : {}),
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'unknown Slack error'
+        return NextResponse.json({ error: `Slack delivery failed: ${message}` }, { status: 502 })
+      }
+    } else {
+      updates = {
+        status,
+        final_reply: declineMessage,
+        ...(replyTone ? { reply_tone: replyTone } : {}),
+        ...analysisUpdates,
+      }
+    }
   } else {
-    updates = { status, ...analysisUpdates }
+    updates = {
+      status,
+      ...(finalReply ? { final_reply: finalReply } : {}),
+      ...(replyTone ? { reply_tone: replyTone } : {}),
+      ...analysisUpdates,
+    }
   }
 
   const { data, error } = await supabase

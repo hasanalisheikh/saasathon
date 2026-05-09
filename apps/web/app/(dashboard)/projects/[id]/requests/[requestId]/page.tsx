@@ -430,6 +430,8 @@ export default function RequestReviewPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         status,
+        final_reply: reply,
+        tone,
         technical_breakdown: technicalBreakdown,
         effort_min_hours: parseEstimateInput(effortMin),
         effort_max_hours: parseEstimateInput(effortMax),
