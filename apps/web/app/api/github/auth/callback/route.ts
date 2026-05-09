@@ -110,6 +110,15 @@ export async function GET(req: NextRequest) {
       return buildRedirect(req, fallbackReturnTo, 'auth_failed')
     }
 
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ github_access_token: userToken })
+      .eq('id', user.id)
+
+    if (profileError) {
+      console.error('Failed to store GitHub user token:', profileError)
+    }
+
     const { data: project, error } = await supabase
       .from('projects')
       .update({

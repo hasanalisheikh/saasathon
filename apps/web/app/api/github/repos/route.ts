@@ -25,10 +25,27 @@ export async function GET(req: NextRequest) {
 
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('github_access_token')
+    .eq('id', user.id)
+    .single()
+
   const installationId = parseGitHubInstallationId(project.github_installation_id)
+
+  if (profile?.github_access_token) {
+    try {
+      const { listUserRepos } = await import('@/lib/github')
+      const repos = await listUserRepos(profile.github_access_token)
+      return NextResponse.json(repos)
+    } catch (err) {
+      console.error('Failed to list user repos, falling back to installation repos:', err)
+    }
+  }
+
   if (!installationId) {
     return NextResponse.json({
-      error: 'GitHub App is not installed for this project yet. Install the app before choosing a repository.',
+      error: 'GitHub App is not connected yet. Connect your GitHub account to see your repositories.',
     }, { status: 400 })
   }
 
