@@ -46,3 +46,4 @@ ai/.wrangler
 # Cloudflare Wrangler
 .wrangler/
 .vercel
+.env*.local

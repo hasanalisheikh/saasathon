@@ -23,6 +23,7 @@ export function getSlackSigningSecret(): string {
 
 const SLACK_SCOPES = [
   'channels:history',
+  'channels:join',
   'groups:history',
   'chat:write',
   'channels:read',
@@ -78,6 +79,9 @@ export function verifyAndDecodeSlackState(encodedState: string): SlackOAuthState
 
 type SlackOAuthResponse = {
   access_token: string
+  authed_user?: {
+    id?: string
+  }
   bot_user_id: string
   team: { id: string; name: string }
 }
@@ -110,6 +114,39 @@ export type SlackChannel = {
   id: string
   name: string
   is_private: boolean
+}
+
+export type PostSlackMessageResult = {
+  ts: string
+}
+
+type SlackApiErrorResponse = {
+  ok: false
+  error?: string
+}
+
+type SlackPostMessageResponse = {
+  ok: true
+  ts?: string
+} | SlackApiErrorResponse
+
+export type SlackApprovalMessageParams = {
+  developerReply: string
+  technicalBreakdown: string
+  costMin: number
+  costMax: number
+  approvalUrl: string
+  declineUrl: string
+}
+
+export function buildSlackApprovalMessage(params: SlackApprovalMessageParams): string {
+  return [
+    params.developerReply.trim(),
+    `What this involves: ${params.technicalBreakdown.trim()}`,
+    `This work is estimated at $${params.costMin.toLocaleString()}-$${params.costMax.toLocaleString()} and is outside the original project scope.`,
+    `Approve this work -> ${params.approvalUrl}`,
+    `Decline -> ${params.declineUrl}`,
+  ].join('\n\n')
 }
 
 export async function listSlackChannels(botToken: string): Promise<SlackChannel[]> {
@@ -163,11 +200,11 @@ export async function postSlackMessage(
   channelId: string,
   text: string,
   threadTs?: string,
-): Promise<void> {
+): Promise<PostSlackMessageResult> {
   const body: Record<string, string> = { channel: channelId, text }
   if (threadTs) body.thread_ts = threadTs
 
-  await fetch('https://slack.com/api/chat.postMessage', {
+  const response = await fetch('https://slack.com/api/chat.postMessage', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${botToken}`,
@@ -175,4 +212,22 @@ export async function postSlackMessage(
     },
     body: JSON.stringify(body),
   })
+
+  const data = await response.json() as SlackPostMessageResponse
+
+  if (!response.ok) {
+    throw new Error(
+      `Slack post message error: ${'error' in data ? (data.error ?? 'unknown') : response.statusText || 'unknown'}`
+    )
+  }
+
+  if (!data.ok) {
+    throw new Error(`Slack post message error: ${data.error ?? 'unknown'}`)
+  }
+
+  if (!data.ts) {
+    throw new Error('Slack post message error: missing message timestamp')
+  }
+
+  return { ts: data.ts }
 }
