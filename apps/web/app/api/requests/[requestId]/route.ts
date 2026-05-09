@@ -73,7 +73,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
 
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const project = existing.project as { id: string; user_id: string; slack_channel_id: string | null } | null
+  const projectRelation = existing.project as unknown
+  const project = Array.isArray(projectRelation)
+    ? projectRelation[0] as { id: string; user_id: string; slack_channel_id: string | null } | undefined
+    : projectRelation as { id: string; user_id: string; slack_channel_id: string | null } | null
+
   if (!project || project.user_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
