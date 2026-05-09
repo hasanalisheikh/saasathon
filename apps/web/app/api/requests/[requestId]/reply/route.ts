@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { ReplyTone } from '@/types'
 
 const REPLY_TONES: ReplyTone[] = ['friendly', 'professional', 'firm']
+const REPLY_INTENTS = ['approval', 'included', 'decline'] as const
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ requestId: string }> }) {
   try {
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ req
 
     const body = await req.json()
     const tone = typeof body?.tone === 'string' ? body.tone : 'professional'
+    const intent = typeof body?.intent === 'string' ? body.intent : 'approval'
     const currentReply = typeof body?.current_reply === 'string' ? body.current_reply.trim() : ''
     const costMin = readCost(body?.cost_min)
     const costMax = readCost(body?.cost_max)
@@ -37,6 +39,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ req
 
     if (!REPLY_TONES.includes(tone as ReplyTone)) {
       return NextResponse.json({ error: 'Unsupported reply tone' }, { status: 400 })
+    }
+
+    if (!REPLY_INTENTS.includes(intent as typeof REPLY_INTENTS[number])) {
+      return NextResponse.json({ error: 'Unsupported reply intent' }, { status: 400 })
     }
 
     if (costMin.invalid || costMax.invalid) {
@@ -71,6 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ req
 
     const reply = await generateClientReply({
       tone: tone as ReplyTone,
+      intent: intent as typeof REPLY_INTENTS[number],
       clientName: (project.client_name as string | null) ?? 'there',
       projectName: (project.name as string | null) ?? 'this project',
       classification: classificationOverride ?? request.classification ?? 'unknown',

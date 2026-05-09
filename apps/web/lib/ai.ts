@@ -126,6 +126,7 @@ export async function translateCommits(commits: string[]): Promise<string> {
 
 export async function generateClientReply(params: {
   tone: 'friendly' | 'professional' | 'firm'
+  intent: 'approval' | 'included' | 'decline'
   clientName: string
   projectName: string
   classification: string

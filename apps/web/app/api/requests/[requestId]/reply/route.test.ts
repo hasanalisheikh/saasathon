@@ -77,6 +77,7 @@ describe('/api/requests/[requestId]/reply', () => {
         method: 'POST',
         body: JSON.stringify({
           tone: 'firm',
+          intent: 'decline',
           current_reply: 'Current draft',
           cost_min: 1200,
           cost_max: 1800,
@@ -90,6 +91,7 @@ describe('/api/requests/[requestId]/reply', () => {
     expect(await response.json()).toEqual({ reply: 'Generated client reply' })
     expect(generationParams).toMatchObject({
       tone: 'firm',
+      intent: 'decline',
       clientName: 'Marcus',
       projectName: 'Website refresh',
       classification: 'out_of_scope',

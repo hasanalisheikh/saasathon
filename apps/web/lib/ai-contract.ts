@@ -4,6 +4,7 @@ const CLASSIFICATION_VALUES = ['in_scope', 'out_of_scope', 'ambiguous', 'clarifi
 const RISK_LEVEL_VALUES = ['low', 'medium', 'high'] as const
 const SUGGESTED_ACTION_VALUES = ['accept', 'quote_separately', 'clarify', 'decline'] as const
 const PRICING_MODEL_VALUES = ['fixed_fee', 'hourly', 'retainer', 'milestone', 'unknown'] as const
+const CLIENT_REPLY_INTENT_VALUES = ['approval', 'included', 'decline'] as const
 
 const REQUEST_ANALYSIS_PROMPT_VERSION = 'request-analysis/v4'
 const SCOPE_EXTRACTION_PROMPT_VERSION = 'scope-extraction/v1'
@@ -220,6 +221,7 @@ ${commits.join('\n')}`,
 
 export function buildClientReplyMessages(params: {
   tone: 'friendly' | 'professional' | 'firm'
+  intent: 'approval' | 'included' | 'decline'
   clientName: string
   projectName: string
   classification: string
@@ -240,11 +242,14 @@ export function buildClientReplyMessages(params: {
         '',
         'Commercial safety rules:',
         '- Do not casually accept out-of-scope or ambiguous work.',
-        '- If the request is out of scope, clearly state that it is additional work and requires approval before scheduling or starting.',
-        '- If a cost range is provided, include that exact range verbatim. Do not recalculate or alter it.',
-        '- If timeline impact is provided, mention it briefly without overpromising exact delivery.',
-        '- If the request is in scope, say no additional approval is needed.',
-        '- If the request is ambiguous or needs clarification, ask only the minimum questions needed to classify or estimate it.',
+        '- Respect the requested reply intent exactly.',
+        '- If intent is approval, clearly state that this is additional work and requires approval before scheduling or starting.',
+        '- If intent is included, clearly say the work will be handled within the current scope or engagement and no extra approval is needed.',
+        '- If intent is decline, clearly but politely say the developer will not take on this change in the current engagement.',
+        '- If a cost range is provided for an approval reply, include that exact range verbatim. Do not recalculate or alter it.',
+        '- Do not mention a cost range in included or decline replies unless the input already requires it, which it usually should not.',
+        '- If timeline impact is provided, mention it briefly only when it helps the requested intent.',
+        '- If the request is ambiguous or needs clarification and the intent is not decline, ask only the minimum questions needed to classify or estimate it.',
         '',
         'Writing rules:',
         '- Match the requested tone: friendly is warm and collaborative, professional is concise and neutral, firm is direct and boundary-setting.',
@@ -275,6 +280,7 @@ CURRENT DEVELOPER DRAFT:
 ${params.currentReply || 'No draft available.'}
 
 Requested tone: ${params.tone}
+Requested intent: ${params.intent}
 
 Return JSON exactly in this shape:
 ${CLIENT_REPLY_RESPONSE_SHAPE}`,
