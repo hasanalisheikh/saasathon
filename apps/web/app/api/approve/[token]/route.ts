@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { createIssue, buildIssueBody } from '@/lib/github'
+import { buildIssueBody, createIssue, parseGitHubInstallationId } from '@/lib/github'
 import { ensureRequestTasks } from '@/lib/request-tasks'
 import { sendDeveloperApprovalEmail } from '@/lib/resend'
 
@@ -62,6 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       const project = request.project as Record<string, unknown>
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
       let githubIssueUrl: string | null = null
+      const installationId = parseGitHubInstallationId(project.github_installation_id as string | null)
       const requestTasks = await ensureRequestTasks({
         supabase,
         requestId: request.id,
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       })
 
       // Create GitHub issue if repo connected
-      if (project.github_repo_name && project.github_installation_id) {
+      if (project.github_repo_name && installationId) {
         try {
           const costRange = request.cost_min && request.cost_max
             ? `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
           const [owner = '', repo = ''] = (project.github_repo_name as string).split('/')
           const issue = await createIssue({
-            accessToken: project.github_installation_id as string,
+            installationId,
             owner,
             repo,
             title: request.raw_email_subject ?? 'Client approved feature request',

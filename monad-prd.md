@@ -111,7 +111,7 @@ Every choice below was made for maximum build speed without sacrificing quality.
 | AI | OpenRouter API (`google/gemini-3.1-flash-lite`) | Low-latency, high-volume scope analysis with a large context window |
 | Email sending | Resend | Best DX, best deliverability |
 | Email inbound | Postmark Inbound | Reliable inbound webhooks, easy parsing |
-| GitHub | GitHub OAuth App + REST API + Webhooks | Real integration, impressive demo |
+| GitHub | GitHub App + REST API + Webhooks | Real integration, impressive demo |
 | PDF | @react-pdf/renderer | React-native PDF generation |
 | Website widget | Vanilla JS bundle (esbuild) | Zero dependencies, embeds anywhere |
 | Deployment | Vercel | Instant, free, GitHub-connected |
@@ -197,7 +197,7 @@ monad/
 │       │
 │       ├── lib/
 │       │   ├── supabase/            # Client, server, middleware
-│       │   ├── openai.ts            # OpenRouter-compatible AI wrapper
+│       │   ├── ai.ts                # OpenRouter-compatible AI wrapper
 │       │   ├── github.ts            # GitHub API wrapper
 │       │   ├── resend.ts            # Email sending
 │       │   ├── postmark.ts          # Inbound email parsing
@@ -368,7 +368,7 @@ Analyse this request and return JSON:
 }
 ```
 
-### OpenRouter Wrapper (`lib/openai.ts`)
+### OpenRouter Wrapper (`lib/ai.ts`)
 ```typescript
 import OpenAI from 'openai'
 
@@ -644,7 +644,7 @@ After client approval:
 - Store issue number + URL on request record
 - Show in request detail: "GitHub Issue #42 created"
 
-**For demo if GitHub OAuth not ready:** Use GitHub Personal Access Token (much simpler, same API calls)
+**Production path:** Use the GitHub App installation flow and installation access tokens for every connected repo.
 
 ### F9. Request History
 - Per-project list of all requests
@@ -662,11 +662,11 @@ After client approval:
 
 ## Sprint 2 — High Priority (Build after Sprint 1 is solid)
 
-### F11. GitHub OAuth Connection
+### F11. GitHub App Connection
 - "Connect GitHub" button in project settings
-- GitHub OAuth App flow
-- Select repository from list of user's repos
-- Store installation token
+- GitHub App install + verification flow
+- Select repository from list of installation repos
+- Store installation ID
 - Show connected repo badge on project
 
 ### F12. GitHub Webhooks → Client Notifications
@@ -889,7 +889,7 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 - OpenRouter Gemini integration (`/api/ai/analyse`)
 - Postmark inbound email webhook (`/api/webhooks/email`)
 - Resend email sending (`/api/email/send`)
-- GitHub OAuth flow (`/api/github/connect`)
+- GitHub App install + verification flow (`/api/github/install`, `/api/github/setup`, `/api/github/auth/callback`)
 - GitHub issue creation (`/api/github/create-issue`)
 - GitHub webhook receiver (`/api/webhooks/github`)
 - Approval handler (`/api/approve/[token]`)
@@ -938,7 +938,7 @@ Three full-stack developers. All capable. Split by ownership area, not by capabi
 | 6–10 | Dashboard + inbox | Email inbound webhook | Project detail page |
 | 10–16 | **Request Review Screen** | Approval handler + email | Request history list |
 | 16–20 | Client Approval Page | GitHub issue creation | Fallback paste input |
-| 20–25 | Polish review screen | GitHub OAuth | Widget start |
+| 20–25 | Polish review screen | GitHub App setup | Widget start |
 | 25–30 | Connect flows end-to-end | GitHub webhooks | Widget cont. |
 | 30–35 | Analytics display | PDF generation | Analytics dashboard |
 | 35–38 | Demo polish + seed data | Bug fixes | Bug fixes |
@@ -1058,12 +1058,14 @@ RESEND_FROM_EMAIL=noreply@monad.app
 
 # Postmark (inbound email)
 POSTMARK_INBOUND_WEBHOOK_TOKEN=
-POSTMARK_SERVER_TOKEN=
 
 # GitHub App
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-GITHUB_WEBHOOK_SECRET=
+GITHUB_APP_ID=
+GITHUB_APP_CLIENT_ID=
+GITHUB_APP_CLIENT_SECRET=
+GITHUB_APP_PRIVATE_KEY=
+GITHUB_APP_SLUG=
+GITHUB_APP_WEBHOOK_SECRET=
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -1096,7 +1098,7 @@ demo: seed data for Marcus project
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | Postmark inbound not working | Medium | High | Build paste fallback on Day 1 |
-| GitHub OAuth takes too long | Medium | Medium | Use Personal Access Token for demo |
+| GitHub App setup takes too long | Medium | Medium | Prepare the GitHub App credentials and install flow before demo day |
 | Claude too slow (>10s) | Low | Medium | Show loading state, cache results |
 | PDF generation buggy | Medium | Low | Just show in-app, skip export if needed |
 | Widget breaks staging site | Medium | Low | Don't demo widget if unstable |
@@ -1762,8 +1764,8 @@ CREATE POLICY "Users access widget_comments for their projects"
 2. Create a Server (name: "Monad")
 3. Go to **Inbound** tab → set inbound domain: `inbound.monad.app`
 4. Add DNS record: `MX inbound.monad.app → inbound.postmarkapp.com` (priority 10)
-5. Set **Inbound webhook URL**: `https://your-vercel-url.app/api/webhooks/email`
-6. Copy **Server API Token** → `POSTMARK_SERVER_TOKEN` in `.env.local`
+5. Generate a random inbound webhook token and store it in `POSTMARK_INBOUND_WEBHOOK_TOKEN`
+6. Set **Inbound webhook URL**: `https://your-vercel-url.app/api/webhooks/email?token=${POSTMARK_INBOUND_WEBHOOK_TOKEN}`
 
 **Inbound webhook payload** (what Postmark POSTs to your endpoint):
 ```json
@@ -1856,51 +1858,29 @@ CREATE POLICY "Users access widget_comments for their projects"
 
 ---
 
-## 14.3 GitHub App / OAuth Setup
+## 14.3 GitHub App Setup
 
-**Option A — GitHub OAuth App (simpler, faster for hackathon):**
-1. GitHub → Settings → Developer Settings → OAuth Apps → New OAuth App
+1. GitHub → Settings → Developer Settings → GitHub Apps → New GitHub App
 2. Name: `Monad`
 3. Homepage URL: `https://your-app.vercel.app`
-4. Callback URL: `https://your-app.vercel.app/api/github/connect`
-5. Copy Client ID + Client Secret → env vars
+4. Setup URL: `https://your-app.vercel.app/api/github/setup`
+5. Callback URL: `https://your-app.vercel.app/api/github/auth/callback`
+6. Webhook URL: `https://your-app.vercel.app/api/webhooks/github`
+7. Webhook secret: copy to `GITHUB_APP_WEBHOOK_SECRET`
+8. Repository permissions: `issues:write`, `metadata:read`, `pull_requests:read`
+9. Webhook events: `pull_request`, `issues`, `installation`, `installation_repositories`
+10. Copy the App ID, Client ID, Client Secret, Private Key, and Slug → env vars
 
-**OAuth flow (`/api/github/connect/route.ts`):**
+**GitHub App flow:**
 ```typescript
-// Step 1: Redirect to GitHub
-const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo,write:repo_hook&state=${userId}`
+// Step 1: Start the install flow for a project
+GET /api/github/install?projectId=...
 
-// Step 2: GitHub redirects back with ?code=xxx
-const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
-  method: 'POST',
-  headers: { Accept: 'application/json' },
-  body: JSON.stringify({ client_id, client_secret, code })
-})
-const { access_token } = await tokenRes.json()
-// Save access_token to project record
-```
+// Step 2: GitHub redirects back with installation_id
+GET /api/github/setup?state=...&installation_id=...
 
-**Option B — Personal Access Token (fastest, good for demo):**
-- Developer generates a GitHub PAT with `repo` scope
-- Pastes it into Settings → GitHub in Monad
-- No OAuth flow needed
-- Same API calls, zero setup complexity
-- **Recommended if pressed for time**
-
-**Webhook setup (after repo connected):**
-```typescript
-import { Octokit } from '@octokit/rest'
-const octokit = new Octokit({ auth: access_token })
-
-await octokit.repos.createWebhook({
-  owner, repo,
-  config: {
-    url: `${APP_URL}/api/webhooks/github`,
-    content_type: 'json',
-    secret: GITHUB_WEBHOOK_SECRET
-  },
-  events: ['pull_request', 'issues', 'push']
-})
+// Step 3: Monad verifies the installation via GitHub App user auth
+GET /api/github/auth/callback?code=...&state=...
 ```
 
 ---
@@ -2697,26 +2677,21 @@ $${request.cost_min}–$${request.cost_max} (${request.effort_min_hours}–${req
 import { Octokit } from '@octokit/rest'
 import { createClient } from '@/lib/supabase/server'
 
-// Get stored GitHub token for a project
+// Get a GitHub App installation token for a project
 async function getOctokitForProject(projectId: string): Promise<Octokit> {
-  // Option A: PAT stored in env (fastest for hackathon)
-  if (process.env.GITHUB_PERSONAL_ACCESS_TOKEN) {
-    return new Octokit({ auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN })
-  }
-
-  // Option B: OAuth token stored per project in DB
   const supabase = createClient()
   const { data } = await supabase
-    .from('projects')
-    .select('github_access_token')
+    .from('projects') 
+    .select('github_installation_id')
     .eq('id', projectId)
     .single()
 
-  if (!data?.github_access_token) {
-    throw new Error('No GitHub token found for this project')
+  if (!data?.github_installation_id) {
+    throw new Error('No GitHub App installation found for this project')
   }
 
-  return new Octokit({ auth: data.github_access_token })
+  const installationToken = await createInstallationAccessToken(data.github_installation_id)
+  return new Octokit({ auth: installationToken })
 }
 
 export async function createGitHubIssue({
@@ -2731,9 +2706,7 @@ export async function createGitHubIssue({
   projectId?: string
 }) {
   const [owner, repo] = repoFullName.split('/')
-  const octokit = projectId
-    ? await getOctokitForProject(projectId)
-    : new Octokit({ auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN })
+  const octokit = await getOctokitForProject(projectId!)
 
   // Ensure label exists (create if not)
   try {

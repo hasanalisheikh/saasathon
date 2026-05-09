@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAppUrl, isPostmarkConfigured } from '@/lib/env'
 import { createServiceClient } from '@/lib/supabase/server'
-import { extractInboundEmail, type PostmarkInboundPayload } from '@/lib/postmark'
+import { extractInboundEmail, isAuthorizedPostmarkRequest, type PostmarkInboundPayload } from '@/lib/postmark'
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isPostmarkConfigured()) {
+      return NextResponse.json({
+        error: 'Inbound email is not configured. Add POSTMARK_INBOUND_WEBHOOK_TOKEN to receive Postmark webhooks.',
+      }, { status: 503 })
+    }
+
+    if (!isAuthorizedPostmarkRequest(req)) {
+      return NextResponse.json({ error: 'Invalid inbound webhook token' }, { status: 401 })
+    }
+
     const payload = (await req.json()) as PostmarkInboundPayload
     const { from, subject, body, toAddress } = extractInboundEmail(payload)
 
@@ -45,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Trigger AI analysis (fire-and-forget — don't await so Postmark gets 200 fast)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+    const appUrl = getAppUrl()
     fetch(`${appUrl}/api/ai/analyse`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -1,25 +1,19 @@
-const PLACEHOLDER_PATTERNS = [
-  "your-",
-  "placeholder",
-  "changeme",
-  "change-me",
-  "replace-me",
-  "replace_with",
-  "todo",
-  "example",
-] as const
+import { getConfiguredEnv } from '@/lib/env'
 
-function isConfiguredSecret(value: string | null | undefined) {
-  const normalized = value?.trim().toLowerCase() ?? ""
-  if (!normalized) return false
-
-  return !PLACEHOLDER_PATTERNS.some((pattern) => normalized.includes(pattern))
+export function isGitHubAppConfigured() {
+  return [
+    getConfiguredEnv('GITHUB_APP_ID'),
+    getConfiguredEnv('GITHUB_APP_CLIENT_ID'),
+    getConfiguredEnv('GITHUB_APP_CLIENT_SECRET'),
+    getConfiguredEnv('GITHUB_APP_PRIVATE_KEY'),
+    getConfiguredEnv('GITHUB_APP_SLUG'),
+  ].every(Boolean)
 }
 
-export function isGitHubOAuthConfigured() {
-  return isConfiguredSecret(process.env.GITHUB_CLIENT_ID) && isConfiguredSecret(process.env.GITHUB_CLIENT_SECRET)
+export function isGitHubWebhookConfigured() {
+  return Boolean(getConfiguredEnv('GITHUB_APP_WEBHOOK_SECRET'))
 }
 
-export function getGitHubConnectCtaHref(returnTo = "/settings") {
-  return isGitHubOAuthConfigured() ? `/api/github/connect?returnTo=${encodeURIComponent(returnTo)}` : "/settings#github-pat"
+export function isGitHubInstallationId(value: string | null | undefined) {
+  return /^\d+$/.test(value?.trim() ?? '')
 }

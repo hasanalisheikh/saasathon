@@ -2,6 +2,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import { buildGitHubConnectPath, getGitHubStatusMessage } from "@/lib/github-connect"
+import { isGitHubAppConfigured, isGitHubInstallationId } from "@/lib/github-config"
 import { cn } from "@workspace/ui/lib/utils"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
@@ -27,8 +28,6 @@ import { ProjectPageActions } from "./project-page-actions"
 import { ProjectRequestsTab } from "./project-requests-tab"
 import { WidgetCommentsTab } from "./widget-comments-tab"
 import {
-  Calendar,
-  ExternalLink,
   FileCheck2,
   FileText,
   GitBranch,
@@ -36,8 +35,6 @@ import {
   MessageSquareCode,
   type LucideIcon,
 } from "lucide-react"
-import { Icon } from "@iconify/react"
-import { isGitHubOAuthConfigured } from "@/lib/github-config"
 
 const TABS = [
   "requests",
@@ -88,7 +85,6 @@ export default async function ProjectDetailPage({
     { data: projectDocuments },
     { data: githubEvents },
     { data: widgetComments },
-    { data: profile },
   ] = await Promise.all([
     supabase
       .from("requests")
@@ -113,15 +109,13 @@ export default async function ProjectDetailPage({
       .eq("project_id", id)
       .is("converted_to_request_id", null)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("github_access_token")
-      .eq("id", user!.id)
-      .single(),
   ])
 
   const approvedRequests = (requests ?? []).filter(
     (r) => r.status === "approved"
+  )
+  const pendingRequests = (requests ?? []).filter(
+    (r) => r.status === "pending_review"
   )
   const unconvertedCommentCount = (widgetComments ?? []).length
   const TAB_LABELS: Record<Tab, string> = {
@@ -138,13 +132,13 @@ export default async function ProjectDetailPage({
     "proof-pack": "Proof Pack",
   }
   const githubMessage = getGitHubStatusMessage(githubStatus ?? null)
-  const githubConnected = Boolean(profile?.github_access_token)
+  const githubConnected = isGitHubInstallationId(project.github_installation_id)
   const githubConnectHref = buildGitHubConnectPath({
     projectId: id,
     returnTo: `/projects/${id}/github-setup`,
   })
   const githubSetupHref = `/projects/${id}/github-setup`
-  const githubOauthReady = isGitHubOAuthConfigured()
+  const githubAppReady = isGitHubAppConfigured()
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -162,59 +156,48 @@ export default async function ProjectDetailPage({
         </PageActions>
       </PageHeader>
 
-      {/* Project Details Placeholders */}
-      <div className="mb-4 grid max-w-full grid-cols-2 gap-x-4 gap-y-6 md:max-w-[60%] md:grid-cols-4 md:gap-x-12 md:gap-y-8">
-        <div className="flex flex-col items-start gap-1.5">
-          <span className="text-xs text-muted-foreground uppercase">
-            Clients
-          </span>
-          <a
-            href="#"
-            target="_blank"
-            rel="noreferrer"
-            className="group/link flex items-center gap-1.5 hover:underline"
-          >
-            <Icon icon="logos:slack-icon" className="h-4 w-4" />
-            <span className="text-sm">Acme Corp</span>
-            <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover/link:opacity-100" />
-          </a>
-        </div>
+      <div className="mb-6 grid gap-4 md:grid-cols-4">
+        <Card size="sm">
+          <CardContent className="space-y-1">
+            <p className="text-xs uppercase text-muted-foreground">Client</p>
+            <p className="text-sm font-medium">{project.client_name}</p>
+            <p className="text-xs text-muted-foreground">
+              {project.client_email ?? 'No client email saved'}
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="flex flex-col items-start gap-1.5">
-          <span className="text-xs text-muted-foreground uppercase">
-            Project
-          </span>
-          <a
-            href="#"
-            target="_blank"
-            rel="noreferrer"
-            className="group/link flex items-center gap-1.5 hover:underline"
-          >
-            <Icon icon="logos:github-icon" className="h-4 w-4" />
-            <span className="text-sm">acme-frontend</span>
-            <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover/link:opacity-100" />
-          </a>
-        </div>
+        <Card size="sm">
+          <CardContent className="space-y-1">
+            <p className="text-xs uppercase text-muted-foreground">GitHub</p>
+            <p className="text-sm font-medium">
+              {project.github_repo_name ?? (githubConnected ? 'Repository not chosen' : 'Not connected')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {githubConnected ? 'Project-level GitHub App installation ready' : 'Install the GitHub App to track approved work'}
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="flex flex-col items-start gap-1.5">
-          <span className="text-xs text-muted-foreground uppercase">
-            Requirements Met
-          </span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-medium">21%</span>
-            <span className="text-sm text-muted-foreground">(12/56)</span>
-          </div>
-        </div>
+        <Card size="sm">
+          <CardContent className="space-y-1">
+            <p className="text-xs uppercase text-muted-foreground">Approved Requests</p>
+            <p className="text-sm font-medium">{approvedRequests.length}</p>
+            <p className="text-xs text-muted-foreground">
+              {githubEvents?.length ?? 0} GitHub events logged
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="flex flex-col items-start gap-1.5">
-          <span className="text-xs text-muted-foreground uppercase">
-            Deadline
-          </span>
-          <div className="flex items-center gap-1.5">
-            <Calendar className="h-4 w-4 text-primary" />
-            <span className="text-sm">Oct 24, 2026</span>
-          </div>
-        </div>
+        <Card size="sm">
+          <CardContent className="space-y-1">
+            <p className="text-xs uppercase text-muted-foreground">Pending Review</p>
+            <p className="text-sm font-medium">{pendingRequests.length}</p>
+            <p className="text-xs text-muted-foreground">
+              {unconvertedCommentCount} widget comments waiting
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs */}
@@ -328,12 +311,12 @@ export default async function ProjectDetailPage({
                 <div>
                   <p className="mb-1 text-sm">No GitHub repo linked</p>
                   <p className="text-xs text-muted-foreground">
-                    {githubOauthReady
-                      ? "Connect a repo to auto-create issues on approval and track PR activity."
-                      : "GitHub OAuth is not configured yet. Add the GitHub client ID and secret to continue."}
+                    {githubAppReady
+                      ? "Install the GitHub App, then choose a repository to auto-create issues on approval and track activity."
+                      : "GitHub App setup is incomplete. Add the GitHub App credentials and webhook secret to continue."}
                   </p>
                 </div>
-                {githubOauthReady ? (
+                {githubAppReady ? (
                   <Button
                     variant="outline"
                     render={
@@ -345,11 +328,11 @@ export default async function ProjectDetailPage({
                     }
                     nativeButton={false}
                   >
-                    {githubConnected ? "Choose Repo" : "Connect GitHub"}
+                    {githubConnected ? "Choose Repository" : "Install GitHub App"}
                   </Button>
                 ) : (
                   <Button variant="outline" disabled>
-                    Connect GitHub
+                    GitHub Setup Required
                   </Button>
                 )}
               </CardContent>

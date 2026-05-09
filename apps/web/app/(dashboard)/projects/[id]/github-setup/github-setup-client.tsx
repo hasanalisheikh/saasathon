@@ -14,18 +14,18 @@ import { GitHubRepoLinker } from '@/components/github/github-repo-linker'
 import { buildGitHubConnectPath, type GitHubStatus } from '@/lib/github-connect'
 
 type GitHubSetupClientProps = {
-  githubConnected: boolean
-  githubOauthReady: boolean
+  githubAppReady: boolean
   githubStatus: GitHubStatus | null
+  hasGitHubInstallation: boolean
   linkedRepoName: string | null
   projectId: string
   projectName: string
 }
 
 export function GitHubSetupClient({
-  githubConnected,
-  githubOauthReady,
+  githubAppReady,
   githubStatus,
+  hasGitHubInstallation,
   linkedRepoName,
   projectId,
   projectName,
@@ -43,7 +43,7 @@ export function GitHubSetupClient({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Link GitHub Repo</BreadcrumbPage>
+            <BreadcrumbPage>GitHub Setup</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -51,9 +51,9 @@ export function GitHubSetupClient({
       <div className="max-w-2xl space-y-6">
         <PageHeader>
           <div>
-            <PageTitle>Link a GitHub repository</PageTitle>
+            <PageTitle>Set up GitHub for this project</PageTitle>
             <PageDescription>
-              Select the repo for this project. Monad will register a webhook and auto-create issues when scope changes are approved.
+              Install the GitHub App, then choose the repository Monad should use for approvals, issues, and activity tracking.
             </PageDescription>
           </div>
         </PageHeader>
@@ -63,9 +63,9 @@ export function GitHubSetupClient({
             projectId,
             returnTo: `/projects/${projectId}/github-setup`,
           })}
-          githubOauthReady={githubOauthReady}
+          githubAppReady={githubAppReady}
           githubStatus={githubStatus}
-          isGithubConnected={githubConnected}
+          hasGitHubInstallation={hasGitHubInstallation}
           linkedRepoName={linkedRepoName}
           projectId={projectId}
           projectName={projectName}
@@ -75,4 +75,3 @@ export function GitHubSetupClient({
     </div>
   )
 }
-

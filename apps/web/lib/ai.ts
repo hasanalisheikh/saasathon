@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import type { AIAnalysis, ProjectDocumentContext } from '@/types'
+import { getAppUrl, getConfiguredEnv, requireConfiguredEnv } from '@/lib/env'
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 const DEFAULT_AI_MODEL = 'google/gemini-3.1-flash-lite'
@@ -9,19 +10,20 @@ let _model = DEFAULT_AI_MODEL
 
 function getAIClient(): OpenAI {
   if (!_client) {
-    if (!process.env.OPENROUTER_API_KEY) {
-      throw new Error('OPENROUTER_API_KEY is required for AI analysis. Set MOCK_AI=true to use local mock responses.')
-    }
+    const apiKey = requireConfiguredEnv(
+      'OPENROUTER_API_KEY',
+      'OPENROUTER_API_KEY is required for AI analysis. Set MOCK_AI=true to use local mock responses.'
+    )
 
     _client = new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
+      apiKey,
       baseURL: OPENROUTER_BASE_URL,
       defaultHeaders: {
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        'HTTP-Referer': getAppUrl(),
         'X-Title': 'Monad',
       },
     })
-    _model = process.env.AI_MODEL || DEFAULT_AI_MODEL
+    _model = getConfiguredEnv('AI_MODEL') || DEFAULT_AI_MODEL
   }
   return _client
 }

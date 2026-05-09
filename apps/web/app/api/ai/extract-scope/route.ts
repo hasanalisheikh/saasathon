@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { extractScope } from '@/lib/openai'
+import { extractScope } from '@/lib/ai'
+import { isAIConfigured, isMockAIEnabled } from '@/lib/env'
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     const { scope_raw } = await req.json()
     if (!scope_raw) return NextResponse.json({ error: 'scope_raw required' }, { status: 400 })
 
-    if (process.env.MOCK_AI === 'true') {
+    if (isMockAIEnabled()) {
       return NextResponse.json({
         deliverables: ['5-page website (Home, Menu, About, Gallery, Contact)', 'Contact form with validation', 'Basic SEO meta tags', 'Mobile responsive design'],
         exclusions: ['Online ordering', 'Payment processing', 'Booking systems', 'Loyalty programs', 'Automated emails', 'Custom integrations'],
@@ -19,6 +20,12 @@ export async function POST(req: NextRequest) {
         timeline: '4 weeks',
         pricing_model: 'fixed_fee',
       })
+    }
+
+    if (!isAIConfigured()) {
+      return NextResponse.json({
+        error: 'AI analysis is not configured. Add OPENROUTER_API_KEY or set MOCK_AI=true for local development.',
+      }, { status: 503 })
     }
 
     const result = await extractScope(scope_raw)

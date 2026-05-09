@@ -6,7 +6,6 @@ export interface Profile {
   email: string
   hourly_rate: number
   company_name: string | null
-  github_username: string | null
   created_at: string
 }
 

@@ -1,4 +1,5 @@
-import { analyseRequest } from "@/lib/openai"
+import { analyseRequest } from '@/lib/ai'
+import { isAIConfigured, isMockAIEnabled } from '@/lib/env'
 import { replaceRequestTasks } from "@/lib/request-tasks"
 import { createServiceClient } from "@/lib/supabase/server"
 
@@ -27,7 +28,7 @@ export async function analyseAndPersistRequest(requestId: string) {
     .order("created_at", { ascending: false })
     .limit(10)
 
-  if (process.env.MOCK_AI === "true") {
+  if (isMockAIEnabled()) {
     const mock = {
       classification: "out_of_scope",
       confidence: 94,
@@ -118,6 +119,10 @@ Jamie`,
     }
 
     return { classification: mock.classification }
+  }
+
+  if (!isAIConfigured()) {
+    throw new Error('AI analysis is not configured. Add OPENROUTER_API_KEY or set MOCK_AI=true for local development.')
   }
 
   const hourlyRate = (project.hourly_rate as number) ?? 90

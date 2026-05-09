@@ -1,9 +1,11 @@
 export const GITHUB_STATUS_VALUES = [
-  'connected',
-  'oauth_not_configured',
-  'oauth_failed',
-  'repos_unavailable',
+  'app_not_configured',
+  'installation_created',
+  'setup_failed',
+  'auth_failed',
   'repo_linked',
+  'repo_access_removed',
+  'app_uninstalled',
 ] as const
 
 export type GitHubStatus = (typeof GITHUB_STATUS_VALUES)[number]
@@ -25,7 +27,7 @@ export function buildGitHubConnectPath(params: ConnectPathParams = {}) {
   }
 
   const query = searchParams.toString()
-  return query ? `/api/github/connect?${query}` : '/api/github/connect'
+  return query ? `/api/github/install?${query}` : '/api/github/install'
 }
 
 export function appendGitHubStatus(
@@ -49,24 +51,34 @@ export function appendGitHubStatus(
 
 export function getGitHubStatusMessage(status: string | null) {
   switch (status) {
-    case 'connected':
-      return { tone: 'success' as const, text: 'GitHub connected successfully.' }
+    case 'installation_created':
+      return { tone: 'success' as const, text: 'GitHub App installed. Choose the repository for this project.' }
     case 'repo_linked':
       return { tone: 'success' as const, text: 'GitHub repository linked successfully.' }
-    case 'oauth_not_configured':
+    case 'app_not_configured':
       return {
         tone: 'error' as const,
-        text: 'GitHub OAuth is not configured yet. Add the GitHub client ID and secret, or connect with a personal access token in Settings.',
+        text: 'GitHub App setup is incomplete. Add the app ID, client credentials, private key, slug, and webhook secret to continue.',
       }
-    case 'oauth_failed':
+    case 'setup_failed':
       return {
         tone: 'error' as const,
-        text: 'GitHub sign-in failed. Please try again.',
+        text: 'GitHub App installation could not be completed. Please try again.',
       }
-    case 'repos_unavailable':
+    case 'auth_failed':
       return {
         tone: 'error' as const,
-        text: 'Monad could not load your GitHub repositories. Please reconnect and try again.',
+        text: 'Monad could not verify your GitHub App installation. Please try again.',
+      }
+    case 'repo_access_removed':
+      return {
+        tone: 'error' as const,
+        text: 'GitHub repository access changed. Choose a repository again to reconnect this project.',
+      }
+    case 'app_uninstalled':
+      return {
+        tone: 'error' as const,
+        text: 'The GitHub App was removed for this project. Install it again to continue using GitHub automation.',
       }
     default:
       return null

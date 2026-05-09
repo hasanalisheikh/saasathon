@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { GITHUB_STATUS_VALUES, type GitHubStatus } from '@/lib/github-connect'
 import { GitHubSetupClient } from './github-setup-client'
-import { isGitHubOAuthConfigured } from '@/lib/github-config'
+import { isGitHubAppConfigured, isGitHubInstallationId } from '@/lib/github-config'
 
 export default async function GitHubSetupPage({
   params,
@@ -19,19 +19,12 @@ export default async function GitHubSetupPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [{ data: project }, { data: profile }] = await Promise.all([
-    supabase
-      .from('projects')
-      .select('id, name, github_repo_name')
-      .eq('id', id)
-      .eq('user_id', user!.id)
-      .single(),
-    supabase
-      .from('profiles')
-      .select('github_access_token')
-      .eq('id', user!.id)
-      .single(),
-  ])
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id, name, github_repo_name, github_installation_id')
+    .eq('id', id)
+    .eq('user_id', user!.id)
+    .single()
 
   if (!project) {
     notFound()
@@ -43,9 +36,9 @@ export default async function GitHubSetupPage({
 
   return (
     <GitHubSetupClient
-      githubConnected={Boolean(profile?.github_access_token)}
-      githubOauthReady={isGitHubOAuthConfigured()}
+      githubAppReady={isGitHubAppConfigured()}
       githubStatus={githubStatus}
+      hasGitHubInstallation={isGitHubInstallationId(project.github_installation_id)}
       linkedRepoName={project.github_repo_name}
       projectId={project.id}
       projectName={project.name}

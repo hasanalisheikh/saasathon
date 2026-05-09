@@ -1,16 +1,12 @@
 'use client'
 
-import { Suspense } from 'react'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { FormField, FormLabel } from "@workspace/ui/components/form-field"
 import { PageHeader, PageTitle, PageDescription } from "@workspace/ui/components/page-header"
-import { buildGitHubConnectPath, getGitHubStatusMessage } from '@/lib/github-connect'
 
 const STRENGTH_HINT = 'Min. 8 characters · one uppercase letter · one special character (!@#$%^&*)'
 
@@ -19,13 +15,6 @@ interface Profile {
   email: string | null
   company_name: string | null
   hourly_rate: number | null
-  github_username: string | null
-}
-
-interface GitHubStatusResponse {
-  oauthReady: boolean
-  connected: boolean
-  github_username: string | null
 }
 
 interface ProjectSnippet {
@@ -35,28 +24,16 @@ interface ProjectSnippet {
 }
 
 export default function SettingsPage() {
-  return (
-    <Suspense>
-      <SettingsContent />
-    </Suspense>
-  )
+  return <SettingsContent />
 }
 
 function SettingsContent() {
-  const searchParams = useSearchParams()
-  const githubStatus = searchParams.get('github')
-
   const [profile, setProfile] = useState<Profile | null>(null)
   const [projects, setProjects] = useState<ProjectSnippet[]>([])
   const [userEmail, setUserEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
-  const [githubInfo, setGitHubInfo] = useState<GitHubStatusResponse | null>(null)
-  const [githubPat, setGitHubPat] = useState('')
-  const [githubPatSaving, setGitHubPatSaving] = useState(false)
-  const [githubPatError, setGitHubPatError] = useState('')
-  const [githubPatSuccess, setGitHubPatSuccess] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -64,17 +41,12 @@ function SettingsContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setUserEmail(user.email ?? '')
-      const [{ data: profileData }, { data: projectsData }, githubResponse] = await Promise.all([
-        supabase.from('profiles').select('full_name, email, company_name, hourly_rate, github_username').eq('id', user.id).single(),
+      const [{ data: profileData }, { data: projectsData }] = await Promise.all([
+        supabase.from('profiles').select('full_name, email, company_name, hourly_rate').eq('id', user.id).single(),
         supabase.from('projects').select('id, name, widget_token').eq('user_id', user.id).order('created_at'),
-        fetch('/api/github/status'),
       ])
       if (profileData) setProfile(profileData)
       if (projectsData) setProjects(projectsData)
-      if (githubResponse.ok) {
-        const data = await githubResponse.json()
-        setGitHubInfo(data)
-      }
     }
     load()
   }, [])
@@ -107,44 +79,6 @@ function SettingsContent() {
       setError('Failed to save. Please try again.')
     }
     setSaving(false)
-  }
-
-  const isGithubConnected = githubStatus === 'connected' || githubInfo?.connected || !!profile?.github_username
-  const githubOauthReady = githubInfo?.oauthReady ?? true
-  const githubMessage = getGitHubStatusMessage(githubStatus)
-  const connectHref = buildGitHubConnectPath({ returnTo: '/settings' })
-
-  const handleConnectPat = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setGitHubPatSaving(true)
-    setGitHubPatError('')
-    setGitHubPatSuccess('')
-
-    try {
-      const response = await fetch('/api/github/pat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: githubPat }),
-      })
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error ?? 'Failed to connect GitHub token')
-      }
-
-      setGitHubInfo({
-        oauthReady: githubOauthReady,
-        connected: true,
-        github_username: data.github_username ?? null,
-      })
-      setProfile((current) => current ? { ...current, github_username: data.github_username ?? current.github_username } : current)
-      setGitHubPat('')
-      setGitHubPatSuccess('GitHub token connected successfully.')
-    } catch (err) {
-      setGitHubPatError(err instanceof Error ? err.message : 'Failed to connect GitHub token')
-    } finally {
-      setGitHubPatSaving(false)
-    }
   }
 
   return (
@@ -221,84 +155,6 @@ function SettingsContent() {
             </p>
           </CardContent>
         </Card>
-      </Section>
-
-      <Section title="GitHub">
-        <Card size="sm">
-          <CardContent className="space-y-4">
-            {isGithubConnected ? (
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-emerald-500">●</span>
-                  <p className="text-sm">
-                    Connected{profile?.github_username ? ` as @${profile.github_username}` : ''}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  GitHub is linked. Issues will be created automatically on approval.
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm mb-1">Not connected</p>
-                  <p className="text-xs text-muted-foreground/50">
-                    {githubOauthReady
-                      ? 'Connect GitHub to create issues and track work automatically.'
-                      : 'GitHub OAuth is not configured yet. Add a personal access token below to continue.'}
-                  </p>
-                </div>
-                {githubOauthReady ? (
-                  <Button
-                    variant="outline"
-                    render={<Link href={connectHref} />}
-                    nativeButton={false}
-                  >
-                    Connect GitHub
-                  </Button>
-                ) : (
-                  <Button variant="outline" render={<Link href="#github-pat" />} nativeButton={false}>
-                    Use Personal Access Token
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {(!githubOauthReady || !isGithubConnected) && (
-              <form id="github-pat" onSubmit={handleConnectPat} className="space-y-3 rounded-lg border border-border/80 bg-muted/30 p-4">
-                <div>
-                  <p className="text-sm font-medium">Connect with a personal access token</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Paste a GitHub token with `repo` scope. Monad will validate it and use it for repo browsing, linking, and issue creation.
-                  </p>
-                </div>
-                <FormField>
-                  <FormLabel>GitHub personal access token</FormLabel>
-                  <Input
-                    type="password"
-                    value={githubPat}
-                    onChange={(event) => setGitHubPat(event.target.value)}
-                    placeholder="ghp_..."
-                    autoComplete="off"
-                  />
-                </FormField>
-                <div className="flex items-center gap-3">
-                  <Button type="submit" disabled={githubPatSaving || !githubPat.trim()}>
-                    {githubPatSaving ? 'Validating…' : 'Connect GitHub Token'}
-                  </Button>
-                  {githubPatSuccess && <span className="text-xs text-emerald-600">{githubPatSuccess}</span>}
-                  {githubPatError && <span className="text-xs text-destructive">{githubPatError}</span>}
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-        {githubMessage && githubMessage.tone === 'error' && (
-          <p className="text-xs mt-2 text-destructive">{githubMessage.text}</p>
-        )}
-        {githubMessage && githubMessage.tone === 'success' && (
-          <p className="text-xs mt-2 text-emerald-600">{githubMessage.text}</p>
-        )}
       </Section>
 
       <Section title="Widget">

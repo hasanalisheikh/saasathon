@@ -19,13 +19,12 @@ type Repo = {
 
 type GitHubRepoLinkerProps = {
   connectHref: string
-  githubOauthReady: boolean
+  githubAppReady: boolean
   githubStatus?: GitHubStatus | null
-  isGithubConnected: boolean
+  hasGitHubInstallation: boolean
   linkedRepoName?: string | null
   onCancel?: () => void
   onLinked?: (repo: Repo) => void
-  patConnectHref?: string
   projectId: string
   projectName?: string
   redirectAfterLink?: string | null
@@ -53,19 +52,23 @@ function StatusNotice({
 
 function getStatusMessage(status?: GitHubStatus | null) {
   switch (status) {
-    case 'connected':
-      return { tone: 'success' as const, text: 'GitHub connected. Choose the repository for this project.' }
-    case 'oauth_not_configured':
+    case 'installation_created':
+      return { tone: 'success' as const, text: 'GitHub App installed. Choose the repository for this project.' }
+    case 'app_not_configured':
       return {
         tone: 'error' as const,
-        text: 'GitHub OAuth is not configured yet. Add the GitHub client ID and secret to continue.',
+        text: 'GitHub App setup is incomplete. Add the GitHub App credentials to continue.',
       }
-    case 'oauth_failed':
-      return { tone: 'error' as const, text: 'GitHub sign-in failed. Please try again.' }
-    case 'repos_unavailable':
-      return { tone: 'error' as const, text: 'Monad could not load your repositories. Reconnect GitHub and try again.' }
+    case 'setup_failed':
+      return { tone: 'error' as const, text: 'GitHub App installation could not be completed. Please try again.' }
+    case 'auth_failed':
+      return { tone: 'error' as const, text: 'Monad could not verify the GitHub App installation. Please try again.' }
     case 'repo_linked':
       return { tone: 'success' as const, text: 'Repository linked successfully.' }
+    case 'repo_access_removed':
+      return { tone: 'error' as const, text: 'Repository access changed. Choose a repository again to reconnect this project.' }
+    case 'app_uninstalled':
+      return { tone: 'error' as const, text: 'The GitHub App was removed. Install it again to reconnect this project.' }
     default:
       return null
   }
@@ -73,19 +76,18 @@ function getStatusMessage(status?: GitHubStatus | null) {
 
 export function GitHubRepoLinker({
   connectHref,
-  githubOauthReady,
+  githubAppReady,
   githubStatus,
-  isGithubConnected,
+  hasGitHubInstallation,
   linkedRepoName,
   onCancel,
   onLinked,
-  patConnectHref = '/settings#github-pat',
   projectId,
   projectName,
   redirectAfterLink,
 }: GitHubRepoLinkerProps) {
   const router = useRouter()
-  const canLoadRepos = githubOauthReady && isGithubConnected
+  const canLoadRepos = githubAppReady && hasGitHubInstallation
   const [repos, setRepos] = useState<Repo[]>([])
   const [loading, setLoading] = useState(canLoadRepos)
   const [error, setError] = useState<string | null>(null)
@@ -164,7 +166,7 @@ export function GitHubRepoLinker({
     }
   }
 
-  if (!githubOauthReady) {
+  if (!githubAppReady) {
     return (
       <div className="space-y-4">
         {statusNotice && <StatusNotice message={statusNotice.text} tone={statusNotice.tone} />}
@@ -173,9 +175,9 @@ export function GitHubRepoLinker({
             <div className="flex items-start gap-3">
               <AlertCircleIcon className="mt-0.5 size-4 text-destructive" />
               <div className="space-y-1">
-                <p className="text-sm font-medium">GitHub OAuth is unavailable</p>
+                <p className="text-sm font-medium">GitHub App setup is incomplete</p>
                 <p className="text-sm text-muted-foreground">
-                  Add a personal access token in Settings to continue browsing and linking repositories.
+                  Add the GitHub App ID, client credentials, slug, private key, and webhook secret before installing the app for {projectName ?? 'this project'}.
                 </p>
               </div>
             </div>
@@ -185,8 +187,8 @@ export function GitHubRepoLinker({
                   Close
                 </Button>
               )}
-              <Button render={<Link href={patConnectHref} />} nativeButton={false}>
-                Open Settings
+              <Button render={<Link href={connectHref} />} nativeButton={false}>
+                Retry setup
               </Button>
             </div>
           </CardContent>
@@ -195,7 +197,7 @@ export function GitHubRepoLinker({
     )
   }
 
-  if (!isGithubConnected) {
+  if (!hasGitHubInstallation) {
     return (
       <div className="space-y-4">
         {statusNotice && <StatusNotice message={statusNotice.text} tone={statusNotice.tone} />}
@@ -204,9 +206,9 @@ export function GitHubRepoLinker({
             <div className="flex items-start gap-3">
               <Icon icon="logos:github-icon" className="mt-0.5 size-5 shrink-0" />
               <div className="space-y-1">
-                <p className="text-sm font-medium">Connect your GitHub account first</p>
+                <p className="text-sm font-medium">Install the GitHub App first</p>
                 <p className="text-sm text-muted-foreground">
-                  Monad needs GitHub access before it can list repositories for {projectName ?? 'this project'}.
+                  Monad needs the GitHub App installed before it can list repositories for {projectName ?? 'this project'}.
                 </p>
               </div>
             </div>
@@ -217,7 +219,7 @@ export function GitHubRepoLinker({
                 </Button>
               )}
               <Button render={<Link href={connectHref} />} nativeButton={false}>
-                Connect GitHub
+                Install GitHub App
               </Button>
             </div>
           </CardContent>
@@ -256,7 +258,7 @@ export function GitHubRepoLinker({
           </div>
         ) : filteredRepos.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            No repositories found.
+            No repositories are available to this installation.
           </div>
         ) : (
           filteredRepos.map((repo) => (

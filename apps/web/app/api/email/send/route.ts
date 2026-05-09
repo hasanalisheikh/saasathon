@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAppUrl, isResendConfigured } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
 import { sendApprovalEmail } from '@/lib/resend'
 
@@ -7,6 +8,12 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    if (!isResendConfigured()) {
+      return NextResponse.json({
+        error: 'Client email is not configured. Add RESEND_API_KEY and RESEND_FROM_EMAIL to send approval emails.',
+      }, { status: 503 })
+    }
 
     const { request_id, final_reply, tone } = await req.json()
     if (!request_id || !final_reply) {
@@ -29,13 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No client email on this project' }, { status: 400 })
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, company_name')
-      .eq('id', user.id)
-      .single()
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+    const appUrl = getAppUrl()
     const approvalUrl = `${appUrl}/approve/${request.approval_token}`
     const declineUrl = `${appUrl}/approve/${request.approval_token}?action=decline`
 
@@ -68,6 +69,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('Send email error:', err)
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Failed to send email'
+    const status = message.includes('not configured') ? 503 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

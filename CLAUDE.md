@@ -27,7 +27,7 @@ Monad intercepts client requests, analyses them against the agreed project scope
 | AI | OpenRouter `google/gemini-3.1-flash-lite` |
 | Email sending | Resend |
 | Email inbound | Postmark Inbound webhooks |
-| GitHub | GitHub OAuth App + Octokit REST API |
+| GitHub | GitHub App + REST API |
 | PDF | @react-pdf/renderer |
 | Website widget | Vanilla JS (esbuild — `packages/widget`) |
 | Deployment | Vercel |
@@ -52,7 +52,7 @@ monad/
 │   │   └── api/               # All API routes
 │   ├── lib/
 │   │   ├── supabase/          # client.ts, server.ts, middleware.ts
-│   │   ├── openai.ts          # OpenRouter-compatible AI wrapper: analyseRequest, extractScope, translateCommits
+│   │   ├── ai.ts              # OpenRouter-compatible AI wrapper: analyseRequest, extractScope, translateCommits
 │   │   ├── github.ts          # createIssue, registerWebhook, listUserRepos
 │   │   ├── resend.ts          # sendApprovalEmail
 │   │   ├── postmark.ts        # extractInboundEmail
@@ -118,10 +118,12 @@ AI_MODEL=google/gemini-3.1-flash-lite
 RESEND_API_KEY
 RESEND_FROM_EMAIL
 POSTMARK_INBOUND_WEBHOOK_TOKEN
-POSTMARK_SERVER_TOKEN
-GITHUB_CLIENT_ID
-GITHUB_CLIENT_SECRET
-GITHUB_WEBHOOK_SECRET
+GITHUB_APP_ID
+GITHUB_APP_CLIENT_ID
+GITHUB_APP_CLIENT_SECRET
+GITHUB_APP_PRIVATE_KEY
+GITHUB_APP_SLUG
+GITHUB_APP_WEBHOOK_SECRET
 NEXT_PUBLIC_APP_URL
 INBOUND_EMAIL_DOMAIN
 MOCK_AI=true   ← set this during dev to skip AI calls
@@ -149,7 +151,9 @@ bun dev         # starts apps/web on :3000
 | `/api/requests/[requestId]` | GET/PATCH | Get / update request |
 | `/api/email/send` | POST | Send approval email to client via Resend |
 | `/api/approve/[token]` | POST | Handle client approve/decline (no auth) |
-| `/api/github/connect` | GET | GitHub OAuth flow |
+| `/api/github/install` | GET | Start GitHub App installation flow |
+| `/api/github/setup` | GET | Handle GitHub App setup redirect |
+| `/api/github/auth/callback` | GET | Verify installation via GitHub App user auth |
 | `/api/github/create-issue` | POST | Manually create GitHub issue |
 | `/api/webhooks/email` | POST | Postmark inbound webhook |
 | `/api/webhooks/github` | POST | GitHub webhook (PR merged, issue closed) |
@@ -172,7 +176,7 @@ bun dev         # starts apps/web on :3000
 
 - `MOCK_AI=true` returns hardcoded analysis without calling OpenRouter — use this for all UI work
 - The `/approve/[token]` page is fully public — no login required
-- GitHub can use Personal Access Token instead of OAuth for the demo (simpler)
+- GitHub is project-scoped through a GitHub App installation, not a personal token
 - Postmark fallback: manual paste input on the project page triggers analysis
 - All monetary values stored as integers (cents → whole dollars with hourly rate × hours)
 

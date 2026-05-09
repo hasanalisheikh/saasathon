@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAppUrl } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
-import { createIssue, buildIssueBody } from '@/lib/github'
+import { buildIssueBody, createIssue } from '@/lib/github'
+import { parseGitHubInstallationId } from '@/lib/github'
+import { isGitHubAppConfigured } from '@/lib/github-config'
 import { ensureRequestTasks } from '@/lib/request-tasks'
 
 export async function POST(req: NextRequest) {
@@ -8,6 +11,11 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!isGitHubAppConfigured()) {
+      return NextResponse.json({
+        error: 'GitHub App is not configured. Add the GitHub App credentials before creating issues.',
+      }, { status: 503 })
+    }
 
     const { request_id } = await req.json()
     if (!request_id) return NextResponse.json({ error: 'request_id required' }, { status: 400 })
@@ -23,11 +31,13 @@ export async function POST(req: NextRequest) {
     const project = request.project as Record<string, unknown>
     if (project.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    if (!project.github_repo_name || !project.github_installation_id) {
+    const installationId = parseGitHubInstallationId(project.github_installation_id as string | null)
+
+    if (!project.github_repo_name || !installationId) {
       return NextResponse.json({ error: 'GitHub not connected' }, { status: 400 })
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+    const appUrl = getAppUrl()
     const costRange = request.cost_min && request.cost_max
       ? `$${request.cost_min.toLocaleString()} – $${request.cost_max.toLocaleString()}`
       : 'TBC'
@@ -41,7 +51,7 @@ export async function POST(req: NextRequest) {
     })
 
     const issue = await createIssue({
-      accessToken: project.github_installation_id as string,
+      installationId,
       owner,
       repo,
       title: request.raw_email_subject ?? 'Client approved feature request',

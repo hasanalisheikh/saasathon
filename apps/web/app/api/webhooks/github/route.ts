@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { translateCommits, detectUnapprovedWork } from '@/lib/openai'
+import { detectUnapprovedWork, translateCommits } from '@/lib/ai'
+import { getConfiguredEnv, isResendConfigured } from '@/lib/env'
+import { parseGitHubInstallationId } from '@/lib/github'
+import { isGitHubWebhookConfigured } from '@/lib/github-config'
 import {
   parseGithubTaskChecklist,
   parseGithubTaskMarkers,
@@ -116,6 +119,11 @@ async function notifyClientForCompletedTasks(
   supabase: any,
   tasks: CompletedTask[],
 ) {
+  if (!isResendConfigured()) {
+    console.warn('Skipped client task completion emails because Resend is not configured.')
+    return
+  }
+
   const tasksByRequest = new Map<string, CompletedTask[]>()
 
   for (const task of tasks) {
@@ -150,17 +158,60 @@ async function notifyClientForCompletedTasks(
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isGitHubWebhookConfigured()) {
+      return NextResponse.json({
+        error: 'GitHub App webhooks are not configured. Add GITHUB_APP_WEBHOOK_SECRET to receive GitHub events.',
+      }, { status: 503 })
+    }
+
     const rawBody = await req.text()
     const signature = req.headers.get('x-hub-signature-256')
     const event = req.headers.get('x-github-event')
 
-    const secret = process.env.GITHUB_WEBHOOK_SECRET ?? ''
-    if (secret && !verifySignature(rawBody, signature, secret)) {
+    const secret = getConfiguredEnv('GITHUB_APP_WEBHOOK_SECRET')!
+    if (!verifySignature(rawBody, signature, secret)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     const payload = JSON.parse(rawBody)
     const supabase = await createServiceClient()
+    const installationId = parseGitHubInstallationId(String(payload.installation?.id ?? ''))
+
+    if (event === 'installation' && installationId) {
+      if (['deleted', 'suspend'].includes(payload.action)) {
+        await supabase
+          .from('projects')
+          .update({
+            github_installation_id: null,
+            github_repo_id: null,
+            github_repo_name: null,
+          })
+          .eq('github_installation_id', installationId)
+      }
+
+      return NextResponse.json({ ok: true })
+    }
+
+    if (event === 'installation_repositories' && installationId) {
+      const removedRepos = Array.isArray(payload.repositories_removed)
+        ? payload.repositories_removed
+            .map((repository: { full_name?: string }) => repository.full_name)
+            .filter((fullName: string | undefined): fullName is string => Boolean(fullName))
+        : []
+
+      if (removedRepos.length) {
+        await supabase
+          .from('projects')
+          .update({
+            github_repo_id: null,
+            github_repo_name: null,
+          })
+          .eq('github_installation_id', installationId)
+          .in('github_repo_name', removedRepos)
+      }
+
+      return NextResponse.json({ ok: true })
+    }
 
     // Find project by repo
     const repoFullName = payload.repository?.full_name

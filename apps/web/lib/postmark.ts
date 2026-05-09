@@ -1,3 +1,7 @@
+import crypto from 'crypto'
+import type { NextRequest } from 'next/server'
+import { getConfiguredEnv } from '@/lib/env'
+
 export interface PostmarkInboundPayload {
   From: string
   FromFull: { Email: string; Name: string }
@@ -37,4 +41,21 @@ function stripHtml(html: string): string {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+export function isAuthorizedPostmarkRequest(req: NextRequest): boolean {
+  const configuredToken = getConfiguredEnv('POSTMARK_INBOUND_WEBHOOK_TOKEN')
+  const providedToken = (
+    req.nextUrl.searchParams.get('token') ??
+    req.headers.get('x-postmark-webhook-token') ??
+    req.headers.get('x-inbound-webhook-token')
+  )?.trim()
+
+  if (!configuredToken || !providedToken) return false
+
+  const expected = Buffer.from(configuredToken)
+  const actual = Buffer.from(providedToken)
+  if (expected.length !== actual.length) return false
+
+  return crypto.timingSafeEqual(expected, actual)
 }

@@ -1,4 +1,17 @@
-"use strict";(()=>{(function(){var x;let o=document.currentScript,p=o==null?void 0:o.getAttribute("data-project-id"),v=o==null?void 0:o.getAttribute("data-client-token"),w=((x=o==null?void 0:o.getAttribute("data-api-url"))!=null?x:"https://monad.app")+"/api/widget/comment";if(!p)return;let u=0,r=!1,f=document.createElement("style");f.textContent=`
+"use strict";
+(() => {
+  // src/index.ts
+  (function() {
+    var _a;
+    const script = document.currentScript;
+    const projectId = script == null ? void 0 : script.getAttribute("data-project-id");
+    const clientToken = script == null ? void 0 : script.getAttribute("data-client-token");
+    const API_URL = ((_a = script == null ? void 0 : script.getAttribute("data-api-url")) != null ? _a : "https://monad.app") + "/api/widget/comment";
+    if (!projectId) return;
+    let pinCount = 0;
+    let commentMode = false;
+    const style = document.createElement("style");
+    style.textContent = `
     #monad-btn {
       position: fixed; bottom: 24px; right: 24px; z-index: 99999;
       background: #171717; color: #ffffff; border: none; border-radius: 6px;
@@ -44,10 +57,91 @@
     }
     body.monad-comment-mode { cursor: crosshair !important; }
     body.monad-comment-mode * { cursor: crosshair !important; }
-  `,document.head.appendChild(f);let d=document.createElement("button");d.id="monad-btn",d.textContent="\u{1F4AC} Leave a comment",document.body.appendChild(d),d.addEventListener("click",()=>{r=!r,d.textContent=r?"\u2715 Cancel":"\u{1F4AC} Leave a comment",d.classList.toggle("active",r),document.body.classList.toggle("monad-comment-mode",r),r||s()}),document.addEventListener("click",e=>{if(!r||e.target.closest("#monad-btn, #monad-box"))return;e.preventDefault(),e.stopPropagation();let a=e.pageX,i=e.pageY;L(a,i,(t,n)=>{k(a,i,t,n),s(),r=!1,d.textContent="\u{1F4AC} Leave a comment",d.classList.remove("active"),document.body.classList.remove("monad-comment-mode")})},!0);let c=null;function L(e,a,i){var b,g,h;s();let t=document.createElement("div");t.id="monad-box";let n=window.innerWidth,m=e+20+300>n?e-300-10:e+20,l=a-20;t.style.left=`${m}px`,t.style.top=`${l}px`,t.innerHTML=`
+  `;
+    document.head.appendChild(style);
+    const btn = document.createElement("button");
+    btn.id = "monad-btn";
+    btn.textContent = "\u{1F4AC} Leave a comment";
+    document.body.appendChild(btn);
+    btn.addEventListener("click", () => {
+      commentMode = !commentMode;
+      btn.textContent = commentMode ? "\u2715 Cancel" : "\u{1F4AC} Leave a comment";
+      btn.classList.toggle("active", commentMode);
+      document.body.classList.toggle("monad-comment-mode", commentMode);
+      if (!commentMode) removeCommentBox();
+    });
+    document.addEventListener("click", (e) => {
+      if (!commentMode) return;
+      if (e.target.closest("#monad-btn, #monad-box")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const x = e.pageX;
+      const y = e.pageY;
+      showCommentBox(x, y, (text, name) => {
+        placePinAndSubmit(x, y, text, name);
+        removeCommentBox();
+        commentMode = false;
+        btn.textContent = "\u{1F4AC} Leave a comment";
+        btn.classList.remove("active");
+        document.body.classList.remove("monad-comment-mode");
+      });
+    }, true);
+    let commentBox = null;
+    function showCommentBox(x, y, onSubmit) {
+      var _a2, _b, _c;
+      removeCommentBox();
+      const box = document.createElement("div");
+      box.id = "monad-box";
+      const vw = window.innerWidth;
+      const left = x + 20 + 300 > vw ? x - 300 - 10 : x + 20;
+      const top = y - 20;
+      box.style.left = `${left}px`;
+      box.style.top = `${top}px`;
+      box.innerHTML = `
       <p style="color:#737373;font-size:11px;margin:0 0 8px;font-family:Inter, sans-serif">Leave a comment</p>
       <input type="text" placeholder="Your name (optional)" id="monad-name-input" />
       <textarea placeholder="Describe your feedback..." id="monad-text-input"></textarea>
       <button id="monad-box-submit">Submit comment</button>
       <button id="monad-box-cancel">Cancel</button>
-    `,document.body.appendChild(t),c=t,(b=t.querySelector("#monad-text-input"))==null||b.focus(),(g=t.querySelector("#monad-box-submit"))==null||g.addEventListener("click",()=>{let y=t.querySelector("#monad-text-input").value.trim(),E=t.querySelector("#monad-name-input").value.trim();y&&i(y,E)}),(h=t.querySelector("#monad-box-cancel"))==null||h.addEventListener("click",s)}function s(){c==null||c.remove(),c=null}function k(e,a,i,t){u++;let n=document.createElement("div");n.className="monad-pin",n.textContent=String(u),n.style.left=`${e}px`,n.style.top=`${a}px`,document.body.appendChild(n);let m=e/document.documentElement.scrollWidth,l=a/document.documentElement.scrollHeight;fetch(w,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project_id:p,client_token:v,page_url:window.location.href,x_position:m,y_position:l,comment_text:i,client_name:t||null})}).catch(console.error)}})();})();
+    `;
+      document.body.appendChild(box);
+      commentBox = box;
+      (_a2 = box.querySelector("#monad-text-input")) == null ? void 0 : _a2.focus();
+      (_b = box.querySelector("#monad-box-submit")) == null ? void 0 : _b.addEventListener("click", () => {
+        const text = box.querySelector("#monad-text-input").value.trim();
+        const name = box.querySelector("#monad-name-input").value.trim();
+        if (!text) return;
+        onSubmit(text, name);
+      });
+      (_c = box.querySelector("#monad-box-cancel")) == null ? void 0 : _c.addEventListener("click", removeCommentBox);
+    }
+    function removeCommentBox() {
+      commentBox == null ? void 0 : commentBox.remove();
+      commentBox = null;
+    }
+    function placePinAndSubmit(x, y, text, name) {
+      pinCount++;
+      const pin = document.createElement("div");
+      pin.className = "monad-pin";
+      pin.textContent = String(pinCount);
+      pin.style.left = `${x}px`;
+      pin.style.top = `${y}px`;
+      document.body.appendChild(pin);
+      const xPct = x / document.documentElement.scrollWidth;
+      const yPct = y / document.documentElement.scrollHeight;
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_id: projectId,
+          client_token: clientToken,
+          page_url: window.location.href,
+          x_position: xPct,
+          y_position: yPct,
+          comment_text: text,
+          client_name: name || null
+        })
+      }).catch(console.error);
+    }
+  })();
+})();

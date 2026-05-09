@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { registerWebhook } from '@/lib/github'
-import { isGitHubOAuthConfigured } from '@/lib/github-config'
+import { listInstallationRepos } from '@/lib/github'
+import { isGitHubAppConfigured, isGitHubInstallationId } from '@/lib/github-config'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isGitHubAppConfigured()) {
+    return NextResponse.json({
+      error: 'GitHub App is not configured. Add the GitHub App credentials to link repositories.',
+    }, { status: 503 })
+  }
 
   const { projectId, repoId, repoFullName } = await req.json()
   if (!projectId || !repoId || !repoFullName) {
@@ -15,53 +20,41 @@ export async function POST(req: NextRequest) {
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id')
+    .select('id, github_installation_id')
     .eq('id', projectId)
     .eq('user_id', user.id)
     .single()
 
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('github_access_token')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile?.github_access_token) {
-    return NextResponse.json({
-      error: isGitHubOAuthConfigured()
-        ? 'GitHub account not connected'
-        : 'GitHub is not connected yet. Add a personal access token in Settings to continue.',
-    }, { status: 400 })
+  if (!project?.github_installation_id || !isGitHubInstallationId(project.github_installation_id)) {
+    return NextResponse.json({ error: 'GitHub App is not installed for this project' }, { status: 400 })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const webhookUrl = `${appUrl}/api/webhooks/github`
-  const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET ?? ''
-
-  // Best-effort webhook registration — repo may already have one or token may lack write:repo_hook
   try {
-    await registerWebhook({
-      accessToken: profile.github_access_token,
-      repoFullName,
-      webhookUrl,
-      secret: webhookSecret,
-    })
-  } catch {
-    // Swallow — common if webhook already exists; repo linking still succeeds
+    const repos = await listInstallationRepos(project.github_installation_id)
+    const selectedRepo = repos.find((repo) => repo.id === String(repoId) && repo.name === repoFullName)
+
+    if (!selectedRepo) {
+      return NextResponse.json({ error: 'Repository is not available to this installation' }, { status: 400 })
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        github_repo_id: repoId,
+        github_repo_name: repoFullName,
+      })
+      .eq('id', projectId)
+      .eq('user_id', user.id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('GitHub repo link error:', error)
+    return NextResponse.json({ error: 'Failed to link repository' }, { status: 500 })
   }
-
-  const { error } = await supabase
-    .from('projects')
-    .update({
-      github_repo_id: repoId,
-      github_repo_name: repoFullName,
-      github_installation_id: profile.github_access_token,
-    })
-    .eq('id', projectId)
-    .eq('user_id', user.id)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true })
 }

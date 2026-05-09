@@ -1,10 +1,11 @@
 import { Resend } from 'resend'
+import { requireConfiguredEnv } from '@/lib/env'
 
 function getResend() {
-  return new Resend(process.env.RESEND_API_KEY)
+  return new Resend(requireConfiguredEnv('RESEND_API_KEY', 'Resend is not configured. Add RESEND_API_KEY to send email.'))
 }
 
-const FROM = () => process.env.RESEND_FROM_EMAIL ?? 'noreply@monad.app'
+const FROM = () => requireConfiguredEnv('RESEND_FROM_EMAIL', 'Resend is not configured. Add RESEND_FROM_EMAIL to send email.')
 
 const emailStyles = `
     body { background: #f8fafc; color: #171717; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 40px 20px; }
