@@ -298,7 +298,7 @@ export async function listUserInstallations(accessToken: string) {
 }
 export async function listUserRepos(accessToken: string) {
   const response = await requestGitHubJson<
-    Array<{ id: number; full_name: string; private: boolean }>
+    Array<{ id: number; full_name: string; private: boolean; owner: { login: string } }>
   >(
     'https://api.github.com/user/repos?per_page=100&sort=updated',
     {
@@ -310,6 +310,7 @@ export async function listUserRepos(accessToken: string) {
   return response.map((repo) => ({
     id: String(repo.id),
     name: repo.full_name,
+    ownerLogin: repo.owner.login,
     private: repo.private,
   }))
 }

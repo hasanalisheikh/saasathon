@@ -9,11 +9,12 @@ import { Button } from '@workspace/ui/components/button'
 import { Card, CardContent } from '@workspace/ui/components/card'
 import { Input } from '@workspace/ui/components/input'
 import { toast } from 'sonner'
-import type { GitHubStatus } from '@/lib/github-connect'
+import { buildGitHubConnectPath, type GitHubStatus } from '@/lib/github-connect'
 
 type Repo = {
   id: string
   name: string
+  ownerLogin: string
   private: boolean
 }
 
@@ -393,24 +394,56 @@ export function GitHubRepoLinker({
             No repositories are available to this installation.
           </div>
         ) : (
-          filteredRepos.map((repo) => (
-            <button
-              key={repo.id}
-              onClick={() => handleSelect(repo)}
-              disabled={Boolean(linking)}
-              className="flex w-full items-center justify-between rounded-lg border border-border/80 bg-background px-4 py-3 text-left transition-colors hover:border-primary/30 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                  {repo.private ? 'private' : 'public'}
-                </span>
-                <span className="truncate text-sm">{repo.name}</span>
+          filteredRepos.map((repo) => {
+            const installation = installationOptions.find(
+              (i) => i.accountLogin?.toLowerCase() === repo.ownerLogin.toLowerCase()
+            )
+            const isInstalled = Boolean(installation)
+
+            return (
+              <div
+                key={repo.id}
+                className="flex w-full items-center justify-between rounded-lg border border-border/80 bg-background px-4 py-3 text-left transition-colors hover:border-primary/30 hover:bg-muted/40"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    {repo.private ? 'private' : 'public'}
+                  </span>
+                  <span className="truncate text-sm">{repo.name}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {isInstalled ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleSelect(repo)}
+                      disabled={Boolean(linking)}
+                    >
+                      {linking === repo.id ? 'Linking...' : 'Select'}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-primary/30 text-primary hover:bg-primary/5"
+                      render={
+                        <Link
+                          href={buildGitHubConnectPath({
+                            projectId,
+                            setupAction: 'install',
+                            returnTo: `/projects/${projectId}/github-setup`,
+                          })}
+                        />
+                      }
+                      nativeButton={false}
+                    >
+                      Authorize
+                    </Button>
+                  )}
+                </div>
               </div>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {linking === repo.id ? 'Linking...' : 'Select'}
-              </span>
-            </button>
-          ))
+            )
+          })
         )}
       </div>
 

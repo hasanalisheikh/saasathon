@@ -14,6 +14,7 @@ export type GitHubStatus = (typeof GITHUB_STATUS_VALUES)[number]
 type ConnectPathParams = {
   projectId?: string | null
   returnTo?: string | null
+  setupAction?: 'install' | 'connect' | null
 }
 
 export function buildGitHubConnectPath(params: ConnectPathParams = {}) {
@@ -25,6 +26,10 @@ export function buildGitHubConnectPath(params: ConnectPathParams = {}) {
 
   if (params.returnTo) {
     searchParams.set('returnTo', params.returnTo)
+  }
+
+  if (params.setupAction) {
+    searchParams.set('setupAction', params.setupAction)
   }
 
   const query = searchParams.toString()

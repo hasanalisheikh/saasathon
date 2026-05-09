@@ -3,11 +3,6 @@ import { requireConfiguredEnv } from '@/lib/env'
 
 const GITHUB_API_VERSION = '2022-11-28'
 
-export type InstallationRepo = {
-  id: string
-  name: string
-  private: boolean
-}
 
 export type AppInstallation = {
   accountLogin: string | null
@@ -108,10 +103,17 @@ export async function listAppInstallations(): Promise<AppInstallation[]> {
   }))
 }
 
+export type InstallationRepo = {
+  id: string
+  name: string
+  ownerLogin: string
+  private: boolean
+}
+
 export async function listInstallationRepos(installationId: string): Promise<InstallationRepo[]> {
   const accessToken = await getInstallationAccessToken(installationId)
   const data = await requestGitHubJson<{
-    repositories: Array<{ id: number; full_name: string; private: boolean }>
+    repositories: Array<{ id: number; full_name: string; private: boolean; owner: { login: string } }>
   }>(
     'https://api.github.com/installation/repositories?per_page=100',
     {
@@ -123,6 +125,7 @@ export async function listInstallationRepos(installationId: string): Promise<Ins
   return data.repositories.map((repo) => ({
     id: String(repo.id),
     name: repo.full_name,
+    ownerLogin: repo.owner.login,
     private: repo.private,
   }))
 }

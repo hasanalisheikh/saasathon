@@ -58,10 +58,14 @@ export async function GET(req: NextRequest) {
   ) {
     return buildRedirect(req, fallbackReturnTo, isGitHubAppConfigured() ? 'auth_failed' : 'app_not_configured')
   }
-
   try {
     const userToken = await exchangeCodeForGitHubUserToken(code)
     const installations = await listUserInstallations(userToken)
+
+    const queryInstallationId = req.nextUrl.searchParams.get('installation_id')
+    if (queryInstallationId && !currentState.installationId) {
+      currentState.installationId = queryInstallationId
+    }
 
     if (!currentState.installationId) {
       if (installations.length === 0) {
