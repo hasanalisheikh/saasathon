@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { PageHeader, PageTitle, PageDescription, PageActions } from "@workspace/ui/components/page-header"
 import { DocumentsClient } from "./documents-client"
 
 export default async function DocumentsPage({
@@ -26,20 +25,6 @@ export default async function DocumentsPage({
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
-      <PageHeader>
-        <div>
-          <PageTitle>Documents</PageTitle>
-          <PageDescription>
-            Contracts, proposals, briefs, and rate cards used as context for scope analysis.
-          </PageDescription>
-        </div>
-        <PageActions>
-          <span className="text-xs text-muted-foreground">
-            {(documents ?? []).length} total
-          </span>
-        </PageActions>
-      </PageHeader>
-
       <DocumentsClient
         initialDocuments={documents ?? []}
         projects={projects ?? []}

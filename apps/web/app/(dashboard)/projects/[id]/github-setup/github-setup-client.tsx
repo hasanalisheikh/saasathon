@@ -43,7 +43,7 @@ export function GitHubSetupClient({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>GitHub Setup</BreadcrumbPage>
+            <BreadcrumbPage>Link GitHub Repo</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -51,9 +51,9 @@ export function GitHubSetupClient({
       <div className="max-w-2xl space-y-6">
         <PageHeader>
           <div>
-            <PageTitle>Set up GitHub for this project</PageTitle>
+            <PageTitle>Link a GitHub repository</PageTitle>
             <PageDescription>
-              Install the GitHub App, then choose the repository Monad should use for approvals, issues, and activity tracking.
+              Select the repo for this project. Monad will install the GitHub App if needed and auto-create issues when scope changes are approved.
             </PageDescription>
           </div>
         </PageHeader>

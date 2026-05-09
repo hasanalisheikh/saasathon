@@ -457,7 +457,7 @@ export default function RequestReviewPage() {
           <Card className="border-primary/30 bg-primary/10">
             <CardContent className="flex gap-3 items-start">
               <span>⚠️</span>
-              <p className="text-xs text-foreground">
+              <p className="text-xs text-[var(--amber-100)]">
                 Your reply appears to accept out-of-scope work without mentioning cost or getting
                 approval. Are you sure?
               </p>

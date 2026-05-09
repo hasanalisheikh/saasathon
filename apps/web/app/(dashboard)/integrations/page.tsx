@@ -1,5 +1,8 @@
+import { getEnvChecks, type EnvCheck } from "@/lib/integrations"
 import { createClient } from "@/lib/supabase/server"
 import { IntegrationsPageClient } from "./integrations-client"
+
+export type { EnvCheck }
 
 export type ProjectIntegration = {
   id: string
@@ -13,7 +16,9 @@ export type ProjectIntegration = {
 
 export default async function IntegrationsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const { data: projects } = await supabase
     .from("projects")
@@ -24,6 +29,7 @@ export default async function IntegrationsPage() {
 
   return (
     <IntegrationsPageClient
+      envChecks={getEnvChecks()}
       projects={projects ?? []}
     />
   )

@@ -28,6 +28,8 @@ import { ProjectPageActions } from "./project-page-actions"
 import { ProjectRequestsTab } from "./project-requests-tab"
 import { WidgetCommentsTab } from "./widget-comments-tab"
 import {
+  Calendar,
+  ExternalLink,
   FileCheck2,
   FileText,
   GitBranch,
@@ -35,6 +37,7 @@ import {
   MessageSquareCode,
   type LucideIcon,
 } from "lucide-react"
+import { Icon } from "@iconify/react"
 
 const TABS = [
   "requests",
@@ -139,6 +142,10 @@ export default async function ProjectDetailPage({
   })
   const githubSetupHref = `/projects/${id}/github-setup`
   const githubAppReady = isGitHubAppConfigured()
+  const githubRepoUrl = project.github_repo_name
+    ? `https://github.com/${project.github_repo_name}`
+    : null
+  const projectCreatedLabel = new Date(project.created_at as string).toLocaleDateString()
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -156,48 +163,86 @@ export default async function ProjectDetailPage({
         </PageActions>
       </PageHeader>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <Card size="sm">
-          <CardContent className="space-y-1">
-            <p className="text-xs uppercase text-muted-foreground">Client</p>
-            <p className="text-sm font-medium">{project.client_name}</p>
-            <p className="text-xs text-muted-foreground">
-              {project.client_email ?? 'No client email saved'}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Project Details */}
+      <div className="mb-4 grid max-w-full grid-cols-2 gap-x-4 gap-y-6 md:max-w-[60%] md:grid-cols-4 md:gap-x-12 md:gap-y-8">
+        <div className="flex flex-col items-start gap-1.5">
+          <span className="text-xs text-muted-foreground uppercase">
+            Clients
+          </span>
+          {project.client_email ? (
+            <a
+              href={`mailto:${project.client_email}`}
+              className="group/link flex items-center gap-1.5 hover:underline"
+            >
+              <Icon icon="lucide:mail" className="h-4 w-4 text-primary" />
+              <span className="text-sm">{project.client_name}</span>
+              <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover/link:opacity-100" />
+            </a>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <Icon icon="lucide:user" className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{project.client_name}</span>
+            </div>
+          )}
+        </div>
 
-        <Card size="sm">
-          <CardContent className="space-y-1">
-            <p className="text-xs uppercase text-muted-foreground">GitHub</p>
-            <p className="text-sm font-medium">
-              {project.github_repo_name ?? (githubConnected ? 'Repository not chosen' : 'Not connected')}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {githubConnected ? 'Project-level GitHub App installation ready' : 'Install the GitHub App to track approved work'}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-start gap-1.5">
+          <span className="text-xs text-muted-foreground uppercase">
+            Project
+          </span>
+          {githubRepoUrl ? (
+            <a
+              href={githubRepoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="group/link flex items-center gap-1.5 hover:underline"
+            >
+              <Icon icon="logos:github-icon" className="h-4 w-4" />
+              <span className="max-w-[12rem] truncate text-sm">
+                {project.github_repo_name}
+              </span>
+              <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover/link:opacity-100" />
+            </a>
+          ) : githubAppReady ? (
+            <Link
+              href={githubConnected ? githubSetupHref : githubConnectHref}
+              className="group/link flex items-center gap-1.5 hover:underline"
+            >
+              <Icon icon="logos:github-icon" className="h-4 w-4" />
+              <span className="text-sm">
+                {githubConnected ? "Choose repo" : "Install GitHub App"}
+              </span>
+              <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover/link:opacity-100" />
+            </Link>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <Icon icon="logos:github-icon" className="h-4 w-4 opacity-60" />
+              <span className="text-sm text-muted-foreground">Setup required</span>
+            </div>
+          )}
+        </div>
 
-        <Card size="sm">
-          <CardContent className="space-y-1">
-            <p className="text-xs uppercase text-muted-foreground">Approved Requests</p>
-            <p className="text-sm font-medium">{approvedRequests.length}</p>
-            <p className="text-xs text-muted-foreground">
-              {githubEvents?.length ?? 0} GitHub events logged
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-start gap-1.5">
+          <span className="text-xs text-muted-foreground uppercase">
+            Approved Requests
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-medium">{approvedRequests.length}</span>
+            <span className="text-sm text-muted-foreground">
+              ({pendingRequests.length} pending)
+            </span>
+          </div>
+        </div>
 
-        <Card size="sm">
-          <CardContent className="space-y-1">
-            <p className="text-xs uppercase text-muted-foreground">Pending Review</p>
-            <p className="text-sm font-medium">{pendingRequests.length}</p>
-            <p className="text-xs text-muted-foreground">
-              {unconvertedCommentCount} widget comments waiting
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-start gap-1.5">
+          <span className="text-xs text-muted-foreground uppercase">
+            Created
+          </span>
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-4 w-4 text-primary" />
+            <span className="text-sm">{projectCreatedLabel}</span>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
