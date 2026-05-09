@@ -9,7 +9,7 @@ import { listRepoIssues, type InstallationRepoIssue } from "@/lib/github-app"
 import { cn } from "@workspace/ui/lib/utils"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
-import { Badge } from "@workspace/ui/components/badge"
+import { Tag, formatTagLabel } from "@workspace/ui/components/tag"
 import {
   Tabs,
   TabsList,
@@ -333,21 +333,18 @@ export default async function ProjectDetailPage({
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-sm">{document.title}</p>
-                          <Badge
+                          <Tag
                             variant={
                               document.extraction_status === "failed"
-                                ? "destructive"
+                                ? "danger"
                                 : "outline"
                             }
                           >
-                            {document.extraction_status}
-                          </Badge>
-                          <Badge variant="outline">
-                            {(document.document_type as string).replace(
-                              "_",
-                              " "
-                            )}
-                          </Badge>
+                            {formatTagLabel(document.extraction_status)}
+                          </Tag>
+                          <Tag variant="outline">
+                            {formatTagLabel(document.document_type as string)}
+                          </Tag>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {document.file_name} ·{" "}
@@ -356,9 +353,9 @@ export default async function ProjectDetailPage({
                       </div>
                       <div className="flex flex-wrap justify-end gap-1">
                         {(document.tags as string[] | null)?.map((tag) => (
-                          <Badge key={tag} variant="outline">
-                            {tag}
-                          </Badge>
+                          <Tag key={tag} variant="outline">
+                            {formatTagLabel(tag)}
+                          </Tag>
                         ))}
                       </div>
                     </div>
@@ -620,8 +617,8 @@ function GitHubIssueRow({
               >
                 #{issue.number} {issue.title}
               </a>
-              <Badge variant="outline">{issue.state}</Badge>
-              {isLinkedToMonad && <Badge variant="secondary">Linked to Monad request</Badge>}
+              <Tag variant="outline">{formatTagLabel(issue.state)}</Tag>
+              {isLinkedToMonad && <Tag>Linked to Monad request</Tag>}
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>Updated {new Date(issue.updatedAt).toLocaleString()}</span>
@@ -630,9 +627,9 @@ function GitHubIssueRow({
             {issue.labels.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {issue.labels.slice(0, 4).map((label) => (
-                  <Badge key={label} variant="outline">
+                  <Tag key={label} variant="outline">
                     {label}
-                  </Badge>
+                  </Tag>
                 ))}
               </div>
             )}
@@ -661,7 +658,7 @@ function GitHubEventRow({ event }: { event: any }) {
     deployment: { label: "Deployed", color: "text-primary", icon: "⚡" },
   }
   const meta = typeMap[event.event_type as string] ?? {
-    label: event.event_type,
+    label: formatTagLabel(event.event_type as string),
     color: "text-muted-foreground",
     icon: "·",
   }
@@ -685,11 +682,11 @@ function GitHubEventRow({ event }: { event: any }) {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex items-center gap-2">
-              <Badge variant="outline" className={meta.color}>
+              <Tag variant="outline" className={meta.color}>
                 {meta.icon} {meta.label}
-              </Badge>
+              </Tag>
               {event.is_unapproved_work && (
-                <Badge variant="destructive">⚠ Unapproved work detected</Badge>
+                <Tag variant="danger">⚠ Unapproved work detected</Tag>
               )}
             </div>
             {event.plain_english_summary ? (

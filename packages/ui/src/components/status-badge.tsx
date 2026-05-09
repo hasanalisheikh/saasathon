@@ -1,36 +1,36 @@
 import * as React from "react"
 
 import { cn } from "@workspace/ui/lib/utils"
-import { Badge } from "@workspace/ui/components/badge"
+import { Tag, formatTagLabel } from "@workspace/ui/components/tag"
 
 /* ─── Classification ──────────────────────────────────────────────────── */
 
 const classificationConfig = {
   in_scope: {
-    label: "IN SCOPE",
+    label: "In Scope",
     className:
-      "border-emerald-600/25 bg-emerald-50 text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-300",
+      "border-emerald-200 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200",
   },
   out_of_scope: {
-    label: "OUT OF SCOPE",
+    label: "Out Of Scope",
     className:
-      "border-red-600/25 bg-red-50 text-red-700 dark:border-red-500/35 dark:bg-red-500/10 dark:text-red-300",
+      "border-rose-200 bg-rose-50/80 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200",
   },
   ambiguous: {
-    label: "AMBIGUOUS",
+    label: "Ambiguous",
     className:
-      "border-amber-600/25 bg-amber-50 text-amber-700 dark:border-amber-500/35 dark:bg-amber-500/10 dark:text-amber-300",
+      "border-amber-200 bg-amber-50/80 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200",
   },
   clarification_needed: {
-    label: "CLARIFY",
+    label: "Clarify",
     className:
-      "border-sky-600/25 bg-sky-50 text-sky-700 dark:border-sky-500/35 dark:bg-sky-500/10 dark:text-sky-300",
+      "border-sky-200 bg-sky-50/80 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200",
   },
 } as const
 
 type Classification = keyof typeof classificationConfig
 
-interface ClassificationBadgeProps extends Omit<React.ComponentProps<typeof Badge>, "variant"> {
+interface ClassificationBadgeProps extends Omit<React.ComponentProps<typeof Tag>, "variant"> {
   classification: Classification | string | null
 }
 
@@ -44,17 +44,13 @@ function ClassificationBadge({
   if (!config) return null
 
   return (
-    <Badge
+    <Tag
       variant="outline"
-      className={cn(
-        "uppercase tracking-wider text-[0.6rem] font-medium",
-        config.className,
-        className
-      )}
+      className={cn(config.className, className)}
       {...props}
     >
       {config.label}
-    </Badge>
+    </Tag>
   )
 }
 
@@ -64,55 +60,55 @@ const statusConfig = {
   pending_review: {
     label: "Pending",
     className:
-      "border-amber-600/25 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300",
+      "border-amber-200 bg-amber-50/80 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200",
   },
   sent_to_client: {
     label: "Sent",
     className:
-      "border-sky-600/25 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300",
+      "border-sky-200 bg-sky-50/80 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200",
   },
   approved: {
     label: "Approved Add-On",
     className:
-      "border-emerald-600/25 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+      "border-emerald-200 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200",
   },
   declined: {
     label: "Declined",
     className:
-      "border-red-600/25 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300",
+      "border-rose-200 bg-rose-50/80 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200",
   },
   deferred: {
     label: "Deferred",
     className:
-      "border-violet-600/25 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300",
+      "border-stone-200 bg-stone-50/80 text-stone-700 dark:border-stone-500/25 dark:bg-stone-500/10 dark:text-stone-200",
   },
   accepted_in_scope: {
     label: "Accepted In Scope",
     className:
-      "border-emerald-600/25 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+      "border-emerald-200 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200",
   },
 } as const
 
 type RequestStatus = keyof typeof statusConfig
 
-interface StatusBadgeProps extends Omit<React.ComponentProps<typeof Badge>, "variant"> {
+interface StatusBadgeProps extends Omit<React.ComponentProps<typeof Tag>, "variant"> {
   status: RequestStatus | string
 }
 
 function StatusBadge({ status, className, ...props }: StatusBadgeProps) {
   const config = statusConfig[status as RequestStatus] ?? {
-    label: status,
-    className: "border-border bg-muted/40 text-muted-foreground",
+    label: formatTagLabel(status),
+    className: "border-border/70 bg-muted/40 text-muted-foreground",
   }
 
   return (
-    <Badge
+    <Tag
       variant="outline"
-      className={cn("text-[0.6rem] font-medium", config.className, className)}
+      className={cn(config.className, className)}
       {...props}
     >
       {config.label}
-    </Badge>
+    </Tag>
   )
 }
 
@@ -122,43 +118,43 @@ const projectStatusConfig = {
   active: {
     label: "Active",
     className:
-      "border-emerald-600/25 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+      "border-emerald-200 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200",
   },
   completed: {
     label: "Completed",
     className:
-      "border-sky-600/25 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300",
+      "border-sky-200 bg-sky-50/80 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200",
   },
   archived: {
     label: "Archived",
-    className: "border-border bg-muted/40 text-muted-foreground",
+    className: "border-border/70 bg-muted/40 text-muted-foreground",
   },
 } as const
 
 type ProjectStatus = keyof typeof projectStatusConfig
 
-interface ProjectStatusBadgeProps extends Omit<React.ComponentProps<typeof Badge>, "variant"> {
+interface ProjectStatusBadgeProps extends Omit<React.ComponentProps<typeof Tag>, "variant"> {
   status: ProjectStatus | string
 }
 
 function ProjectStatusBadge({ status, className, ...props }: ProjectStatusBadgeProps) {
   const config = projectStatusConfig[status as ProjectStatus] ?? {
-    label: status,
-    className: "border-border bg-muted/40 text-muted-foreground",
+    label: formatTagLabel(status),
+    className: "border-border/70 bg-muted/40 text-muted-foreground",
   }
 
   return (
-    <Badge
+    <Tag
       variant="outline"
       className={cn(
-        "uppercase tracking-wider text-[0.6rem] font-medium rounded-full",
+        "rounded-full",
         config.className,
         className
       )}
       {...props}
     >
       {config.label}
-    </Badge>
+    </Tag>
   )
 }
 
@@ -166,42 +162,47 @@ function ProjectStatusBadge({ status, className, ...props }: ProjectStatusBadgeP
 
 const sourceConfig = {
   email: {
+    label: "Email",
     className:
-      "border-amber-600/20 bg-amber-50 text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200",
+      "border-amber-200 bg-amber-50/80 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200",
   },
   widget: {
+    label: "Widget",
     className:
-      "border-violet-600/20 bg-violet-50 text-violet-700 dark:border-violet-500/25 dark:bg-violet-500/10 dark:text-violet-200",
+      "border-indigo-200 bg-indigo-50/80 text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-200",
   },
   manual: {
+    label: "Manual",
     className:
-      "border-sky-600/20 bg-sky-50 text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-200",
+      "border-sky-200 bg-sky-50/80 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200",
+  },
+  github: {
+    label: "GitHub",
+    className:
+      "border-slate-200 bg-slate-50/80 text-slate-700 dark:border-slate-500/25 dark:bg-slate-500/10 dark:text-slate-200",
   },
 } as const
 
 type RequestSource = keyof typeof sourceConfig
 
-interface SourceBadgeProps extends Omit<React.ComponentProps<typeof Badge>, "variant"> {
+interface SourceBadgeProps extends Omit<React.ComponentProps<typeof Tag>, "variant"> {
   source: RequestSource | string
 }
 
 function SourceBadge({ source, className, ...props }: SourceBadgeProps) {
   const config = sourceConfig[source as RequestSource] ?? {
+    label: formatTagLabel(source),
     className: "border-border bg-muted/40 text-muted-foreground",
   }
 
   return (
-    <Badge
+    <Tag
       variant="outline"
-      className={cn(
-        "uppercase tracking-wider text-[0.6rem] font-medium",
-        config.className,
-        className
-      )}
+      className={cn(config.className, className)}
       {...props}
     >
-      {source}
-    </Badge>
+      {config.label}
+    </Tag>
   )
 }
 

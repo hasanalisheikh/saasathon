@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Icon } from "@iconify/react"
 import { BlocksIcon, CheckCircle2Icon, MoreHorizontal, TriangleAlertIcon } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
+import { Tag } from "@workspace/ui/components/tag"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -290,9 +291,9 @@ function EnvironmentChecks({ envChecks }: { envChecks: EnvCheck[] }) {
 
       <div className="flex flex-wrap gap-2">
         {envChecks.map((check) => (
-          <Badge
+          <Tag
             key={check.label}
-            variant="secondary"
+            variant={check.value ? "success" : "warning"}
             className={
               check.value
                 ? "border border-emerald-500/20 bg-emerald-500/5 text-emerald-700"
@@ -300,7 +301,7 @@ function EnvironmentChecks({ envChecks }: { envChecks: EnvCheck[] }) {
             }
           >
             {check.value ? "Ready" : "Needs setup"} · {check.label}
-          </Badge>
+          </Tag>
         ))}
       </div>
     </div>

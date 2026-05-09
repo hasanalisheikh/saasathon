@@ -1,27 +1,64 @@
 import Link from "next/link"
-import { Card, CardContent } from "@workspace/ui/components/card"
+import { cn } from "@workspace/ui/lib/utils"
+import { Card } from "@workspace/ui/components/card"
+import { Badge } from "@workspace/ui/components/badge"
+import { Tag } from "@workspace/ui/components/tag"
 import {
   EmptyState,
   EmptyStateTitle,
   EmptyStateDescription,
 } from "@workspace/ui/components/empty-state"
-import { ScrollArea } from "@workspace/ui/components/scroll-area"
-import { Clock } from "lucide-react"
+import {
+  ClassificationBadge,
+  StatusBadge,
+} from "@workspace/ui/components/status-badge"
+import { AlertTriangle, GitPullRequest, Mail, MessageSquare, PenTool } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@workspace/ui/components/table"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PendingRequest = {
+  id: string
+  raw_email_subject: string | null
+  raw_email_body: string | null
+  classification: string | null
+  cost_min: number | null
+  cost_max: number | null
+  source: string | null
+  status: string
+  risk_level: string | null
+  created_at: string
+  updated_at: string
+  project: {
+    id: string
+    name: string
+    client_name: string
+  } | null
+}
+
 interface PendingFeedProps {
-  requests: any[]
+  requests: PendingRequest[]
 }
 
 export function PendingFeed({ requests }: PendingFeedProps) {
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 mb-4">
+    <section className="space-y-4">
+      <div className="flex items-center gap-3">
         <h2 className="text-lg font-semibold tracking-tight">Pending Client Approval</h2>
+        {requests.length > 0 ? (
+          <Badge variant="outline" className="text-muted-foreground">
+            {requests.length}
+          </Badge>
+        ) : null}
       </div>
 
       {!requests.length ? (
-        <Card className="flex-1 flex items-center justify-center border-dashed bg-muted/20">
+        <Card className="flex min-h-[320px] items-center justify-center border-dashed bg-muted/20">
           <EmptyState>
             <EmptyStateTitle>No pending approvals</EmptyStateTitle>
             <EmptyStateDescription>
@@ -30,53 +67,128 @@ export function PendingFeed({ requests }: PendingFeedProps) {
           </EmptyState>
         </Card>
       ) : (
-        <ScrollArea className="flex-1 -mx-4 px-4 h-[500px]">
-          <div className="space-y-3 pb-4">
-            {requests.map((req) => (
-              <PendingCard key={req.id} request={req} />
-            ))}
+        <div className="overflow-hidden rounded-md border border-border/60 bg-background">
+          <div className="max-h-[336px] overflow-y-auto">
+            <Table className="text-sm">
+              <TableHeader>
+                <TableRow className="border-border/60 bg-muted/10 hover:bg-muted/10">
+                  <TableHead className="h-9 w-12 pl-4 text-sm/5 font-normal text-muted-foreground">
+                    Type
+                  </TableHead>
+                  <TableHead className="h-9 min-w-40 px-3 text-sm/5 font-normal text-muted-foreground">
+                    Client
+                  </TableHead>
+                  <TableHead className="h-9 min-w-72 px-3 text-sm/5 font-normal text-muted-foreground">
+                    Request
+                  </TableHead>
+                  <TableHead className="h-9 px-3 text-sm/5 font-normal text-muted-foreground">
+                    State
+                  </TableHead>
+                  <TableHead className="h-9 px-3 text-sm/5 font-normal text-muted-foreground">
+                    Scope
+                  </TableHead>
+                  <TableHead className="h-9 px-3 text-sm/5 font-normal text-muted-foreground">
+                    Estimate
+                  </TableHead>
+                  <TableHead className="h-9 px-3 text-right text-sm/5 font-normal text-muted-foreground">
+                    Updated
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {requests.map((request) => (
+                  <PendingRow key={request.id} request={request} />
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        </ScrollArea>
+        </div>
       )}
-    </div>
+    </section>
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function PendingCard({ request }: { request: any }) {
+function SourceIcon({ source }: { source: string }) {
+  switch (source) {
+    case "widget":
+      return <MessageSquare className="size-3.5 text-muted-foreground" />
+    case "manual":
+      return <PenTool className="size-3.5 text-muted-foreground" />
+    case "github":
+      return <GitPullRequest className="size-3.5 text-muted-foreground" />
+    case "email":
+    default:
+      return <Mail className="size-3.5 text-muted-foreground" />
+  }
+}
+
+function PendingRow({ request }: { request: PendingRequest }) {
+  const source = request.source || "email"
+  const isAlert = source === "github" || request.risk_level === "high"
+  const quotedAmount = request.cost_max
+    ? `$${(request.cost_min ?? 0).toLocaleString()}-$${request.cost_max.toLocaleString()}`
+    : null
+
   return (
-    <Link
-      href={`/projects/${(request.project as Record<string, string>)?.id}/requests/${request.id as string}`}
-      className="block group"
+    <TableRow
+      className={cn(
+        "border-l-[3px] border-l-sky-500 border-border/50 hover:bg-muted/10",
+        isAlert && "border-l-amber-500"
+      )}
     >
-      <Card className="transition-all duration-200 hover:ring-2 hover:ring-foreground/20 bg-surface shadow-sm hover:shadow-md border-l-[3px] border-l-blue-500">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">
-              {(request.project as Record<string, string>)?.client_name}
-            </span>
-            <div className="flex items-center text-xs text-muted-foreground font-mono">
-              <Clock className="w-3 h-3 mr-1" />
-              Sent {new Date(request.updated_at as string).toLocaleDateString()}
-            </div>
-          </div>
-          
-          <p className="text-sm truncate text-muted-foreground">
-            {(request.raw_email_subject as string) ||
-              (request.raw_email_body as string)}
-          </p>
-          
-          {request.cost_max ? (
-             <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
-               <span className="text-xs text-muted-foreground">Quoted Amount</span>
-               <span className="text-xs font-semibold text-foreground">
-                 ${(request.cost_min as number).toLocaleString()}–$
-                 {(request.cost_max as number).toLocaleString()}
-               </span>
-             </div>
-          ) : null}
-        </CardContent>
-      </Card>
-    </Link>
+      <TableCell className="py-2.5 pl-4">
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-muted-foreground">
+          <SourceIcon source={source} />
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-2.5">
+        <div className="min-w-0">
+          <Link
+            href={`/projects/${request.project?.id}/requests/${request.id}`}
+            className="block max-w-44 truncate text-sm/5 font-medium text-foreground transition-colors hover:text-primary"
+          >
+            {request.project?.client_name}
+          </Link>
+          <span className="block max-w-44 truncate text-xs/5 text-muted-foreground">
+            {request.project?.name}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-2.5">
+        <Link
+          href={`/projects/${request.project?.id}/requests/${request.id}`}
+          className={cn(
+            "block max-w-[34rem] truncate text-sm/5 transition-colors hover:text-primary",
+            isAlert ? "font-medium text-amber-500" : "text-foreground"
+          )}
+        >
+          {isAlert ? <AlertTriangle className="mr-1 inline size-3.5 -translate-y-px" /> : null}
+          {request.raw_email_subject || request.raw_email_body || "Untitled request"}
+        </Link>
+      </TableCell>
+      <TableCell className="px-3 py-2.5">
+        <StatusBadge status={request.status} />
+      </TableCell>
+      <TableCell className="px-3 py-2.5">
+        {request.classification ? (
+          <ClassificationBadge classification={request.classification} />
+        ) : (
+          <Tag variant="outline">Pending</Tag>
+        )}
+      </TableCell>
+      <TableCell className="px-3 py-2.5">
+        <span className="whitespace-nowrap text-sm/5 font-medium text-foreground">
+          {quotedAmount ?? "—"}
+        </span>
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-right">
+        <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+          {new Date(request.updated_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </TableCell>
+    </TableRow>
   )
 }

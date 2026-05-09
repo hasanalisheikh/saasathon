@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import type { Request, RequestTask } from "@/types"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
-import { Badge } from "@workspace/ui/components/badge"
+import { Tag, formatTagLabel } from "@workspace/ui/components/tag"
 import { Input } from "@workspace/ui/components/input"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { Separator } from "@workspace/ui/components/separator"
@@ -500,9 +500,9 @@ export default function RequestReviewPage() {
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">
                   Implementation Progress
                 </p>
-                <Badge variant={request.implementation_status === "completed" ? "default" : "outline"}>
+                <Tag variant={request.implementation_status === "completed" ? "primary" : "outline"}>
                   {completedTaskCount}/{taskRows.length} complete
-                </Badge>
+                </Tag>
               </div>
               <div className="mb-2 h-1 rounded-full bg-border">
                 <div
@@ -519,9 +519,9 @@ export default function RequestReviewPage() {
                         <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
                       )}
                     </div>
-                    <Badge variant={task.status === "completed" ? "default" : "outline"}>
-                      {task.status.replace("_", " ")}
-                    </Badge>
+                    <Tag variant={task.status === "completed" ? "primary" : "outline"}>
+                      {formatTagLabel(task.status)}
+                    </Tag>
                   </div>
                 ))}
               </div>
@@ -571,12 +571,12 @@ export default function RequestReviewPage() {
           {/* Timeline + Risk */}
           <div className="flex gap-3">
             {request.timeline_impact_days !== null && (
-              <Badge variant="destructive">+{request.timeline_impact_days} days</Badge>
+              <Tag variant="danger">+{request.timeline_impact_days} days</Tag>
             )}
             {request.risk_level && (
-              <Badge variant="outline" className="uppercase">
-                {request.risk_level} risk
-              </Badge>
+              <Tag variant="outline">
+                {formatTagLabel(`${request.risk_level} risk`)}
+              </Tag>
             )}
           </div>
         </div>

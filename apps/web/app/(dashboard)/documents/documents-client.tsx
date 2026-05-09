@@ -54,6 +54,7 @@ import {
 } from "@workspace/ui/components/table"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { ViewSwitcher } from "@workspace/ui/components/view-switcher"
+import { Tag, formatTagLabel } from "@workspace/ui/components/tag"
 import { cn } from "@workspace/ui/lib/utils"
 
 type ProjectOption = {
@@ -103,17 +104,10 @@ function formatDate(value: string): string {
 
 function statusVariant(
   status: ExtractionStatus
-): "default" | "destructive" | "secondary" {
-  if (status === "completed") return "default"
-  if (status === "failed") return "destructive"
-  return "secondary"
-}
-
-function formatChipLabel(value: string): string {
-  return value
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ")
+): React.ComponentProps<typeof Tag>["variant"] {
+  if (status === "completed") return "success"
+  if (status === "failed") return "danger"
+  return "default"
 }
 
 function getResponseError(
@@ -603,12 +597,12 @@ function DocumentTable({
                   </TableCell>
                   <TableCell className="px-3 py-2.5">
                     <span className="text-sm/5 text-muted-foreground">
-                      {formatChipLabel(document.document_type)}
+                      {formatTagLabel(document.document_type)}
                     </span>
                   </TableCell>
                   <TableCell className="px-3 py-2.5">
                     <span className="text-sm/5 text-muted-foreground">
-                      {formatChipLabel(document.extraction_status)}
+                      {formatTagLabel(document.extraction_status)}
                     </span>
                   </TableCell>
                   <TableCell className="px-3 py-2.5">
@@ -684,21 +678,21 @@ function DocumentTags({ tags }: { tags: string[] }) {
   return (
     <div className="flex max-w-44 flex-wrap gap-1.5">
       {tags.slice(0, 2).map((tag) => (
-        <Badge
+        <Tag
           key={tag}
           variant="outline"
           className="h-6 rounded-md px-2 text-sm/5 font-normal"
         >
-          {tag}
-        </Badge>
+          {formatTagLabel(tag)}
+        </Tag>
       ))}
       {tags.length > 2 ? (
-        <Badge
+        <Tag
           variant="outline"
           className="h-6 rounded-md px-2 text-sm/5 font-normal"
         >
           +{tags.length - 2}
-        </Badge>
+        </Tag>
       ) : null}
     </div>
   )
@@ -821,12 +815,10 @@ function DocumentPreview({
           </p>
 
           <div className="flex flex-wrap gap-2">
-            <Badge variant={statusVariant(document.extraction_status)}>
-              {formatChipLabel(document.extraction_status)}
-            </Badge>
-            <Badge variant="outline">
-              {formatChipLabel(document.document_type)}
-            </Badge>
+            <Tag variant={statusVariant(document.extraction_status)}>
+              {formatTagLabel(document.extraction_status)}
+            </Tag>
+            <Tag variant="outline">{formatTagLabel(document.document_type)}</Tag>
           </div>
         </div>
       </div>
@@ -840,9 +832,9 @@ function DocumentPreview({
           <p className="text-xs/5 font-medium text-muted-foreground">Tags</p>
           <div className="flex flex-wrap gap-2">
             {document.tags.map((tag) => (
-              <Badge key={tag} variant="outline">
-                {tag}
-              </Badge>
+              <Tag key={tag} variant="outline">
+                {formatTagLabel(tag)}
+              </Tag>
             ))}
           </div>
         </div>

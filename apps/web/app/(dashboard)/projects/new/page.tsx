@@ -9,7 +9,7 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import { FormField, FormLabel, FormHint } from "@workspace/ui/components/form-field"
 import { StepProgress } from "@workspace/ui/components/step-progress"
 import { PageTitle } from "@workspace/ui/components/page-header"
-import { Badge } from "@workspace/ui/components/badge"
+import { Tag } from "@workspace/ui/components/tag"
 
 type Step = 1 | 2 | 3
 
@@ -281,7 +281,7 @@ export default function NewProjectPage() {
 
             <div className="flex flex-wrap gap-2 mb-3">
               {SUGGESTED_CATEGORIES.map((s) => (
-                <Badge
+                <Tag
                   key={s.name}
                   variant="outline"
                   className="cursor-pointer hover:bg-muted"
@@ -294,7 +294,7 @@ export default function NewProjectPage() {
                   render={<button type="button" />}
                 >
                   + {s.name}
-                </Badge>
+                </Tag>
               ))}
             </div>
           </div>

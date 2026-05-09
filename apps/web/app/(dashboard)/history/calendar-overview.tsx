@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
-import { Badge } from "@workspace/ui/components/badge"
+import { Tag } from "@workspace/ui/components/tag"
 import { Calendar, CalendarDayButton } from "@workspace/ui/components/calendar"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import {
@@ -195,7 +195,7 @@ function CalendarOverviewEventRow({ event }: { event: CalendarOverviewEvent }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-            <Badge variant="outline">{event.title}</Badge>
+            <Tag variant="outline">{event.title}</Tag>
             <StatusBadge status={event.status} />
             <ClassificationBadge classification={event.classification} />
           </div>
