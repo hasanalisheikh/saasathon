@@ -1,12 +1,14 @@
 import OpenAI from 'openai'
 import type { AIAnalysis, ProjectDocumentContext } from '@/types'
 import {
+  buildClientReplyMessages,
   buildCommitTranslationMessages,
   buildRequestAnalysisMessages,
   buildScopeExtractionMessages,
   buildUnapprovedWorkMessages,
   extractJsonObject,
   parseAIAnalysis,
+  parseClientReply,
   parseCommitTranslation,
   parseScopeStructured,
   parseUnapprovedWorkResult,
@@ -117,6 +119,30 @@ export async function translateCommits(commits: string[]): Promise<string> {
     messages: buildCommitTranslationMessages(commits),
   })
   return parseCommitTranslation(readTextMessageContent(response, 'commit translation'))
+}
+
+export async function generateClientReply(params: {
+  tone: 'friendly' | 'professional' | 'firm'
+  clientName: string
+  projectName: string
+  classification: string
+  clientRequest: string
+  technicalBreakdown: string
+  currentReply: string
+  costRange: string | null
+  timelineDays: number | null
+  riskLevel: string | null
+}): Promise<string> {
+  const client = getAIClient()
+  const response = await client.chat.completions.create({
+    model: _model,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    response_format: { type: 'json_object' } as any,
+    temperature: params.tone === 'friendly' ? 0.45 : 0.25,
+    messages: buildClientReplyMessages(params),
+  })
+
+  return parseClientReply(readJsonMessageContent(response, 'client reply generation'))
 }
 
 export async function detectUnapprovedWork(params: {

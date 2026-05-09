@@ -9,6 +9,7 @@ const REQUEST_ANALYSIS_PROMPT_VERSION = 'request-analysis/v2'
 const SCOPE_EXTRACTION_PROMPT_VERSION = 'scope-extraction/v1'
 const COMMIT_TRANSLATION_PROMPT_VERSION = 'commit-translation/v1'
 const UNAPPROVED_WORK_PROMPT_VERSION = 'unapproved-work/v1'
+const CLIENT_REPLY_PROMPT_VERSION = 'client-reply/v1'
 
 const REQUEST_ANALYSIS_RESPONSE_SHAPE = `{
   "classification": "in_scope|out_of_scope|ambiguous|clarification_needed",
@@ -38,6 +39,10 @@ const SCOPE_EXTRACTION_RESPONSE_SHAPE = `{
   "revision_limit": "2 rounds of revisions",
   "timeline": "4 weeks",
   "pricing_model": "fixed_fee|hourly|retainer|milestone|unknown"
+}`
+
+const CLIENT_REPLY_RESPONSE_SHAPE = `{
+  "reply": "client-ready message"
 }`
 
 export function buildRequestAnalysisMessages(params: {
@@ -162,6 +167,70 @@ ${commits.join('\n')}`,
   ]
 }
 
+export function buildClientReplyMessages(params: {
+  tone: 'friendly' | 'professional' | 'firm'
+  clientName: string
+  projectName: string
+  classification: string
+  clientRequest: string
+  technicalBreakdown: string
+  currentReply: string
+  costRange: string | null
+  timelineDays: number | null
+  riskLevel: string | null
+}) {
+  return [
+    {
+      role: 'system' as const,
+      content: [
+        `Prompt version: ${CLIENT_REPLY_PROMPT_VERSION}.`,
+        'You write client-facing scope review messages for Monad, a tool that helps software developers turn client change requests into clear approvals.',
+        'Your job is to produce a polished message the developer can send directly to the client.',
+        '',
+        'Commercial safety rules:',
+        '- Do not casually accept out-of-scope or ambiguous work.',
+        '- If the request is out of scope, clearly state that it is additional work and requires approval before scheduling or starting.',
+        '- If a cost range is provided, include that exact range verbatim. Do not recalculate or alter it.',
+        '- If timeline impact is provided, mention it briefly without overpromising exact delivery.',
+        '- If the request is in scope, say no additional approval is needed.',
+        '- If the request is ambiguous or needs clarification, ask only the minimum questions needed to classify or estimate it.',
+        '',
+        'Writing rules:',
+        '- Match the requested tone: friendly is warm and collaborative, professional is concise and neutral, firm is direct and boundary-setting.',
+        '- Keep the message under 180 words.',
+        '- Use plain English and avoid legalese, jargon, markdown, bullet lists, emojis, and exaggerated apologies.',
+        '- Preserve the developer-client relationship while keeping the approval boundary clear.',
+        '- Never invent scope evidence, deadlines, discounts, commitments, or implementation details.',
+        '- Return valid JSON only. No markdown fences or prose outside the JSON object.',
+      ].join('\n'),
+    },
+    {
+      role: 'user' as const,
+      content: `REQUEST CONTEXT:
+Client name: ${params.clientName}
+Project: ${params.projectName}
+Classification: ${params.classification}
+Risk level: ${params.riskLevel ?? 'unknown'}
+Estimated additional cost: ${params.costRange ?? 'none provided'}
+Timeline impact days: ${params.timelineDays ?? 'none provided'}
+
+CLIENT REQUEST:
+${params.clientRequest}
+
+TECHNICAL BREAKDOWN:
+${params.technicalBreakdown || 'No technical breakdown available.'}
+
+CURRENT DEVELOPER DRAFT:
+${params.currentReply || 'No draft available.'}
+
+Requested tone: ${params.tone}
+
+Return JSON exactly in this shape:
+${CLIENT_REPLY_RESPONSE_SHAPE}`,
+    },
+  ]
+}
+
 export function buildUnapprovedWorkMessages(params: {
   approvedRequests: { technical_breakdown: string }[]
   prTitle: string
@@ -236,6 +305,11 @@ export function parseScopeStructured(input: unknown): ScopeStructured {
 
 export function parseCommitTranslation(input: unknown): string {
   return expectString(input, 'commit translation')
+}
+
+export function parseClientReply(input: unknown): string {
+  const raw = expectObject(input, 'client reply response')
+  return expectString(raw.reply, 'reply')
 }
 
 export function parseUnapprovedWorkResult(input: unknown): {
