@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { DocumentsClient } from "./documents-client"
+import { DocumentsClient, type DocumentWithProject } from "./documents-client"
 
 export default async function DocumentsPage({
   searchParams,
@@ -13,9 +13,10 @@ export default async function DocumentsPage({
   const [{ data: documents }, { data: projects }] = await Promise.all([
     supabase
       .from("documents")
-      .select("*, project:projects(id, name, client_name)")
+      .select("id, user_id, project_id, title, description, tags, document_type, file_name, file_size, extraction_status, extraction_error, created_at, updated_at, project:projects(id, name, client_name)")
       .eq("user_id", user!.id)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .returns<DocumentWithProject[]>(),
     supabase
       .from("projects")
       .select("id, name, client_name")

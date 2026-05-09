@@ -27,7 +27,7 @@ import {
   EmptyStateDescription,
 } from "@workspace/ui/components/empty-state"
 import { ProjectPageActions } from "./project-page-actions"
-import { ProjectRequestsTab } from "./project-requests-tab"
+import { ProjectRequestsTab, type ProjectRequestListItem } from "./project-requests-tab"
 import {
   Calendar,
   ExternalLink,
@@ -46,6 +46,13 @@ const TABS = [
   "proof-pack",
 ] as const
 type Tab = (typeof TABS)[number]
+
+type ProjectDetailRequest = ProjectRequestListItem & {
+  approved_at: string | null
+  github_issue_number: number | null
+  github_issue_url: string | null
+  project_id: string
+}
 
 const TAB_ICONS: Record<Tab, LucideIcon> = {
   requests: Inbox,
@@ -74,35 +81,60 @@ export default async function ProjectDetailPage({
 
   const { data: project } = await supabase
     .from("projects")
-    .select("*")
+    .select("id, user_id, name, client_name, client_email, scope_raw, scope_structured, inbound_email, github_repo_id, github_repo_name, github_installation_id, hourly_rate, task_categories, status, created_at, updated_at")
     .eq("id", id)
     .eq("user_id", user!.id)
     .single()
 
   if (!project) notFound()
 
+  const githubMessage = getGitHubStatusMessage(githubStatus ?? null)
+  const githubConnected = isGitHubInstallationId(project.github_installation_id)
+  const githubConnectHref = buildGitHubConnectPath({
+    projectId: id,
+    returnTo: `/projects/${id}/github-setup`,
+  })
+  const githubSetupHref = `/projects/${id}/github-setup`
+  const githubAppReady = isGitHubAppConfigured()
+  const githubRepoUrl = project.github_repo_name
+    ? `https://github.com/${project.github_repo_name}`
+    : null
+  const githubInstallationId = parseGitHubInstallationId(project.github_installation_id)
+  const [githubOwner = "", githubRepo = ""] = (project.github_repo_name as string | null)?.split("/") ?? []
+  const githubIssuesPromise =
+    githubAppReady && githubInstallationId && githubOwner && githubRepo
+      ? loadRepoIssues({
+          installationId: githubInstallationId,
+          owner: githubOwner,
+          repo: githubRepo,
+        })
+      : Promise.resolve({ issues: [] as InstallationRepoIssue[], error: null as string | null })
+
   const [
     { data: requests },
     { data: projectDocuments },
     { data: githubEvents },
+    githubIssuesResult,
   ] = await Promise.all([
     supabase
       .from("requests")
-      .select("*")
+      .select("id, project_id, raw_email_subject, raw_email_body, raw_email_from, source, classification, cost_min, cost_max, status, approved_at, github_issue_number, github_issue_url, created_at, updated_at")
       .eq("project_id", id)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .returns<ProjectDetailRequest[]>(),
     supabase
       .from("documents")
-      .select("*")
+      .select("id, title, tags, document_type, file_name, extraction_status, created_at")
       .eq("project_id", id)
       .eq("user_id", user!.id)
       .order("created_at", { ascending: false }),
     supabase
       .from("github_events")
-      .select("*")
+      .select("id, event_type, github_data, plain_english_summary, is_unapproved_work, created_at")
       .eq("project_id", id)
       .order("created_at", { ascending: false })
       .limit(50),
+    githubIssuesPromise,
   ])
 
   const approvedRequests = (requests ?? []).filter(
@@ -120,27 +152,6 @@ export default async function ProjectDetailPage({
     github: "GitHub",
     "proof-pack": "Proof Pack",
   }
-  const githubMessage = getGitHubStatusMessage(githubStatus ?? null)
-  const githubConnected = isGitHubInstallationId(project.github_installation_id)
-  const githubConnectHref = buildGitHubConnectPath({
-    projectId: id,
-    returnTo: `/projects/${id}/github-setup`,
-  })
-  const githubSetupHref = `/projects/${id}/github-setup`
-  const githubAppReady = isGitHubAppConfigured()
-  const githubRepoUrl = project.github_repo_name
-    ? `https://github.com/${project.github_repo_name}`
-    : null
-  const githubInstallationId = parseGitHubInstallationId(project.github_installation_id)
-  const [githubOwner = "", githubRepo = ""] = (project.github_repo_name as string | null)?.split("/") ?? []
-  const githubIssuesResult =
-    githubAppReady && githubInstallationId && githubOwner && githubRepo
-      ? await loadRepoIssues({
-          installationId: githubInstallationId,
-          owner: githubOwner,
-          repo: githubRepo,
-        })
-      : { issues: [] as InstallationRepoIssue[], error: null as string | null }
   const linkedIssueNumbers = new Set(
     (requests ?? [])
       .map((request) => request.github_issue_number)
@@ -509,7 +520,7 @@ export default async function ProjectDetailPage({
                       <div className="mt-1 flex items-center gap-3">
                         <span className="text-xs text-muted-foreground">
                           Approved{" "}
-                          {new Date(req.approved_at).toLocaleDateString()}
+                          {new Date(req.approved_at!).toLocaleDateString()}
                         </span>
                         {req.cost_min && req.cost_max && (
                           <span className="text-xs text-primary">

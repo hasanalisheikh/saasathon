@@ -48,6 +48,21 @@ import { cn } from "@workspace/ui/lib/utils"
 
 type RequestsView = "board" | "table"
 
+export type ProjectRequestListItem = Pick<
+  Request,
+  | "id"
+  | "raw_email_subject"
+  | "raw_email_body"
+  | "raw_email_from"
+  | "source"
+  | "classification"
+  | "cost_min"
+  | "cost_max"
+  | "status"
+  | "created_at"
+  | "updated_at"
+>
+
 type RequestStatusColumn = {
   accentClassName: string
   description: string
@@ -115,7 +130,7 @@ const REQUEST_STATUS_COLUMNS: RequestStatusColumn[] = [
 
 interface ProjectRequestsTabProps {
   projectId: string
-  requests: Request[]
+  requests: ProjectRequestListItem[]
 }
 
 export function ProjectRequestsTab({
@@ -265,7 +280,7 @@ function RequestBoard({
   projectId,
   updatingRequestId,
 }: {
-  columns: Array<RequestStatusColumn & { requests: Request[] }>
+  columns: Array<RequestStatusColumn & { requests: ProjectRequestListItem[] }>
   draggingRequestId: string | null
   dropStatus: RequestStatus | null
   onDragEnd: () => void
@@ -308,7 +323,7 @@ function RequestBoardColumn({
   projectId,
   updatingRequestId,
 }: {
-  column: RequestStatusColumn & { requests: Request[] }
+  column: RequestStatusColumn & { requests: ProjectRequestListItem[] }
   draggingRequestId: string | null
   dropStatus: RequestStatus | null
   onDragEnd: () => void
@@ -397,7 +412,7 @@ function RequestBoardCard({
   onDragEnd: () => void
   onDragStart: (requestId: string) => void
   projectId: string
-  request: Request
+  request: ProjectRequestListItem
 }) {
   return (
     <Link
@@ -476,7 +491,7 @@ function RequestTable({
   requests,
 }: {
   projectId: string
-  requests: Request[]
+  requests: ProjectRequestListItem[]
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border/70 bg-card">
@@ -546,7 +561,7 @@ function RequestTable({
   )
 }
 
-function getRequestTitle(request: Request) {
+function getRequestTitle(request: ProjectRequestListItem) {
   return (
     request.raw_email_subject ||
     request.raw_email_body.slice(0, 72) ||

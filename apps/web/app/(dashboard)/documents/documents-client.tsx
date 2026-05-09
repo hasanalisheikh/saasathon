@@ -63,7 +63,22 @@ type ProjectOption = {
   client_name: string
 }
 
-type DocumentWithProject = ProjectDocument & {
+export type DocumentWithProject = Pick<
+  ProjectDocument,
+  | "id"
+  | "user_id"
+  | "project_id"
+  | "title"
+  | "description"
+  | "tags"
+  | "document_type"
+  | "file_name"
+  | "file_size"
+  | "extraction_status"
+  | "extraction_error"
+  | "created_at"
+  | "updated_at"
+> & {
   project?: ProjectOption | null
 }
 

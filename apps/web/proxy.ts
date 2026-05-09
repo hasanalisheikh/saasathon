@@ -14,6 +14,17 @@ const PUBLIC_PATHS = [
 ]
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  // Don't bounce authenticated users away from reset-password — they have a
+  // temporary recovery session and need to submit the form.
+  const isAuthOnlyPage =
+    pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password'
+
+  if (isPublic && !isAuthOnlyPage) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
   let user = null
 
@@ -42,20 +53,12 @@ export async function proxy(request: NextRequest) {
     // env var missing or Supabase unreachable — treat as unauthenticated
   }
 
-  const { pathname } = request.nextUrl
-
-  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
-
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Don't bounce authenticated users away from reset-password — they have a
-  // temporary recovery session and need to submit the form.
-  const isAuthOnlyPage =
-    pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password'
   if (user && isAuthOnlyPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'

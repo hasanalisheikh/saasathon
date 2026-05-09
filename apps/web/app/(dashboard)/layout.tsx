@@ -13,17 +13,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, email")
-    .eq("id", user.id)
-    .single()
-
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("id, name")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
+  const [{ data: profile }, { data: projects }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("projects")
+      .select("id, name")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+  ])
 
   const commitHash = getCommitHash()
 

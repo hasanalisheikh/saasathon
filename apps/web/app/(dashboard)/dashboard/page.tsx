@@ -67,7 +67,8 @@ export default async function DashboardPage() {
     { data: inboxRequests },
     { data: pendingApprovalRequests },
     { data: monthRequests },
-    { data: decisionRequests },
+    { count: approvedDecisionCount },
+    { count: totalDecisionCount },
     { data: projects },
   ] = await Promise.all([
     supabase
@@ -93,7 +94,13 @@ export default async function DashboardPage() {
       .gte("created_at", startOfMonth),
     supabase
       .from("requests")
-      .select("status, classification, projects!inner(user_id)")
+      .select("id, projects!inner(user_id)", { count: "exact", head: true })
+      .eq("projects.user_id", user!.id)
+      .eq("classification", "out_of_scope")
+      .eq("status", "approved"),
+    supabase
+      .from("requests")
+      .select("id, projects!inner(user_id)", { count: "exact", head: true })
       .eq("projects.user_id", user!.id)
       .eq("classification", "out_of_scope")
       .in("status", ["approved", "declined"]),
@@ -101,6 +108,7 @@ export default async function DashboardPage() {
       .from("projects")
       .select("id, name, client_name, status, github_repo_name, requests(id, classification, status, cost_min, cost_max)")
       .eq("user_id", user!.id)
+      .in("requests.status", ["pending_review", "sent_to_client", "approved"])
       .order("updated_at", { ascending: false })
       .limit(20)
       .returns<DashboardProject[]>(),
@@ -117,9 +125,8 @@ export default async function DashboardPage() {
     quoteValues.length > 0
       ? quoteValues.reduce((sum, value) => sum + value, 0) / quoteValues.length
       : 0
-  const approvedDecisionCount = decisionRequests?.filter((r) => r.status === "approved").length ?? 0
   const approvalRate =
-    decisionRequests?.length ? Math.round((approvedDecisionCount / decisionRequests.length) * 100) : null
+    totalDecisionCount ? Math.round(((approvedDecisionCount ?? 0) / totalDecisionCount) * 100) : null
 
   return (
     <div className="flex-1 overflow-y-auto p-6">

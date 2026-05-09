@@ -25,8 +25,9 @@ export default async function HistoryPage({
     supabase
       .from("requests")
       .select(
-        "id, project_id, raw_email_subject, raw_email_body, raw_email_from, classification, status, timeline_impact_days, approved_at, declined_at, created_at, updated_at, project:projects(id, name, client_name)"
+        "id, project_id, raw_email_subject, raw_email_body, raw_email_from, classification, status, timeline_impact_days, approved_at, declined_at, created_at, updated_at, project:projects!inner(id, name, client_name)"
       )
+      .eq("project.user_id", user!.id)
       .order("created_at", { ascending: false })
       .returns<HistoryRequest[]>(),
     supabase
@@ -37,17 +38,13 @@ export default async function HistoryPage({
       .returns<HistoryProject[]>(),
   ])
 
-  const projectIds = new Set((projects ?? []).map((item) => item.id))
-  const ownedRequests = (requests ?? []).filter((request) =>
-    projectIds.has(request.project_id)
-  )
   const initialStatus = isRequestStatus(status) ? status : "all"
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <HistoryClient
         initialProjectId={project_id ?? project ?? "all"}
-        initialRequests={ownedRequests}
+        initialRequests={requests ?? []}
         initialStatus={initialStatus}
         projects={projects ?? []}
       />
