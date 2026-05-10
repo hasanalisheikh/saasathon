@@ -93,77 +93,79 @@ const platformFeatures: PlatformFeature[] = [
 export default function LandingPage() {
   return (
     <main className="dark relative min-h-screen bg-background text-foreground">
-      <nav className="sticky top-0 z-40 px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr] items-center gap-4 sm:grid-cols-3">
-          <div className="flex items-center justify-start">
-            <Link href="/" aria-label="Monad home">
-              <BrandMark size="md" />
-            </Link>
-          </div>
-          <div className="hidden items-center justify-center gap-6 sm:flex">
-            <a className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:inline transition-colors" href="#how">
-              Workflow
-            </a>
-            <a className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:inline transition-colors" href="#pricing">
-              Pricing
-            </a>
-          </div>
-          <div className="flex items-center justify-end gap-3 sm:gap-5">
-            <Link
-              className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-xs font-medium whitespace-nowrap text-primary-foreground transition-colors hover:bg-primary/90 sm:px-4 sm:text-sm"
-              href="/signup"
-            >
-              Get Monad Free
-            </Link>
-            <Link className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" href="/login">
-              Log in
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      <section className="relative flex min-h-[calc(100svh-298px)] flex-col overflow-hidden">
-        <div className="relative flex flex-1 items-center px-5 py-6 sm:py-8">
-          <HeroSignal />
-          <div className="relative z-10 mx-auto max-w-3xl text-center">
-            <h1 className="text-5xl font-bold leading-none sm:text-[4.4rem] sm:leading-15">
-              Scope creep control.
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-[17px] leading-6 text-muted-foreground">
-              Monad elevates informal client requests into structured, approved, and GitHub-verified change orders before
-              they quietly evolve into unbilled deliverables.
-            </p>
-            <div className="mt-5 flex flex-wrap justify-center gap-4">
+      <section className="relative flex min-h-screen flex-col overflow-hidden">
+        <nav className="sticky top-0 z-40 px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr] items-center gap-4 sm:grid-cols-3">
+            <div className="flex items-center justify-start">
+              <Link href="/" aria-label="Monad home">
+                <BrandMark size="md" />
+              </Link>
+            </div>
+            <div className="hidden items-center justify-center gap-6 sm:flex">
+              <a className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:inline transition-colors" href="#how">
+                Workflow
+              </a>
+              <a className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:inline transition-colors" href="#pricing">
+                Pricing
+              </a>
+            </div>
+            <div className="flex items-center justify-end gap-3 sm:gap-5">
               <Link
-                className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-xs font-medium whitespace-nowrap text-primary-foreground transition-colors hover:bg-primary/90 sm:px-4 sm:text-sm"
                 href="/signup"
               >
                 Get Monad Free
               </Link>
-              <a
-                className="inline-flex h-10 items-center justify-center rounded-md bg-secondary px-6 text-[15px] font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
-                href="#how"
-              >
-                See the workflow
-              </a>
+              <Link className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" href="/login">
+                Log in
+              </Link>
             </div>
           </div>
-        </div>
+        </nav>
 
-        <div className="mt-auto border-y border-border bg-muted/50 px-5 py-5">
-          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3 text-center text-sm font-medium text-muted-foreground lg:flex-nowrap">
-            <p className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-[#097fe8]" />
-              Itemised receipts halt invoice shock
-            </p>
-            <p className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-[#097fe8]" />
-              Absolute clarity on deliverables
-            </p>
-            <p className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-[#097fe8]" />
-              Zero uncompensated scope extensions
-            </p>
+        <div className="relative flex flex-1 flex-col">
+          <div className="relative flex flex-1 items-center px-5 py-6 sm:py-8">
+            <HeroSignal />
+            <div className="relative z-10 mx-auto max-w-3xl text-center">
+              <h1 className="text-5xl font-bold leading-none sm:text-[4.4rem] sm:leading-15">
+                Scope creep control.
+              </h1>
+              <p className="mx-auto mt-6 max-w-2xl text-[17px] leading-6 text-muted-foreground">
+                Monad elevates client requests into structured, approved, and GitHub-verified change orders before
+                they quietly evolve into unbilled deliverables.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-4">
+                <Link
+                  className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  href="/signup"
+                >
+                  Get Monad Free
+                </Link>
+                <a
+                  className="inline-flex h-10 items-center justify-center rounded-md bg-secondary px-6 text-[15px] font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                  href="#how"
+                >
+                  See the workflow
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-auto border-y border-border bg-muted/50 px-5 py-5">
+            <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3 text-center text-sm font-medium text-muted-foreground lg:flex-nowrap">
+              <p className="flex items-center gap-2">
+                <CheckCircle2 className="size-4 text-[#097fe8]" />
+                Itemised receipts halt invoice shock
+              </p>
+              <p className="flex items-center gap-2">
+                <CheckCircle2 className="size-4 text-[#097fe8]" />
+                Absolute clarity on deliverables
+              </p>
+              <p className="flex items-center gap-2">
+                <CheckCircle2 className="size-4 text-[#097fe8]" />
+                Zero uncompensated scope extensions
+              </p>
+            </div>
           </div>
         </div>
       </section>
