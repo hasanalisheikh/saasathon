@@ -3,6 +3,8 @@ import { getAppUrl } from '@/lib/env'
 import { buildSlackApprovalMessage, buildSlackIncludedMessage, postSlackMessage } from '@/lib/slack'
 import { replaceRequestTasks } from '@/lib/request-tasks'
 import { createClient } from '@/lib/supabase/server'
+import { buildIssueBody, createIssue, parseGitHubInstallationId } from '@/lib/github'
+import { ensureRequestTasks } from '@/lib/request-tasks'
 import type { AITask, Classification, ReplyTone, RequestStatus } from '@/types'
 
 const MANUAL_STATUS_TRANSITIONS: RequestStatus[] = ['accepted_in_scope', 'deferred', 'declined']
@@ -86,7 +88,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
   const { data: existing } = await supabase
     .from('requests')
     .select(
-      'id, approval_token, classification, cost_min, cost_max, effort_min_hours, effort_max_hours, final_reply, reply_tone, slack_channel_id, slack_thread_ts, technical_breakdown, reasoning, timeline_impact_days, tasks, project:projects(id, user_id, slack_channel_id)'
+      'id, approval_token, classification, cost_min, cost_max, effort_min_hours, effort_max_hours, final_reply, reply_tone, slack_channel_id, slack_thread_ts, technical_breakdown, reasoning, timeline_impact_days, tasks, raw_email_body, raw_email_subject, project:projects(id, name, user_id, slack_channel_id, github_repo_name, github_installation_id)'
     )
     .eq('id', requestId)
     .single()
@@ -95,8 +97,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
 
   const projectRelation = existing.project as unknown
   const project = Array.isArray(projectRelation)
-    ? projectRelation[0] as { id: string; user_id: string; slack_channel_id: string | null } | undefined
-    : projectRelation as { id: string; user_id: string; slack_channel_id: string | null } | null
+    ? projectRelation[0] as { id: string; name: string; user_id: string; slack_channel_id: string | null; github_repo_name: string | null; github_installation_id: string | null } | undefined
+    : projectRelation as { id: string; name: string; user_id: string; slack_channel_id: string | null; github_repo_name: string | null; github_installation_id: string | null } | null
 
   if (!project || project.user_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -115,8 +117,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
   }
 
   let updates: Record<string, string | number | null | AITask[] | Classification>
+  let isAcceptedInScope = false
 
   if (status === 'accepted_in_scope') {
+    isAcceptedInScope = true
     updates = { status, classification: 'in_scope', ...analysisUpdates }
   } else if (status === 'sent_to_client') {
     if (!finalReply) {
@@ -279,6 +283,55 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Create GitHub issue for accepted_in_scope requests
+  if (isAcceptedInScope && project.github_repo_name && project.github_installation_id) {
+    try {
+      // Verify cost is confirmed
+      const resolvedCostMin = costMin.value ?? existing.cost_min
+      const resolvedCostMax = costMax.value ?? existing.cost_max
+
+      if (resolvedCostMin !== null && resolvedCostMax !== null) {
+        const approvedCost = `$${resolvedCostMin.toLocaleString()} – $${resolvedCostMax.toLocaleString()}`
+
+        const requestTasks = await ensureRequestTasks({
+          supabase,
+          requestId: data.id,
+          projectId: project.id,
+          tasks: data.tasks ?? [],
+        })
+
+        const installationId = parseGitHubInstallationId(project.github_installation_id)
+        if (installationId) {
+          const issueBody = buildIssueBody({
+            clientRequest: data.raw_email_body ?? existing.raw_email_body ?? '',
+            technicalBreakdown: data.technical_breakdown ?? existing.technical_breakdown ?? '',
+            approvedCost,
+            approvalTimestamp: new Date().toISOString(),
+            monadRequestUrl: `${getAppUrl()}/projects/${project.id}/requests/${data.id}`,
+            tasks: requestTasks,
+          })
+
+          const [owner = '', repo = ''] = project.github_repo_name.split('/')
+          const issue = await createIssue({
+            installationId,
+            owner,
+            repo,
+            title: data.raw_email_subject ?? existing.raw_email_subject ?? 'In-scope feature request',
+            body: issueBody,
+          })
+
+          await supabase.from('requests').update({
+            github_issue_number: issue.number,
+            github_issue_url: issue.url,
+          }).eq('id', data.id)
+        }
+      }
+    } catch (err) {
+      console.error('GitHub issue creation failed for accepted_in_scope request:', err)
+      // Non-fatal — acceptance still worked
+    }
+  }
 
   if (tasks.value !== undefined) {
     await replaceRequestTasks({
