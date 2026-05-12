@@ -6,7 +6,7 @@ export function HeroSignal() {
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden"
     >
-      <div className="absolute bottom-[-17rem] left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 sm:bottom-[-25rem] sm:h-[50rem] sm:w-[50rem]">
+      <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 sm:h-[50rem] sm:w-[50rem]">
         <div className="absolute inset-[20%] rounded-full bg-[#097fe8]/16 blur-3xl" />
         <div className="absolute inset-[9%] rounded-full border border-[#0f274a]/80 opacity-70" />
 
