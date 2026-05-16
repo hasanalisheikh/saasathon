@@ -2,7 +2,7 @@
 
 AI-powered scope creep protection for freelance developers and small agencies.
 
-Monad turns informal client requests into structured, priced, approved change orders before the work starts. It analyzes each request against the original project scope, drafts a professional client response, captures approval, and links the approved work to GitHub so there is a clear audit trail from ask to implementation.
+Monad turns client requests into structured, priced, approved change orders before the work starts. It analyzes each request against the original project scope, drafts a professional client response, captures approval, and links the approved work to GitHub so there is a clear audit trail from ask to implementation.
 
 Built during SaaSathon 2026 as a full-stack productivity SaaS MVP.
 
